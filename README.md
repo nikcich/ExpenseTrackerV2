@@ -1,11 +1,17 @@
-# Tauri + React + Typescript
+# Deps
 
-This template should help get you started developing with Tauri, React and Typescript in Vite.
+Rust (Rustc and Cargo via Rustup)
+Node and NPM
 
-## Recommended IDE Setup
+`cargo install tauri-cli`
+Verify with `tauri --version`
 
-- [VS Code](https://code.visualstudio.com/) + [Tauri](https://marketplace.visualstudio.com/items?itemName=tauri-apps.tauri-vscode) + [rust-analyzer](https://marketplace.visualstudio.com/items?itemName=rust-lang.rust-analyzer)
+cd to root app directory
 
+`npm install`
+`cd ./src-tauri`
+`cargo build`
+`cd ..`
 
 # Dev
 
