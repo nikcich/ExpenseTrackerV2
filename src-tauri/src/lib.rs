@@ -1,4 +1,5 @@
 use serde_json::{Value};
+use tauri::Manager;
 use tauri_plugin_store::StoreExt;
 
 // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
@@ -43,6 +44,33 @@ fn store_get_value(app_handle: tauri::AppHandle) -> Result<Value, String> {
     Ok(default_value)
 }
 
+#[tauri::command]
+async fn new_window(app: tauri::AppHandle) {
+    let len = app.webview_windows().len();
+    let label = format!("window-{}", len);
+
+    let _webview_window = tauri::WebviewWindowBuilder::new(
+        &app,
+        label,
+        tauri::WebviewUrl::App("index.html".into()),
+    )
+    .title(&format!("My Window {}", len)) // <-- set custom title here
+    .build()
+    .unwrap();
+}
+// fn new_window(app: tauri::AppHandle) -> tauri::Result<()> {
+//     let len = app.webview_windows().len();
+ 
+//     WebviewWindowBuilder::new(
+//         &app,
+//         format!("window-{}", len),
+//         tauri::WebviewUrl::App("https://google.com/".into()),
+//     )
+//     .build()?;
+ 
+//     Ok(())
+// }
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -50,7 +78,8 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![greet])
         .invoke_handler(tauri::generate_handler![
             store_set_value,
-            store_get_value
+            store_get_value,
+            new_window
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

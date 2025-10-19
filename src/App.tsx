@@ -1,6 +1,8 @@
 import { useState } from "react";
 import "./App.css";
 import { useValue } from "./store/store";
+import { API } from "./types/types";
+import { createTauriInvoker } from "./utils/utils";
 
 function App() {
 
@@ -14,6 +16,7 @@ function App() {
       <input type="number" value={inputValue} onChange={(e) => setInputValue(parseInt(e.target.value))}/>
       <button onClick={() => setValue(inputValue)}>Set Value</button>
       <p>Value: {value}</p>
+      <button onClick={createTauriInvoker(API.NewWindow)}>New Window</button>
     </main>
   );
 }

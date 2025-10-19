@@ -1,7 +1,7 @@
 import { BehaviorSubject, interval, startWith, Subscription, switchMap } from 'rxjs';
 import { invoke } from '@tauri-apps/api/core';
-import { useEffect, useState } from 'react';
-import { POLL_INTERVAL_MS } from '../types/types';
+import { useCallback, useEffect, useState } from 'react';
+import { API, POLL_INTERVAL_MS } from '../types/types';
 
 export function makeUseStoreValue<T>(
   subject: BehaviorSubject<T>,
@@ -28,7 +28,7 @@ type PollerArgs<T> = {
 }
 
 export function createTauriPoller<T>(
-  command: string,
+  command: API,
   pArgs: PollerArgs<T>
 ): BehaviorSubject<T> {
   interval(POLL_INTERVAL_MS)
@@ -40,4 +40,8 @@ export function createTauriPoller<T>(
     });
 
     return pArgs.subject;
+}
+
+export const createTauriInvoker = (command: API, args?: Record<string, unknown>) => {
+  return async () => await invoke(command, args);
 }
