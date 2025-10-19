@@ -1,4 +1,10 @@
-import { BehaviorSubject, interval, startWith, Subscription, switchMap } from 'rxjs';
+import {
+  BehaviorSubject,
+  interval,
+  startWith,
+  Subscription,
+  switchMap,
+} from 'rxjs';
 import { invoke } from '@tauri-apps/api/core';
 import { useEffect, useState } from 'react';
 import { API, KnownStoreKeys, POLL_INTERVAL_MS } from '../types/types';
@@ -22,9 +28,12 @@ export function makeUseStoreValue<T>(
   };
 }
 
-export const createTauriInvoker = (command: API, args?: Record<string, unknown>) => {
+export const createTauriInvoker = (
+  command: API,
+  args?: Record<string, unknown>
+) => {
   return async () => await invoke(command, args);
-}
+};
 
 type TauriStoreOptions<T> = {
   key: KnownStoreKeys;
@@ -38,7 +47,7 @@ type PollerArgs<T> = {
 
 export function createTauriPoller<T>(
   command: API,
-  pArgs: PollerArgs<T>,
+  pArgs: PollerArgs<T>
 ): BehaviorSubject<T> {
   interval(POLL_INTERVAL_MS)
     .pipe(
@@ -46,11 +55,10 @@ export function createTauriPoller<T>(
       switchMap(() => invoke<T>(command, pArgs?.args))
     )
     .subscribe({
-      next: (val) => {        
-          pArgs.subject.next(val);
+      next: (val) => {
+        pArgs.subject.next(val);
       },
-      error: (err) =>
-        console.error(`Polling for "${command}" failed:`, err),
+      error: (err) => console.error(`Polling for "${command}" failed:`, err),
     });
 
   return pArgs.subject;
@@ -58,7 +66,6 @@ export function createTauriPoller<T>(
 
 export function createTauriStoreHook<T>(options: TauriStoreOptions<T>) {
   const subject = new BehaviorSubject<T | undefined>(options.defaultValue);
-  let updating = false;
 
   const value$ = createTauriPoller<T | undefined>(API.GetValue, {
     subject,
@@ -67,12 +74,10 @@ export function createTauriStoreHook<T>(options: TauriStoreOptions<T>) {
 
   const setValue = async (newVal: T | undefined) => {
     if (newVal === undefined) return;
-    updating = true;
     try {
       await invoke(API.SetValue, { key: options.key, value: newVal });
-      subject.next(newVal); 
+      value$.next(newVal);
     } finally {
-      updating = false;
     }
   };
 
