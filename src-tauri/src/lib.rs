@@ -5,6 +5,7 @@ mod store;
 mod window_manager;
 mod utils;
 mod config;
+mod range_state;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -35,7 +36,9 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             store::store_set_value,
             store::store_get_value,
-            window_manager::new_window
+            window_manager::new_window,
+            range_state::set_date_range,
+            range_state::get_date_range
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

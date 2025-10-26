@@ -1,6 +1,12 @@
-import { KnownStoreKeys } from '../types/types';
-import { createTauriStoreHook } from '../utils/utils';
+import { API, KnownStoreKeys } from "../types/types";
+import { createTauriApiHooks, createTauriStoreHook } from "../utils/utils";
 
-export const useValue = createTauriStoreHook<number>({
+export const {
+  useTauriValue: useInstantBrushRange,
+  useDebouncedTauriValue: useDebouncedBrushRange,
+  value$: instantBrushRange$,
+} = createTauriApiHooks<[number, number]>(API.DateRange);
+
+export const [useValue, value$] = createTauriStoreHook<number>({
   key: KnownStoreKeys.MyValue,
 });

@@ -1,0 +1,22 @@
+.container {
+  margin: 0;
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  text-align: center;
+  height: 100vh;
+  width: 100vw;
+  overflow: auto;
+}
+
+.routeContainer {
+  display: flex;
+  width: 100%;
+  height: 100%;
+}
+
+.content {
+  flex-grow: 1;
+  height: 100%;
+  width: calc(100% - 4rem);
+}

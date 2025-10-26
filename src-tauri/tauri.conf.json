@@ -18,7 +18,21 @@
       }
     ],
     "security": {
-      "csp": null
+      "csp": null,
+      "capabilities": [
+        {
+          "identifier": "default",
+          "description": "all default capabilities for all windows",
+          "windows": ["*"],
+          "permissions": [
+            "core:default",
+            "opener:default",
+            "store:default",
+            "core:webview:allow-create-webview-window",
+            "core:event:allow-listen"
+          ]
+        }
+      ]
     }
   },
   "bundle": {

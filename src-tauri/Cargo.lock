@@ -885,6 +885,7 @@ dependencies = [
 name = "expense_tracker_v2"
 version = "0.1.0"
 dependencies = [
+ "lazy_static",
  "serde",
  "serde_json",
  "tauri",
