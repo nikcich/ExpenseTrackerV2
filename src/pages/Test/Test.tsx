@@ -1,6 +1,4 @@
 import { BrushScrubber } from "@/components/Brush/BrushScrubber";
-import { BarChart } from "../../components/charts/BarChart";
-import { MOCK_EXPENSES } from "@/types/mockExpenses";
 import { GenericPage } from "@/components/GenericPage/GenericPage";
 import { useFilteredExpenses } from "@/hooks/expenses";
 import {
@@ -31,7 +29,7 @@ export function Test() {
   return (
     <GenericPage
       title="Test Page"
-      footer={<BrushScrubber expenses={MOCK_EXPENSES} />}
+      footer={<BrushScrubber />}
       actions={
         <>
           <SegmentGroup.Root

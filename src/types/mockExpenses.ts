@@ -1,6 +1,11 @@
-import { Expense, Tag } from "./types";
+import { Expense, ExpenseTag, NonExpenseTags, Tag } from "./types";
 
 import { v4 as uuidv4 } from "uuid";
+
+const ALL_TAGS: Tag[] = [
+  ...(Object.values(NonExpenseTags) as Tag[]),
+  ...(Object.values(ExpenseTag) as Tag[]),
+];
 
 const generateSampleData = (
   startDate: Date,
@@ -12,8 +17,8 @@ const generateSampleData = (
 
   let currentDate = startDate;
   while (sampleData.length < totalExpenses) {
-    const tag: Tag = Object.keys(Tag).sort(() => Math.random() - 0.5)[
-      Math.floor(Math.random() * Object.keys(Tag).length)
+    const tag: Tag = ALL_TAGS.sort(() => Math.random() - 0.5)[
+      Math.floor(Math.random() * ALL_TAGS.length)
     ] as Tag;
 
     const expense: Expense = {

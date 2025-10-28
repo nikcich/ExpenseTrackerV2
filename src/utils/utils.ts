@@ -9,7 +9,17 @@ import {
 import { invoke } from "@tauri-apps/api/core";
 import { useEffect, useState } from "react";
 import { API, KnownStoreKeys, POLL_INTERVAL_MS } from "../types/types";
-import { debounceTime } from "rxjs/operators";
+import { debounceTime, distinctUntilChanged } from "rxjs/operators";
+
+function deepEqual(a: any, b: any): boolean {
+  if (Object.is(a, b)) return true;
+  if (typeof a !== "object" || typeof b !== "object" || a == null || b == null)
+    return false;
+  const aKeys = Object.keys(a);
+  const bKeys = Object.keys(b);
+  if (aKeys.length !== bKeys.length) return false;
+  return aKeys.every((key) => deepEqual(a[key], b[key]));
+}
 
 export function makeUseStoreValue<T>(
   subject: BehaviorSubject<T>,
@@ -19,7 +29,12 @@ export function makeUseStoreValue<T>(
     const [value, setValueState] = useState<T>(subject.value);
 
     useEffect(() => {
-      const sub: Subscription = subject.subscribe(setValueState);
+      const sub: Subscription = subject
+        .pipe(
+          distinctUntilChanged((a, b) => deepEqual(a, b)) // 👈 prevents duplicates
+        )
+        .subscribe(setValueState);
+
       return () => sub.unsubscribe();
     }, []);
 
@@ -102,7 +117,9 @@ export function createTauriApiHooks<
     T | undefined,
     ((val: T | undefined) => Promise<void>)?
   ] {
-    const [value, setValueState] = useState<T | undefined>(defaultValue);
+    const [value, setValueState] = useState<T | undefined>(
+      value$.getValue() ?? defaultValue
+    );
 
     useEffect(() => {
       const sub = value$.subscribe(setValueState);
@@ -116,7 +133,9 @@ export function createTauriApiHooks<
   function useDebouncedTauriValue(
     debounceMs: number = 500
   ): [T | undefined, ((val: T | undefined) => Promise<void>)?] {
-    const [value, setValueState] = useState<T | undefined>(defaultValue);
+    const [value, setValueState] = useState<T | undefined>(
+      value$.getValue() ?? defaultValue
+    );
 
     useEffect(() => {
       const sub = value$

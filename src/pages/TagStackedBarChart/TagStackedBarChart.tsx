@@ -1,5 +1,4 @@
 import { BrushScrubber } from "@/components/Brush/BrushScrubber";
-import { MOCK_EXPENSES } from "@/types/mockExpenses";
 import { GenericPage } from "@/components/GenericPage/GenericPage";
 import { useFilteredExpenses } from "@/hooks/expenses";
 import {
@@ -39,7 +38,7 @@ export function TagStackedBarChart() {
   return (
     <GenericPage
       title="Expenses by Tag"
-      footer={<BrushScrubber expenses={MOCK_EXPENSES} />}
+      footer={<BrushScrubber />}
       actions={
         <>
           <SegmentGroup.Root

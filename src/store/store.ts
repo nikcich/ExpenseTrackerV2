@@ -1,4 +1,4 @@
-import { API, KnownStoreKeys } from "../types/types";
+import { API, Expense, KnownStoreKeys } from "../types/types";
 import { createTauriApiHooks, createTauriStoreHook } from "../utils/utils";
 
 export const {
@@ -9,4 +9,8 @@ export const {
 
 export const [useValue, value$] = createTauriStoreHook<number>({
   key: KnownStoreKeys.MyValue,
+});
+
+export const [useExpensesStore, expenses$] = createTauriStoreHook<Expense[]>({
+  key: KnownStoreKeys.Expenses,
 });

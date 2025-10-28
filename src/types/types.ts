@@ -9,6 +9,7 @@ export enum API {
 
 export enum KnownStoreKeys {
   MyValue = "my_value",
+  Expenses = "expenses",
 }
 
 export type Expense = {
@@ -26,7 +27,7 @@ export enum Mode {
   YEARLY = "YEARLY",
 }
 
-export enum Tag {
+export enum ExpenseTag {
   Food = "Food",
   Utilities = "Utilities",
   Rent_Mortgage = "Rent/Mortgage",
@@ -35,7 +36,6 @@ export enum Tag {
   Health_Med = "Health/Med",
   Shopping = "Shopping",
   Savings = "Savings",
-  Income = "Income",
   Debt = "Debt",
   Gifts = "Gifts",
   Misc = "Misc.",
@@ -48,4 +48,10 @@ export enum Tag {
   Vacation_Travel = "Vacation/Travel",
 }
 
-export const ALL_TAGS: Tag[] = Object.values(Tag) as Tag[];
+export enum NonExpenseTags {
+  Income = "Income",
+}
+
+export type Tag = ExpenseTag | NonExpenseTags;
+
+export const ALL_EXPENSE_TAGS: Tag[] = Object.values(ExpenseTag) as Tag[];

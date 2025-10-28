@@ -1,4 +1,4 @@
-import { ALL_TAGS, Tag } from "@/types/types";
+import { ALL_EXPENSE_TAGS, Tag } from "@/types/types";
 import { createStore } from "./generic-store";
 
 type Settings = {
@@ -7,5 +7,5 @@ type Settings = {
 
 export const { useStore: useSettingsStore, setState: setSettingsStore } =
   createStore<Settings>({
-    enabledTags: ALL_TAGS,
+    enabledTags: ALL_EXPENSE_TAGS,
   });

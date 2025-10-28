@@ -1,12 +1,11 @@
 import React, { useEffect, useRef, useState } from "react";
-import { Expense } from "@/types/types";
 import * as d3 from "d3";
 import { updateDateRange } from "@/store/RustInterfaceHandlers";
 import { instantBrushRange$ } from "@/store/store";
 import { debounceTime, distinctUntilChanged } from "rxjs";
+import { useExpenses, useIncome } from "@/hooks/expenses";
 
 interface BrushScrubberProps {
-  expenses: Expense[];
   height?: number;
 }
 
@@ -14,12 +13,14 @@ const fractionStart = 0.75;
 const fractionEnd = 1;
 
 export const BrushScrubber: React.FC<BrushScrubberProps> = ({
-  expenses,
   height = 50,
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const svgRef = useRef<SVGSVGElement>(null);
   const [width, setWidth] = useState(0);
+
+  const expenses = useExpenses();
+  const income = useIncome();
 
   useEffect(() => {
     if (!containerRef.current) return;
@@ -45,6 +46,8 @@ export const BrushScrubber: React.FC<BrushScrubberProps> = ({
     const innerHeight = height - margin.top - margin.bottom;
 
     const dates = expenses.map((e) => new Date(e.date));
+    const incomeDates = income.map((e) => new Date(e.date));
+
     const xScale = d3
       .scaleTime()
       .domain(d3.extent(dates) as [Date, Date])
@@ -64,22 +67,28 @@ export const BrushScrubber: React.FC<BrushScrubberProps> = ({
       .attr("stroke", "#858585ff")
       .attr("stroke-width", 1);
 
-    const maxJitter = innerHeight / 4;
-    const centerY = innerHeight / 2;
+    const expenseY = innerHeight * 0.7;
+    const incomeY = innerHeight * 0.3;
 
-    container
+    const expensesGroup = container.append("g").attr("class", "expenses");
+    expensesGroup
       .selectAll("circle")
       .data(dates)
       .join("circle")
       .attr("cx", (d) => xScale(d))
-      .attr("cy", () => {
-        const offset = (Math.random() - 0.5) * 2 * maxJitter;
-        let y = centerY + offset;
-        y = Math.max(0, Math.min(innerHeight, y));
-        return y;
-      })
+      .attr("cy", expenseY)
       .attr("r", 2)
-      .attr("fill", "steelblue");
+      .attr("fill", "red");
+
+    const incomeGroup = container.append("g").attr("class", "income");
+    incomeGroup
+      .selectAll("circle")
+      .data(incomeDates)
+      .join("circle")
+      .attr("cx", (d) => xScale(d))
+      .attr("cy", () => incomeY)
+      .attr("r", 2)
+      .attr("fill", "green");
 
     const brush = d3
       .brushX()
@@ -138,7 +147,7 @@ export const BrushScrubber: React.FC<BrushScrubberProps> = ({
       });
 
     return () => sub.unsubscribe();
-  }, [expenses, width, height]);
+  }, [expenses, income, width, height]);
 
   return (
     <div ref={containerRef} style={{ width: "100%" }}>
