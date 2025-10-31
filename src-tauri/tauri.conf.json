@@ -29,7 +29,9 @@
             "opener:default",
             "store:default",
             "core:webview:allow-create-webview-window",
-            "core:event:allow-listen"
+            "core:event:allow-listen",
+            "dialog:allow-open",
+            "dialog:default"
           ]
         }
       ]

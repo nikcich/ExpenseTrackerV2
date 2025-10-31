@@ -1,15 +1,12 @@
 use serde::de::DeserializeOwned;
 use serde::Serialize;
-use tauri_plugin_store::Store;
-use tauri::{AppHandle, Manager};
 use std::sync::Arc;
 use tauri::Wry;
+use tauri::{AppHandle, Manager};
+use tauri_plugin_store::Store;
 
 fn get_store(app_handle: &tauri::AppHandle) -> Arc<Store<Wry>> {
-    app_handle
-        .state::<Arc<Store<Wry>>>()
-        .inner()
-        .clone()
+    app_handle.state::<Arc<Store<Wry>>>().inner().clone()
 }
 
 fn store_get<K, V>(app_handle: &AppHandle, key: K) -> Result<V, String>
@@ -34,16 +31,22 @@ where
 {
     let store: Arc<Store<Wry>> = get_store(app_handle);
 
-    let json_value = serde_json::to_value(value)
-        .map_err(|e| format!("Failed to serialize value: {}", e))?;
+    let json_value =
+        serde_json::to_value(value).map_err(|e| format!("Failed to serialize value: {}", e))?;
 
     store.set(key.as_ref(), json_value);
 
-    store.save().map_err(|e| format!("Failed to save store: {}", e))
+    store
+        .save()
+        .map_err(|e| format!("Failed to save store: {}", e))
 }
 
 #[tauri::command]
-pub fn store_set_value(app_handle: AppHandle, key: String, value: serde_json::Value) -> Result<(), String> {
+pub fn store_set_value(
+    app_handle: AppHandle,
+    key: String,
+    value: serde_json::Value,
+) -> Result<(), String> {
     store_set(&app_handle, key, value)
 }
 

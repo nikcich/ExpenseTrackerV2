@@ -1,5 +1,5 @@
-use std::sync::RwLock;
 use lazy_static::lazy_static;
+use std::sync::RwLock;
 
 lazy_static! {
     static ref SHARED_DATE_RANGE: RwLock<Option<(i64, i64)>> = RwLock::new(None);

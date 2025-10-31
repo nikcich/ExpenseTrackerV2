@@ -3,6 +3,7 @@ import { MOCK_EXPENSES } from "@/types/mockExpenses";
 import { API } from "@/types/types";
 import { createTauriInvoker } from "@/utils/utils";
 import { Button } from "@chakra-ui/react";
+import { open } from "@tauri-apps/plugin-dialog";
 
 export function Home() {
   const { value: expenses, setValue: setExpenses } = useExpensesStore();
@@ -10,6 +11,17 @@ export function Home() {
 
   const clearExpenses = async () => setExpenses([]);
   const setExpensesMock = async () => setExpenses(MOCK_EXPENSES);
+
+  const openFile = async () => {
+    console.log("opening file");
+    const file = await open({
+      multiple: false,
+      directory: false,
+    });
+
+    console.log(file);
+  };
+
   return (
     <div
       style={{
@@ -19,12 +31,20 @@ export function Home() {
         padding: "1rem",
       }}
     >
-      <Button onClick={createTauriInvoker(API.NewWindow)}>
+      <Button onClick={createTauriInvoker(API.NewWindow)} colorPalette={"blue"}>
         Open new window
       </Button>
-      <Button onClick={clearExpenses}>Reset expenses list</Button>
-      <Button onClick={setExpensesMock}>Mock expenses list</Button>
+      <Button onClick={clearExpenses} colorPalette={"red"}>
+        Reset expenses list
+      </Button>
+      <Button onClick={setExpensesMock} colorPalette={"green"}>
+        Mock expenses list
+      </Button>
       <p>There are {expenses?.length} expenses</p>
+
+      <Button onClick={openFile} colorPalette={"purple"}>
+        Open File
+      </Button>
     </div>
   );
 }

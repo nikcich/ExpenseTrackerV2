@@ -1,15 +1,17 @@
-use tauri::{Manager};
-use tauri_plugin_store::{StoreExt};
+use tauri::Manager;
+use tauri_plugin_store::StoreExt;
 
-mod store;
-mod window_manager;
-mod utils;
 mod config;
 mod range_state;
+mod store;
+mod utils;
+mod window_manager;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
+        .plugin(tauri_plugin_dialog::init())
+        .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_store::Builder::default().build())
         .setup(|app| {
             // Load the store
