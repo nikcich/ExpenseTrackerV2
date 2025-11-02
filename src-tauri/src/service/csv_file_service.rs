@@ -1,4 +1,6 @@
-#[derive(Debug)]
+use std::collections::HashMap;
+
+#[derive(Debug, Hash, Eq, PartialEq, Clone, Copy)]
 enum CsvColumnRole {
     DATE,
     DESCRIPTION,
@@ -7,7 +9,6 @@ enum CsvColumnRole {
 
 #[derive(Debug)]
 struct CsvColumnInfo {
-    column_role: CsvColumnRole,
     index: u8,
 }
 
@@ -15,60 +16,62 @@ struct CsvColumnInfo {
 struct CsvDefinition {
     name: &'static str,
     has_headers: bool,
-    expected_columns: [CsvColumnInfo; 3],
+    expected_columns: HashMap<CsvColumnRole, CsvColumnInfo>,
 }
 
-#[repr(u8)]
-#[derive(Clone, Copy, Eq, PartialEq)]
+#[derive(Hash, Eq, PartialEq, Debug)]
 enum CsvDefinitionKey {
-    WellsFargo = 0,
-    CapitalOne = 1,
+    WellsFargo,
+    CapitalOne,
 }
 
-const CSV_DEFINITIONS: [CsvDefinition; 2] = [
-    CsvDefinition {
-        name: "Wells Fargo Spending Report",
-        has_headers: true,
-        expected_columns: [
-            CsvColumnInfo {
-                column_role: CsvColumnRole::DATE,
-                index: 0,
-            },
-            CsvColumnInfo {
-                column_role: CsvColumnRole::DESCRIPTION,
-                index: 1,
-            },
-            CsvColumnInfo {
-                column_role: CsvColumnRole::AMOUNT,
-                index: 2,
-            },
-        ],
-    },
-    CsvDefinition {
-        name: "Capital One Spending Report",
-        has_headers: true,
-        expected_columns: [
-            CsvColumnInfo {
-                column_role: CsvColumnRole::DATE,
-                index: 0,
-            },
-            CsvColumnInfo {
-                column_role: CsvColumnRole::DESCRIPTION,
-                index: 1,
-            },
-            CsvColumnInfo {
-                column_role: CsvColumnRole::AMOUNT,
-                index: 2,
-            },
-        ],
-    },
-];
-
-const fn get_definition(key: CsvDefinitionKey) -> &'static CsvDefinition {
-    &CSV_DEFINITIONS[key as u8]
+/// Helper function that builds a column map from a list of (role, index) pairs.
+fn make_column_definitions(
+    columns: &[(CsvColumnRole, u8)],
+) -> HashMap<CsvColumnRole, CsvColumnInfo> {
+    let mut map = HashMap::new();
+    for (role, index) in columns {
+        map.insert(*role, CsvColumnInfo { index: *index });
+    }
+    map
 }
 
-fn main() {
-    let def = get_definition(CsvDefinitionKey::CapitalOne);
-    println!("{:?}", def);
+fn build_definitions() -> HashMap<CsvDefinitionKey, CsvDefinition> {
+    let mut map = HashMap::new();
+
+    map.insert(
+        CsvDefinitionKey::WellsFargo,
+        CsvDefinition {
+            name: "Wells Fargo Spending Report",
+            has_headers: true,
+            expected_columns: make_column_definitions(&[
+                (CsvColumnRole::DATE, 0),
+                (CsvColumnRole::DESCRIPTION, 1),
+                (CsvColumnRole::AMOUNT, 2),
+            ]),
+        },
+    );
+
+    map.insert(
+        CsvDefinitionKey::CapitalOne,
+        CsvDefinition {
+            name: "Capital One Spending Report",
+            has_headers: true,
+            expected_columns: make_column_definitions(&[
+                (CsvColumnRole::DATE, 0),
+                (CsvColumnRole::DESCRIPTION, 1),
+                (CsvColumnRole::AMOUNT, 2),
+            ]),
+        },
+    );
+
+    map
+}
+
+pub fn initialize_csv_file_service() {
+    let definitions = build_definitions();
+    let keys = [CsvDefinitionKey::WellsFargo, CsvDefinitionKey::CapitalOne];
+    for key in keys {
+        println!("{:?} : {:?}", key, definitions.get(&key));
+    }
 }

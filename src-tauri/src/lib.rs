@@ -3,12 +3,14 @@ use tauri_plugin_store::StoreExt;
 
 mod config;
 mod range_state;
+mod service;
 mod store;
 mod utils;
 mod window_manager;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    service::csv_file_service::initialize_csv_file_service();
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_opener::init())
