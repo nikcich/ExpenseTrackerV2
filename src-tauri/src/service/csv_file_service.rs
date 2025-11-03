@@ -1,3 +1,4 @@
+use chrono::NaiveDate;
 use csv::ReaderBuilder;
 use csv::StringRecord;
 use once_cell::sync::Lazy;
@@ -108,6 +109,24 @@ fn open_file_from_path(path: &str) -> Result<File, IoError> {
     Ok(file)
 }
 
+fn attempt_to_cast(raw_data: &str, col_data_type: CsvColumnDataType) -> bool {
+    if col_data_type == CsvColumnDataType::String {
+        // Raw data is already a str type, no need to parse
+        return true;
+    }
+
+    if col_data_type == CsvColumnDataType::Float {
+        return raw_data.parse::<f32>().is_ok();
+    }
+
+    if col_data_type == CsvColumnDataType::DateObject {
+        // Attempt to parse as YYYY-MM-DD
+        return NaiveDate::parse_from_str(raw_data, "%Y-%m-%d").is_ok();
+    }
+
+    return false;
+}
+
 /// Returns true if the record matches the expected columns in csv_definition
 fn validate_csv_record(record: &StringRecord, csv_definition: &CsvDefinition) -> bool {
     // Iterate over expected columns
@@ -129,13 +148,10 @@ fn validate_csv_record(record: &StringRecord, csv_definition: &CsvDefinition) ->
             return false;
         }
 
-        // Check data types..
-        if (col_info.data_type == CsvColumnDataType::Float) {
-            // Cast xyz, handle error by returning false
-        } else if (col_info.data_type == CsvColumnDataType::DateObject) {
-            // Cast xyz, handle error by returning false
-        } else if (col_info.data_type == CsvColumnDataType::String) {
-            // Cast xyz, handle error by returning false
+        // Check if castable
+        let raw_data: &str = record.get(index).map(|s| s.trim()).unwrap();
+        if !attempt_to_cast(raw_data, col_info.data_type) {
+            return false;
         }
     }
 
