@@ -137,27 +137,20 @@ fn open_file_from_path(path: &str) -> Result<File, IoError> {
 }
 
 fn attempt_to_cast(raw_data: &str, col_data_type: CsvColumnDataType) -> bool {
-    if col_data_type == CsvColumnDataType::String {
-        // Raw data is already a str type, no need to parse
-        return true;
+    match col_data_type {
+        CsvColumnDataType::String => return true, // Always valid for raw data that is already a string
+        CsvColumnDataType::Float => return raw_data.parse::<f32>().is_ok(),
+        CsvColumnDataType::DateObject => {
+            return NaiveDate::parse_from_str(raw_data, "%Y-%m-%d").is_ok()
+        }
+        _ => return false, // Handle unrecognized data types
     }
-
-    if col_data_type == CsvColumnDataType::Float {
-        return raw_data.parse::<f32>().is_ok();
-    }
-
-    if col_data_type == CsvColumnDataType::DateObject {
-        // Attempt to parse as YYYY-MM-DD
-        return NaiveDate::parse_from_str(raw_data, "%Y-%m-%d").is_ok();
-    }
-
-    return false;
 }
 
 /// Returns true if the record matches the expected columns in csv_definition
 fn validate_csv_record(record: &StringRecord, csv_definition: &CsvDefinition) -> bool {
     // Iterate over expected columns
-    for (role, col_info) in &csv_definition.expected_columns {
+    for (_role, col_info) in &csv_definition.expected_columns {
         let index = col_info.index as usize;
 
         // Check if the record has a value at this index
