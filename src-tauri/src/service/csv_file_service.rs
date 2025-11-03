@@ -8,7 +8,7 @@ use std::fs::File;
 use std::io::Error as IoError;
 use std::io::{Seek, SeekFrom};
 
-// ##### ENUM DEFINITIONS
+/// ENUM DEFINITIONS
 
 #[derive(Debug, Hash, Eq, PartialEq, Clone, Copy)]
 enum CsvColumnRole {
@@ -43,14 +43,15 @@ enum CsvDefinitionKey {
     CapitalOne,
 }
 
-// ##### FUNCTION DEFINITIONS
+/// FUNCTION DEFINITIONS
 
-/**
- * Helper function that builds a column map from a list of (role, index, datatype) pairs.
- *
- * @param columns - A list of tuples containing the column role, index, and data type.
- * @returns A HashMap mapping column roles to their corresponding information.
- */
+/// Helper function that builds a column map from a list of (role, index, datatype) pairs.
+///
+/// Parameters:
+/// - `columns`: A list of tuples containing the column role, index, and data type.
+///
+/// Returns:
+/// - `HashMap`: mapping column roles to their corresponding information.
 fn make_column_definitions(
     columns: &[(CsvColumnRole, u8, CsvColumnDataType)],
 ) -> HashMap<CsvColumnRole, CsvColumnInfo> {
@@ -67,11 +68,10 @@ fn make_column_definitions(
     map
 }
 
-/**
- * Builds a map of CSV definitions for different CSV files
- *
- * @returns A HashMap mapping CSV definition keys to their corresponding definitions.
- */
+/// Builds a map of CSV definitions for different CSV files
+///
+/// Returns:
+/// - `HashMap`: mapping CSV definition keys to their corresponding definitions.
 fn build_definitions() -> HashMap<CsvDefinitionKey, CsvDefinition> {
     let mut map = HashMap::new();
 
@@ -110,11 +110,13 @@ static CSV_DEFINITIONS: Lazy<HashMap<CsvDefinitionKey, CsvDefinition>> =
 static CSV_DEFINITION_KEYS: [CsvDefinitionKey; 2] =
     [CsvDefinitionKey::WellsFargo, CsvDefinitionKey::CapitalOne];
 
-/**
- * Opens a CSV file and returns the corresponding CSV definition key if it matches any of the predefined definitions.
- * @param file - The CSV file to open.
- * @returns Result<Option<CsvDefinitionKey>, Box<dyn StdError>> - None or a valid CsvDefinitionKey
- */
+/// Opens a CSV file and returns the corresponding CSV definition key if it matches any of the predefined definitions.
+///
+/// Parameters:
+/// - `file`: The CSV file to open.
+///
+/// Returns:
+/// - `Result<Option<CsvDefinitionKey>, Box<dyn StdError>>`: None or a valid CsvDefinitionKey
 fn open_csv_file(file: &File) -> Result<Option<CsvDefinitionKey>, Box<dyn StdError>> {
     // We’ll reuse the same file handle by resetting it for each definition test.
     for csv_definition_key in CSV_DEFINITION_KEYS.iter() {
@@ -149,24 +151,26 @@ fn open_csv_file(file: &File) -> Result<Option<CsvDefinitionKey>, Box<dyn StdErr
     return Ok(None);
 }
 
-/**
- * Opens a CSV file from a given path.
- *
- * @param path - The path to the CSV file.
- * @returns Result<File, IoError> - The opened file or an error.
- */
+/// Opens a CSV file from a given path.
+///
+/// Parameters:
+/// - `path`: The path to the CSV file.
+///
+/// Returns:
+/// - `Result<File, IoError>`: The opened file or an error.
 fn open_file_from_path(path: &str) -> Result<File, IoError> {
     let file = File::open(path)?;
     return Ok(file);
 }
 
-/**
- * Attempts to cast a raw string value to a data type.
- *
- * @param raw_data - The raw string value to cast.
- * @param col_data_type - The target data type to cast to.
- * @returns bool - True if the cast is successful, false otherwise.
- */
+/// Attempts to cast a raw string value to a data type.
+///
+/// Parameters:
+/// - `raw_data`: The raw string value to cast.
+/// - `col_data_type`: The target data type to cast to.
+///
+/// Returns:
+/// - `bool`: True if the cast is successful, false otherwise.
 fn attempt_to_cast(raw_data: &str, col_data_type: CsvColumnDataType) -> bool {
     match col_data_type {
         CsvColumnDataType::String => return true, // Always valid for raw data that is already a string
@@ -178,13 +182,14 @@ fn attempt_to_cast(raw_data: &str, col_data_type: CsvColumnDataType) -> bool {
     }
 }
 
-/**
- * Validates a CSV record against a CSV definition.
- *
- * @param record - The CSV record to validate.
- * @param csv_definition - The CSV definition to validate against.
- * @returns bool - True if the record is valid, false otherwise.
- */
+/// Validates a CSV record against a CSV definition.
+///
+/// Parameters:
+/// - `record`: The CSV record to validate.
+/// - `csv_definition`: The CSV definition to validate against.
+///
+/// Returns:
+/// -`bool`: True if the record is valid, false otherwise.
 fn validate_csv_record(record: &StringRecord, csv_definition: &CsvDefinition) -> bool {
     // Iterate over expected columns
     for (_role, col_info) in &csv_definition.expected_columns {
