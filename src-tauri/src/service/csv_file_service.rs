@@ -34,7 +34,7 @@ struct CsvDefinition {
     expected_columns: HashMap<CsvColumnRole, CsvColumnInfo>,
 }
 
-#[derive(Hash, Eq, PartialEq, Debug)]
+#[derive(Hash, Eq, PartialEq, Debug, Clone, Copy)]
 enum CsvDefinitionKey {
     WellsFargo,
     CapitalOne,
@@ -92,21 +92,48 @@ fn build_definitions() -> HashMap<CsvDefinitionKey, CsvDefinition> {
 static CSV_DEFINITIONS: Lazy<HashMap<CsvDefinitionKey, CsvDefinition>> =
     Lazy::new(|| build_definitions());
 
-fn open_csv_file(file: &File) -> Result<(), Box<dyn StdError>> {
-    let mut rdr = ReaderBuilder::new().has_headers(false).from_reader(file);
+static CSV_DEFINITION_KEYS: [CsvDefinitionKey; 2] =
+    [CsvDefinitionKey::WellsFargo, CsvDefinitionKey::CapitalOne];
 
-    for result in rdr.records() {
-        // The iterator yields Result<StringRecord, Error>, so we check the
-        // error here.
-        let record = result?;
-        println!("{:?}", record);
+fn open_csv_file(file: &File) -> Result<Option<CsvDefinitionKey>, Box<dyn StdError>> {
+    use std::io::{Seek, SeekFrom};
+
+    // We’ll reuse the same file handle by resetting it for each definition test.
+    for csv_definition_key in CSV_DEFINITION_KEYS.iter() {
+        // Reset file cursor before re-reading
+        let mut reader_file = file;
+        reader_file.seek(SeekFrom::Start(0))?;
+
+        // Check if the CSV definition has headers
+        let has_header: bool = CSV_DEFINITIONS.get(csv_definition_key).unwrap().has_headers;
+
+        let mut rdr = ReaderBuilder::new()
+            .has_headers(has_header)
+            .from_reader(reader_file);
+
+        let mut all_valid = true;
+
+        for result in rdr.records() {
+            let record = result?;
+
+            if !validate_csv_record(&record, CSV_DEFINITIONS.get(csv_definition_key).unwrap()) {
+                all_valid = false;
+                break;
+            }
+        }
+
+        if all_valid {
+            return Ok(Some(*csv_definition_key));
+        }
     }
-    Ok(())
+
+    // If none matched, return None
+    return Ok(None);
 }
 
 fn open_file_from_path(path: &str) -> Result<File, IoError> {
     let file = File::open(path)?;
-    Ok(file)
+    return Ok(file);
 }
 
 fn attempt_to_cast(raw_data: &str, col_data_type: CsvColumnDataType) -> bool {
@@ -130,7 +157,7 @@ fn attempt_to_cast(raw_data: &str, col_data_type: CsvColumnDataType) -> bool {
 /// Returns true if the record matches the expected columns in csv_definition
 fn validate_csv_record(record: &StringRecord, csv_definition: &CsvDefinition) -> bool {
     // Iterate over expected columns
-    for (_role, col_info) in &csv_definition.expected_columns {
+    for (role, col_info) in &csv_definition.expected_columns {
         let index = col_info.index as usize;
 
         // Check if the record has a value at this index
