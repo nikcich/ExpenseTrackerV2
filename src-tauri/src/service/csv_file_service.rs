@@ -1,4 +1,8 @@
+use csv::ReaderBuilder;
 use std::collections::HashMap;
+use std::error::Error as StdError;
+use std::fs::File;
+use std::io::Error as IoError;
 
 #[derive(Debug, Hash, Eq, PartialEq, Clone, Copy)]
 enum CsvColumnRole {
@@ -72,6 +76,23 @@ pub fn initialize_csv_file_service() {
     let definitions = build_definitions();
     let keys = [CsvDefinitionKey::WellsFargo, CsvDefinitionKey::CapitalOne];
     for key in keys {
-        println!("{:?} : {:?}", key, definitions.get(&key));
+        println!("{:?} : {:?}", key, definitions.get(&key).unwrap());
     }
+}
+
+pub fn open_csv_file(file: &File) -> Result<(), Box<dyn StdError>> {
+    let mut rdr = ReaderBuilder::new().has_headers(false).from_reader(file);
+
+    for result in rdr.records() {
+        // The iterator yields Result<StringRecord, Error>, so we check the
+        // error here.
+        let record = result?;
+        println!("{:?}", record);
+    }
+    Ok(())
+}
+
+fn open_file_from_path(path: &str) -> Result<File, IoError> {
+    let file = File::open(path)?;
+    Ok(file)
 }
