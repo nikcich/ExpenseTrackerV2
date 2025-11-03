@@ -6,6 +6,7 @@ use std::collections::HashMap;
 use std::error::Error as StdError;
 use std::fs::File;
 use std::io::Error as IoError;
+use std::io::{Seek, SeekFrom};
 
 #[derive(Debug, Hash, Eq, PartialEq, Clone, Copy)]
 enum CsvColumnRole {
@@ -96,8 +97,6 @@ static CSV_DEFINITION_KEYS: [CsvDefinitionKey; 2] =
     [CsvDefinitionKey::WellsFargo, CsvDefinitionKey::CapitalOne];
 
 fn open_csv_file(file: &File) -> Result<Option<CsvDefinitionKey>, Box<dyn StdError>> {
-    use std::io::{Seek, SeekFrom};
-
     // We’ll reuse the same file handle by resetting it for each definition test.
     for csv_definition_key in CSV_DEFINITION_KEYS.iter() {
         // Reset file cursor before re-reading
