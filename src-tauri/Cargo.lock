@@ -946,6 +946,7 @@ version = "0.1.0"
 dependencies = [
  "csv",
  "lazy_static",
+ "once_cell",
  "serde",
  "serde_json",
  "tauri",
