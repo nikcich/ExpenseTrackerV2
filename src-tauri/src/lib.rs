@@ -3,6 +3,7 @@ use tauri_plugin_store::StoreExt;
 
 mod config;
 mod range_state;
+mod service;
 mod store;
 mod utils;
 mod window_manager;
