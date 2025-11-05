@@ -18,7 +18,7 @@ enum CsvColumnRole {
 }
 
 #[derive(Debug, Eq, PartialEq, Clone, Copy)]
-enum CsvColumnDataType {
+pub enum CsvColumnDataType {
     Float,
     String,
     DateObject,
@@ -171,14 +171,16 @@ fn open_file_from_path(path: &str) -> Result<File, IoError> {
 ///
 /// Returns:
 /// - `bool`: True if the cast is successful, false otherwise.
-fn attempt_to_cast(raw_data: &str, col_data_type: CsvColumnDataType) -> bool {
+pub fn attempt_to_cast(raw_data: &str, col_data_type: CsvColumnDataType) -> bool {
     match col_data_type {
         CsvColumnDataType::String => return true, // Always valid for raw data that is already a string
-        CsvColumnDataType::Float => return raw_data.parse::<f32>().is_ok(),
+        CsvColumnDataType::Float => match raw_data.parse::<f32>() {
+            Ok(value) => return value.is_finite(), // Reject infinity and NaN
+            Err(_) => return false,                // Reject parse failures
+        },
         CsvColumnDataType::DateObject => {
             return NaiveDate::parse_from_str(raw_data, "%Y-%m-%d").is_ok()
         }
-        _ => return false, // Handle unrecognized data types
     }
 }
 
