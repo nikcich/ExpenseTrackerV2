@@ -1,12 +1,15 @@
 use csv::StringRecord;
 use std::f32;
-use tauri_app_lib::service::csv_file_service::{self, CsvDefinition};
+use std::fs::File;
+use std::io::Error as IoError;
+use tauri_app_lib::service::csv_file_service;
+use tempfile::NamedTempFile;
 
 /// Helper function to set up csv definition for test
 ///
 /// Returns:
 /// `CsvDefinition` A CSV Definition to test with
-fn setup_csv_definition_for_test() -> CsvDefinition {
+fn setup_csv_definition_for_test() -> csv_file_service::CsvDefinition {
     return csv_file_service::CsvDefinition::new(
         "Test",
         true,
@@ -204,4 +207,25 @@ fn test_validate_csv_record_true() {
 
     // Analysis
     assert_eq!(expected, result);
+}
+
+#[test]
+fn test_open_file_from_path_success() {
+    // Setup
+    let temp: NamedTempFile = tempfile::NamedTempFile::new().unwrap();
+
+    // Invoke
+    let result: Result<File, IoError> =
+        csv_file_service::open_file_from_path(temp.path().to_str().unwrap());
+    assert!(result.is_ok());
+}
+
+#[test]
+fn test_open_file_from_path_fail() {
+    // Setup
+    let bad_path: &'static str = "invalid/path.txt";
+
+    let result: Result<File, IoError> = csv_file_service::open_file_from_path(&bad_path);
+
+    assert!(result.is_err());
 }

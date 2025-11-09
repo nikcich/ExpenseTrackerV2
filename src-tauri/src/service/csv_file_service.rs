@@ -131,7 +131,7 @@ static CSV_DEFINITION_KEYS: [CsvDefinitionKey; 2] =
 ///
 /// Returns:
 /// - `Result<Option<CsvDefinitionKey>, Box<dyn StdError>>`: None or a valid CsvDefinitionKey
-fn open_csv_file(file: &File) -> Result<Option<CsvDefinitionKey>, Box<dyn StdError>> {
+pub fn open_csv_file(file: &File) -> Result<Option<CsvDefinitionKey>, Box<dyn StdError>> {
     // We’ll reuse the same file handle by resetting it for each definition test.
     for csv_definition_key in CSV_DEFINITION_KEYS.iter() {
         // Reset file cursor before re-reading
@@ -172,7 +172,7 @@ fn open_csv_file(file: &File) -> Result<Option<CsvDefinitionKey>, Box<dyn StdErr
 ///
 /// Returns:
 /// - `Result<File, IoError>`: The opened file or an error.
-fn open_file_from_path(path: &str) -> Result<File, IoError> {
+pub fn open_file_from_path(path: &str) -> Result<File, IoError> {
     let file = File::open(path)?;
     return Ok(file);
 }
