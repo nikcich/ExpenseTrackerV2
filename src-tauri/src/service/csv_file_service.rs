@@ -11,7 +11,7 @@ use std::io::{Seek, SeekFrom};
 /// ENUM DEFINITIONS
 
 #[derive(Debug, Hash, Eq, PartialEq, Clone, Copy)]
-enum CsvColumnRole {
+pub enum CsvColumnRole {
     Date,
     Description,
     Amount,
@@ -25,20 +25,34 @@ pub enum CsvColumnDataType {
 }
 
 #[derive(Debug)]
-struct CsvColumnInfo {
+pub struct CsvColumnInfo {
     index: u8,
     data_type: CsvColumnDataType,
 }
 
 #[derive(Debug)]
-struct CsvDefinition {
+pub struct CsvDefinition {
     name: &'static str,
     has_headers: bool,
     expected_columns: HashMap<CsvColumnRole, CsvColumnInfo>,
 }
 
+impl CsvDefinition {
+    pub fn new(
+        name: &'static str,
+        has_headers: bool,
+        expected_columns: HashMap<CsvColumnRole, CsvColumnInfo>,
+    ) -> Self {
+        return Self {
+            name,
+            has_headers,
+            expected_columns,
+        };
+    }
+}
+
 #[derive(Hash, Eq, PartialEq, Debug, Clone, Copy)]
-enum CsvDefinitionKey {
+pub enum CsvDefinitionKey {
     WellsFargo,
     CapitalOne,
 }
@@ -52,7 +66,7 @@ enum CsvDefinitionKey {
 ///
 /// Returns:
 /// - `HashMap`: mapping column roles to their corresponding information.
-fn make_column_definitions(
+pub fn make_column_definitions(
     columns: &[(CsvColumnRole, u8, CsvColumnDataType)],
 ) -> HashMap<CsvColumnRole, CsvColumnInfo> {
     let mut map = HashMap::new();
@@ -72,33 +86,33 @@ fn make_column_definitions(
 ///
 /// Returns:
 /// - `HashMap`: mapping CSV definition keys to their corresponding definitions.
-fn build_definitions() -> HashMap<CsvDefinitionKey, CsvDefinition> {
+pub fn build_definitions() -> HashMap<CsvDefinitionKey, CsvDefinition> {
     let mut map = HashMap::new();
 
     map.insert(
         CsvDefinitionKey::WellsFargo,
-        CsvDefinition {
-            name: "Wells Fargo Spending Report",
-            has_headers: true,
-            expected_columns: make_column_definitions(&[
+        CsvDefinition::new(
+            "Wells Fargo Spending Report",
+            true,
+            make_column_definitions(&[
                 (CsvColumnRole::Date, 0, CsvColumnDataType::DateObject),
                 (CsvColumnRole::Description, 1, CsvColumnDataType::String),
                 (CsvColumnRole::Amount, 2, CsvColumnDataType::Float),
             ]),
-        },
+        ),
     );
 
     map.insert(
         CsvDefinitionKey::CapitalOne,
-        CsvDefinition {
-            name: "Capital One Spending Report",
-            has_headers: true,
-            expected_columns: make_column_definitions(&[
+        CsvDefinition::new(
+            "Capital One Spending Report",
+            true,
+            make_column_definitions(&[
                 (CsvColumnRole::Date, 0, CsvColumnDataType::DateObject),
                 (CsvColumnRole::Description, 1, CsvColumnDataType::String),
                 (CsvColumnRole::Amount, 2, CsvColumnDataType::Float),
             ]),
-        },
+        ),
     );
 
     return map;
@@ -192,7 +206,7 @@ pub fn attempt_to_cast(raw_data: &str, col_data_type: CsvColumnDataType) -> bool
 ///
 /// Returns:
 /// -`bool`: True if the record is valid, false otherwise.
-fn validate_csv_record(record: &StringRecord, csv_definition: &CsvDefinition) -> bool {
+pub fn validate_csv_record(record: &StringRecord, csv_definition: &CsvDefinition) -> bool {
     // Iterate over expected columns
     for (_role, col_info) in &csv_definition.expected_columns {
         let index = col_info.index as usize;
