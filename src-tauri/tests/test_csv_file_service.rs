@@ -2,7 +2,7 @@ use csv::StringRecord;
 use std::f32;
 use std::fs::File;
 use std::io::Error as IoError;
-use tauri_app_lib::service::csv_file_service;
+use tauri_app_lib::service::csv_file_service::{self, CsvDefinitionKey};
 use tempfile::NamedTempFile;
 
 /// Helper function to set up csv definition for test
@@ -185,8 +185,7 @@ fn test_validate_csv_record_false() {
     let string_record_to_test: StringRecord = StringRecord::from(vec!["Qball", "Is A", "Sucker"]);
 
     // Invoke
-    let result: bool =
-        csv_file_service::validate_csv_record(&string_record_to_test, &csv_definition_to_test);
+    let result: bool = csv_definition_to_test.validate_against_record(&string_record_to_test);
 
     // Analysis
     assert_eq!(expected, result);
@@ -202,8 +201,7 @@ fn test_validate_csv_record_true() {
         StringRecord::from(vec!["1999-11-05", "Qball", "1.0"]);
 
     // Invoke
-    let result: bool =
-        csv_file_service::validate_csv_record(&string_record_to_test, &csv_definition_to_test);
+    let result: bool = csv_definition_to_test.validate_against_record(&string_record_to_test);
 
     // Analysis
     assert_eq!(expected, result);
@@ -228,4 +226,9 @@ fn test_open_file_from_path_fail() {
     let result: Result<File, IoError> = csv_file_service::open_file_from_path(&bad_path);
 
     assert!(result.is_err());
+}
+
+#[test]
+fn test_open_csv_and_validate() {
+    let expected_csv_definition_key: CsvDefinitionKey = CsvDefinitionKey::CapitalOne;
 }

@@ -51,6 +51,44 @@ impl CsvDefinition {
     }
 }
 
+impl CsvDefinition {
+    /// Validates a CSV definition against CSV record.
+    ///
+    /// Parameters:
+    /// - `record`: The CSV record to validate with.
+    ///
+    /// Returns:
+    /// -`bool`: True if the record is valid for this definition, false otherwise.
+    pub fn validate_against_record(&self, record: &StringRecord) -> bool {
+        // Iterate over expected columns
+        for (_role, col_info) in &self.expected_columns {
+            let index = col_info.index as usize;
+
+            // Check if the record has a value at this index
+            if index >= record.len() {
+                // Missing column
+                return false;
+            }
+
+            // Check for empty cells
+            if record
+                .get(index)
+                .map(|s| s.trim().is_empty())
+                .unwrap_or(true)
+            {
+                return false;
+            }
+
+            // Check if castable
+            let raw_data: &str = record.get(index).map(|s| s.trim()).unwrap();
+            if !attempt_to_cast(raw_data, col_info.data_type) {
+                return false;
+            }
+        }
+        return true;
+    }
+}
+
 #[derive(Hash, Eq, PartialEq, Debug, Clone, Copy)]
 pub enum CsvDefinitionKey {
     WellsFargo,
@@ -150,7 +188,11 @@ pub fn open_csv_file(file: &File) -> Result<Option<CsvDefinitionKey>, Box<dyn St
         for result in rdr.records() {
             let record = result?;
 
-            if !validate_csv_record(&record, CSV_DEFINITIONS.get(csv_definition_key).unwrap()) {
+            if !CSV_DEFINITIONS
+                .get(csv_definition_key)
+                .unwrap()
+                .validate_against_record(&record)
+            {
                 all_valid = false;
                 break;
             }
@@ -196,42 +238,4 @@ pub fn attempt_to_cast(raw_data: &str, col_data_type: CsvColumnDataType) -> bool
             return NaiveDate::parse_from_str(raw_data, "%Y-%m-%d").is_ok()
         }
     }
-}
-
-/// Validates a CSV record against a CSV definition.
-///
-/// Parameters:
-/// - `record`: The CSV record to validate.
-/// - `csv_definition`: The CSV definition to validate against.
-///
-/// Returns:
-/// -`bool`: True if the record is valid, false otherwise.
-pub fn validate_csv_record(record: &StringRecord, csv_definition: &CsvDefinition) -> bool {
-    // Iterate over expected columns
-    for (_role, col_info) in &csv_definition.expected_columns {
-        let index = col_info.index as usize;
-
-        // Check if the record has a value at this index
-        if index >= record.len() {
-            // Missing column
-            return false;
-        }
-
-        // Check for empty cells
-        if record
-            .get(index)
-            .map(|s| s.trim().is_empty())
-            .unwrap_or(true)
-        {
-            return false;
-        }
-
-        // Check if castable
-        let raw_data: &str = record.get(index).map(|s| s.trim()).unwrap();
-        if !attempt_to_cast(raw_data, col_info.data_type) {
-            return false;
-        }
-    }
-
-    return true;
 }
