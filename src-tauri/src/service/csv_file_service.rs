@@ -65,7 +65,7 @@ impl CsvValidator for CsvDefinition {
     /// - `record`: The CSV record to validate with.
     ///
     /// Returns:
-    /// -`bool`: True if the record is valid for this definition, false otherwise.
+    /// - `bool`: True if the record is valid for this definition, false otherwise.
     fn validate_against_record(&self, record: &StringRecord) -> bool {
         // Iterate over expected columns
         for (_role, col_info) in &self.expected_columns {
