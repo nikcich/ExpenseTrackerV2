@@ -185,7 +185,7 @@ pub fn open_csv_file(
     csv_definitions: &HashMap<&CsvDefinitionKey, &Box<dyn CsvValidator>>,
 ) -> Result<Option<CsvDefinitionKey>, Box<dyn StdError>> {
     // We’ll reuse the same file handle by resetting it for each definition test.
-    for (csv_definition_key, definition) in csv_definitions.iter() {
+    for (&csv_definition_key, definition) in csv_definitions.iter() {
         // Reset file cursor before re-reading
         let mut reader_file = file;
         reader_file.seek(SeekFrom::Start(0))?;
@@ -209,7 +209,7 @@ pub fn open_csv_file(
         }
 
         if all_valid {
-            return Ok(Some(**csv_definition_key));
+            return Ok(Some(*csv_definition_key));
         }
     }
 
