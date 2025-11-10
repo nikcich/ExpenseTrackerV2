@@ -3,6 +3,7 @@ use std::collections::HashMap;
 use std::f32;
 use std::fs::File;
 use std::io::Error as IoError;
+use std::io::Write;
 use tauri_app_lib::service::csv_file_service::{
     attempt_to_cast, make_column_definitions, open_csv_file, open_file_from_path,
     CsvColumnDataType, CsvColumnRole, CsvDefinition, CsvDefinitionKey, CsvValidator,
@@ -26,6 +27,10 @@ fn setup_csv_definition_for_test() -> CsvDefinition {
     );
 }
 
+/// Helper function to set up mock csv definition for test
+///
+/// Returns:
+/// `MockCsvValidator` A mocked CSV Definition to test with
 fn setup_mock_csv_definition_for_test(success_on_validate: bool) -> MockCsvValidator {
     let mut mocked_definition = MockCsvValidator::new();
     mocked_definition
@@ -37,6 +42,10 @@ fn setup_mock_csv_definition_for_test(success_on_validate: bool) -> MockCsvValid
     return mocked_definition;
 }
 
+/// Helper function to set up mock csv definition hashmap for test
+///
+/// Returns:
+/// `HashMap<&'a CsvDefinitionKey, &'a Box<dyn CsvValidator>>` A mocked CSV Definition key to CSV definition map to test with
 fn setup_mock_csv_definition_map<'a>(
     definition_key: &'a CsvDefinitionKey,
     mocked_definition: &'a Box<dyn CsvValidator>,
@@ -46,9 +55,11 @@ fn setup_mock_csv_definition_map<'a>(
     map
 }
 
+/// Helper function to set up mocked file for test
+///
+/// Returns:
+/// `NamedTempFile` A temp CSV file to test with
 fn setup_mocked_file() -> NamedTempFile {
-    use std::io::Write;
-
     // Create some arbitrary CSV file with some content
     let mut temp_file = NamedTempFile::new().expect("Test failed: could not create temp file");
     writeln!(temp_file, "column1,column2").expect("Test failed: could not write to temp file");
@@ -57,6 +68,7 @@ fn setup_mocked_file() -> NamedTempFile {
     return temp_file;
 }
 
+/// Helper function to assert same pointer
 fn assert_same_ptr<T>(a: &T, b: &T) {
     assert!(std::ptr::eq(a, b));
 }
@@ -64,11 +76,10 @@ fn assert_same_ptr<T>(a: &T, b: &T) {
 #[test]
 fn test_attempt_to_cast_string_true() {
     // Setup
-    let mut result: bool = false;
     let expected: bool = true;
 
     // Invoke
-    result = attempt_to_cast("Hello", CsvColumnDataType::String);
+    let result: bool = attempt_to_cast("Hello", CsvColumnDataType::String);
 
     // Analysis
     assert_eq!(expected, result);
@@ -77,11 +88,10 @@ fn test_attempt_to_cast_string_true() {
 #[test]
 fn test_attempt_to_cast_float_ok_1() {
     // Setup
-    let mut result: bool = false;
     let expected: bool = true;
 
     // Invoke
-    result = attempt_to_cast("1.0", CsvColumnDataType::Float);
+    let result: bool = attempt_to_cast("1.0", CsvColumnDataType::Float);
 
     // Analysis
     assert_eq!(expected, result);
@@ -90,11 +100,10 @@ fn test_attempt_to_cast_float_ok_1() {
 #[test]
 fn test_attempt_to_cast_float_ok_2() {
     // Setup
-    let mut result: bool = false;
     let expected: bool = true;
 
     // Invoke
-    result = attempt_to_cast("1000000.0", CsvColumnDataType::Float);
+    let result: bool = attempt_to_cast("1000000.0", CsvColumnDataType::Float);
 
     // Analysis
     assert_eq!(expected, result);
@@ -103,11 +112,10 @@ fn test_attempt_to_cast_float_ok_2() {
 #[test]
 fn test_attempt_to_cast_float_ok_max() {
     // Setup
-    let mut result: bool = false;
     let expected: bool = true;
 
     // Invoke
-    result = attempt_to_cast(f32::MAX.to_string().as_str(), CsvColumnDataType::Float);
+    let result: bool = attempt_to_cast(f32::MAX.to_string().as_str(), CsvColumnDataType::Float);
 
     // Analysis
     assert_eq!(expected, result);
@@ -116,11 +124,10 @@ fn test_attempt_to_cast_float_ok_max() {
 #[test]
 fn test_attempt_to_cast_float_ok_min() {
     // Setup
-    let mut result: bool = false;
     let expected: bool = true;
 
     // Invoke
-    result = attempt_to_cast(f32::MIN.to_string().as_str(), CsvColumnDataType::Float);
+    let result: bool = attempt_to_cast(f32::MIN.to_string().as_str(), CsvColumnDataType::Float);
 
     // Analysis
     assert_eq!(expected, result);
@@ -129,8 +136,6 @@ fn test_attempt_to_cast_float_ok_min() {
 #[test]
 fn test_attempt_to_cast_float_overflow() {
     // Setup
-    let mut result_1: bool = true;
-    let mut result_2: bool = true;
     let expected: bool = false;
     let overflow_1: f32 = f32::INFINITY;
     let overflow_2: f32 = f32::MAX + f32::MAX;
@@ -138,9 +143,8 @@ fn test_attempt_to_cast_float_overflow() {
     assert_eq!(overflow_1, overflow_2); // Max + some large value should end up as INFINITY
 
     // Invoke
-    result_1 = attempt_to_cast(overflow_1.to_string().as_str(), CsvColumnDataType::Float);
-
-    result_2 = attempt_to_cast(overflow_2.to_string().as_str(), CsvColumnDataType::Float);
+    let result_1: bool = attempt_to_cast(overflow_1.to_string().as_str(), CsvColumnDataType::Float);
+    let result_2: bool = attempt_to_cast(overflow_2.to_string().as_str(), CsvColumnDataType::Float);
 
     // Analysis
     assert_eq!(expected, result_1);
@@ -150,11 +154,10 @@ fn test_attempt_to_cast_float_overflow() {
 #[test]
 fn test_attempt_to_cast_float_not_a_number() {
     // Setup
-    let mut result: bool = true;
     let expected: bool = false;
 
     // Invoke
-    result = attempt_to_cast("Boo", CsvColumnDataType::Float);
+    let result: bool = attempt_to_cast("Boo", CsvColumnDataType::Float);
 
     // Analysis
     assert_eq!(expected, result);
@@ -163,11 +166,10 @@ fn test_attempt_to_cast_float_not_a_number() {
 #[test]
 fn test_attempt_to_cast_date_ok() {
     // Setup
-    let mut result: bool = false;
     let expected: bool = true;
 
     // Invoke
-    result = attempt_to_cast("1999-11-05", CsvColumnDataType::DateObject);
+    let result: bool = attempt_to_cast("1999-11-05", CsvColumnDataType::DateObject);
 
     // Analysis
     assert_eq!(expected, result);
@@ -176,11 +178,10 @@ fn test_attempt_to_cast_date_ok() {
 #[test]
 fn test_attempt_to_cast_date_invalid() {
     // Setup
-    let mut result: bool = true;
     let expected: bool = false;
 
     // Invoke
-    result = attempt_to_cast("Boo", CsvColumnDataType::DateObject);
+    let result: bool = attempt_to_cast("Boo", CsvColumnDataType::DateObject);
 
     // Analysis
     assert_eq!(expected, result);
@@ -232,8 +233,10 @@ fn test_open_file_from_path_fail() {
     // Setup
     let bad_path: &'static str = "invalid/path.txt";
 
+    // Invoke
     let result: Result<File, IoError> = open_file_from_path(&bad_path);
 
+    // Analysis
     assert!(result.is_err());
 }
 
