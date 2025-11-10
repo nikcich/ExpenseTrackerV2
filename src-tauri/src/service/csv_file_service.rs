@@ -1,6 +1,7 @@
 use chrono::NaiveDate;
 use csv::ReaderBuilder;
 use csv::StringRecord;
+use mockall::automock;
 use once_cell::sync::Lazy;
 use std::collections::HashMap;
 use std::error::Error as StdError;
@@ -51,7 +52,13 @@ impl CsvDefinition {
     }
 }
 
-impl CsvDefinition {
+#[automock]
+pub trait CsvValidator {
+    fn validate_against_record(&self, record: &StringRecord) -> bool;
+    fn has_header(&self) -> bool;
+}
+
+impl CsvValidator for CsvDefinition {
     /// Validates a CSV definition against CSV record.
     ///
     /// Parameters:
@@ -59,7 +66,7 @@ impl CsvDefinition {
     ///
     /// Returns:
     /// -`bool`: True if the record is valid for this definition, false otherwise.
-    pub fn validate_against_record(&self, record: &StringRecord) -> bool {
+    fn validate_against_record(&self, record: &StringRecord) -> bool {
         // Iterate over expected columns
         for (_role, col_info) in &self.expected_columns {
             let index = col_info.index as usize;
@@ -86,6 +93,10 @@ impl CsvDefinition {
             }
         }
         return true;
+    }
+
+    fn has_header(&self) -> bool {
+        return self.has_headers;
     }
 }
 
@@ -169,15 +180,18 @@ static CSV_DEFINITION_KEYS: [CsvDefinitionKey; 2] =
 ///
 /// Returns:
 /// - `Result<Option<CsvDefinitionKey>, Box<dyn StdError>>`: None or a valid CsvDefinitionKey
-pub fn open_csv_file(file: &File) -> Result<Option<CsvDefinitionKey>, Box<dyn StdError>> {
+pub fn open_csv_file(
+    file: &File,
+    csv_definitions: &HashMap<&CsvDefinitionKey, &Box<dyn CsvValidator>>,
+) -> Result<Option<CsvDefinitionKey>, Box<dyn StdError>> {
     // We’ll reuse the same file handle by resetting it for each definition test.
-    for csv_definition_key in CSV_DEFINITION_KEYS.iter() {
+    for (csv_definition_key, definition) in csv_definitions.iter() {
         // Reset file cursor before re-reading
         let mut reader_file = file;
         reader_file.seek(SeekFrom::Start(0))?;
 
         // Check if the CSV definition has headers
-        let has_header: bool = CSV_DEFINITIONS.get(csv_definition_key).unwrap().has_headers;
+        let has_header: bool = definition.has_header();
 
         let mut rdr = ReaderBuilder::new()
             .has_headers(has_header)
@@ -188,18 +202,14 @@ pub fn open_csv_file(file: &File) -> Result<Option<CsvDefinitionKey>, Box<dyn St
         for result in rdr.records() {
             let record = result?;
 
-            if !CSV_DEFINITIONS
-                .get(csv_definition_key)
-                .unwrap()
-                .validate_against_record(&record)
-            {
+            if !definition.validate_against_record(&record) {
                 all_valid = false;
                 break;
             }
         }
 
         if all_valid {
-            return Ok(Some(*csv_definition_key));
+            return Ok(Some(**csv_definition_key));
         }
     }
 
