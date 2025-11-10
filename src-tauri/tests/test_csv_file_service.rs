@@ -269,3 +269,32 @@ fn test_open_csv_and_validate_true() {
         Err(err) => panic!("Test failed: Result returned an error: {:?}", err),
     }
 }
+
+#[test]
+fn test_open_csv_and_validate_false() {
+    // Setup
+    let expected_definition_key = CsvDefinitionKey::CapitalOne;
+    let success_on_validate: bool = false;
+    let mocked_temp_file: NamedTempFile = setup_mocked_file();
+    let mocked_definition_as_csv_validator: Box<dyn CsvValidator> =
+        Box::new(setup_mock_csv_definition_for_test(success_on_validate));
+    let mocked_map = setup_mock_csv_definition_map(
+        &expected_definition_key,
+        &mocked_definition_as_csv_validator,
+    );
+
+    // Invoke
+    let result = open_csv_file(mocked_temp_file.as_file(), &mocked_map);
+
+    // Analysis
+    match result {
+        Ok(arg) => {
+            // Should return None because no matched definition was found
+            assert!(
+                arg.is_none(),
+                "Expected None when no matched validation was found"
+            );
+        }
+        Err(err) => panic!("Test failed: Result returned an error: {:?}", err),
+    }
+}
