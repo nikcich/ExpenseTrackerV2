@@ -54,11 +54,6 @@ impl CsvDefinition {
 
 #[automock]
 pub trait CsvValidator {
-    fn validate_against_record(&self, record: &StringRecord) -> bool;
-    fn has_header(&self) -> bool;
-}
-
-impl CsvValidator for CsvDefinition {
     /// Validates a CSV definition against CSV record.
     ///
     /// Parameters:
@@ -66,6 +61,16 @@ impl CsvValidator for CsvDefinition {
     ///
     /// Returns:
     /// - `bool`: True if the record is valid for this definition, false otherwise.
+    fn validate_against_record(&self, record: &StringRecord) -> bool;
+
+    /// Checks if the CSV definition has headers.
+    ///
+    /// Returns:
+    /// - `bool`: True if the definition has headers, false otherwise.
+    fn has_header(&self) -> bool;
+}
+
+impl CsvValidator for CsvDefinition {
     fn validate_against_record(&self, record: &StringRecord) -> bool {
         // Iterate over expected columns
         for (_role, col_info) in &self.expected_columns {
