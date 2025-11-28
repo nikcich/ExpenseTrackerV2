@@ -18,7 +18,7 @@ use std::io::{Seek, SeekFrom};
 /// - `Result<Option<CsvDefinitionKey>, Box<dyn StdError>>`: None or a valid CsvDefinitionKey
 pub fn open_csv_file(
     file: &File,
-    csv_definitions: &HashMap<&CsvDefinitionKey, &Box<dyn CsvValidator>>,
+    csv_definitions: &HashMap<CsvDefinitionKey, Box<dyn CsvValidator>>,
 ) -> Result<Option<CsvDefinitionKey>, Box<dyn StdError>> {
     // We’ll reuse the same file handle by resetting it for each definition test.
     for (&csv_definition_key, definition) in csv_definitions.iter() {
@@ -45,7 +45,7 @@ pub fn open_csv_file(
         }
 
         if all_valid {
-            return Ok(Some(*csv_definition_key));
+            return Ok(Some(csv_definition_key));
         }
     }
 

@@ -5,7 +5,7 @@ use once_cell::sync::Lazy;
 use std::collections::HashMap;
 
 ///GLOBAL DEFINITIONS
-pub static DEFINITIONS: Lazy<HashMap<CsvDefinitionKey, Box<dyn CsvValidator + Send + Sync>>> =
+pub static DEFINITIONS: Lazy<HashMap<CsvDefinitionKey, CsvDefinition>> =
     Lazy::new(|| build_definitions());
 
 static CSV_DEFINITION_KEYS: [CsvDefinitionKey; 2] =
@@ -140,12 +140,12 @@ pub fn make_column_definitions(
 ///
 /// Returns:
 /// - `HashMap`: mapping CSV definition keys to their corresponding definitions.
-pub fn build_definitions() -> HashMap<CsvDefinitionKey, Box<dyn CsvValidator + Send + Sync>> {
-    let mut map: HashMap<CsvDefinitionKey, Box<dyn CsvValidator + Send + Sync>> = HashMap::new();
+pub fn build_definitions() -> HashMap<CsvDefinitionKey, CsvDefinition> {
+    let mut map: HashMap<CsvDefinitionKey, CsvDefinition> = HashMap::new();
 
     map.insert(
         CsvDefinitionKey::WellsFargo,
-        Box::new(CsvDefinition::new(
+        CsvDefinition::new(
             "Wells Fargo Spending Report",
             true,
             make_column_definitions(&[
@@ -153,12 +153,12 @@ pub fn build_definitions() -> HashMap<CsvDefinitionKey, Box<dyn CsvValidator + S
                 (CsvColumnRole::Description, 1, CsvColumnDataType::String),
                 (CsvColumnRole::Amount, 2, CsvColumnDataType::Float),
             ]),
-        )),
+        ),
     );
 
     map.insert(
         CsvDefinitionKey::CapitalOne,
-        Box::new(CsvDefinition::new(
+        CsvDefinition::new(
             "Capital One Spending Report",
             true,
             make_column_definitions(&[
@@ -166,7 +166,7 @@ pub fn build_definitions() -> HashMap<CsvDefinitionKey, Box<dyn CsvValidator + S
                 (CsvColumnRole::Description, 1, CsvColumnDataType::String),
                 (CsvColumnRole::Amount, 2, CsvColumnDataType::Float),
             ]),
-        )),
+        ),
     );
 
     return map;
