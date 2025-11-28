@@ -27,13 +27,13 @@ pub enum CsvColumnDataType {
     DateObject,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub struct CsvColumnInfo {
     index: u8,
     data_type: CsvColumnDataType,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct CsvDefinition {
     name: &'static str,
     has_headers: bool,
