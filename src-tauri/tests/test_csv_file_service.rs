@@ -5,11 +5,11 @@ use std::fs::File;
 use std::io::Error as IoError;
 use std::io::Write;
 
-use crate::definition::csv_definition::{
-    make_column_definitions, CsvColumnDataType, CsvColumnInfo, CsvColumnRole, CsvDefinition,
-    CsvDefinitionKey, CsvValidator,
+use tauri_app_lib::definition::csv_definition::{
+    attempt_to_cast, make_column_definitions, CsvColumnDataType, CsvColumnRole, CsvDefinition,
+    CsvDefinitionKey, CsvValidator, MockCsvValidator,
 };
-use crate::service::csv_file_service::{attempt_to_cast, open_csv_file, open_file_from_path};
+use tauri_app_lib::service::csv_file_service::{open_csv_file, open_file_from_path};
 
 use tempfile::NamedTempFile;
 
