@@ -5,6 +5,7 @@ export enum API {
   SetValue = "store_set_value",
   NewWindow = "new_window",
   DateRange = "get_date_range",
+  ParseCSV = "parse_csv",
 }
 
 export enum KnownStoreKeys {

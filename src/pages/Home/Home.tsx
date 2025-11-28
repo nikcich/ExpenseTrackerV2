@@ -3,6 +3,7 @@ import { MOCK_EXPENSES } from "@/types/mockExpenses";
 import { API } from "@/types/types";
 import { createTauriInvoker } from "@/utils/utils";
 import { Button } from "@chakra-ui/react";
+import { invoke } from "@tauri-apps/api/core";
 import { open } from "@tauri-apps/plugin-dialog";
 
 export function Home() {
@@ -19,7 +20,9 @@ export function Home() {
       directory: false,
     });
 
-    console.log(file);
+    if (file) {
+      await invoke(API.ParseCSV, { file });
+    }
   };
 
   return (

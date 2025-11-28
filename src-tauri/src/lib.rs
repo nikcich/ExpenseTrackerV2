@@ -7,6 +7,7 @@ pub mod service;
 mod store;
 mod utils;
 mod window_manager;
+mod csv_parser;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -41,7 +42,8 @@ pub fn run() {
             store::store_get_value,
             window_manager::new_window,
             range_state::set_date_range,
-            range_state::get_date_range
+            range_state::get_date_range,
+            csv_parser::parse_csv,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
