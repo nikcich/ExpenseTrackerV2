@@ -4,11 +4,13 @@ use std::f32;
 use std::fs::File;
 use std::io::Error as IoError;
 use std::io::Write;
-use tauri_app_lib::service::csv_file_service::{
-    attempt_to_cast, make_column_definitions, open_csv_file, open_file_from_path,
-    CsvColumnDataType, CsvColumnRole, CsvDefinition, CsvDefinitionKey, CsvValidator,
-    MockCsvValidator,
+
+use crate::definition::csv_definition::{
+    make_column_definitions, CsvColumnDataType, CsvColumnInfo, CsvColumnRole, CsvDefinition,
+    CsvDefinitionKey, CsvValidator,
 };
+use crate::service::csv_file_service::{attempt_to_cast, open_csv_file, open_file_from_path};
+
 use tempfile::NamedTempFile;
 
 /// Helper function to set up csv definition for test

@@ -2,12 +2,13 @@ use tauri::Manager;
 use tauri_plugin_store::StoreExt;
 
 mod config;
+mod csv_parser;
+pub mod definition;
 mod range_state;
 pub mod service;
 mod store;
 mod utils;
 mod window_manager;
-mod csv_parser;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
