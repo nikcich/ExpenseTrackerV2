@@ -19,7 +19,8 @@ use std::io::{Seek, SeekFrom};
 pub fn open_csv_file(
     file: &File,
     csv_definitions: &HashMap<CsvDefinitionKey, Box<dyn CsvValidator>>,
-) -> Result<Option<CsvDefinitionKey>, Box<dyn StdError>> {
+) -> Result<Option<Vec<CsvDefinitionKey>>, Box<dyn StdError>> {
+    let mut matched_definition_keys: Vec<CsvDefinitionKey> = Vec::new();
     // We’ll reuse the same file handle by resetting it for each definition test.
     for (&csv_definition_key, definition) in csv_definitions.iter() {
         // Reset file cursor before re-reading
@@ -45,12 +46,16 @@ pub fn open_csv_file(
         }
 
         if all_valid {
-            return Ok(Some(csv_definition_key));
+            matched_definition_keys.push(csv_definition_key);
         }
     }
 
+    if matched_definition_keys.is_empty() {
+        return Ok(None);
+    }
+
     // If none matched, return None
-    return Ok(None);
+    return Ok(Some(matched_definition_keys));
 }
 
 /// Opens a CSV file from a given path.

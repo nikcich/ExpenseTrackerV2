@@ -240,6 +240,7 @@ fn test_open_file_from_path_fail() {
 #[test]
 fn test_open_csv_and_validate_true() {
     // Setup
+    let expected_size: usize = 1;
     let expected_definition_key = CsvDefinitionKey::CapitalOne;
     let success_on_validate: bool = true;
     let mocked_temp_file: NamedTempFile = setup_mocked_file();
@@ -255,12 +256,13 @@ fn test_open_csv_and_validate_true() {
     match result {
         Ok(arg) => {
             assert!(arg.is_some(), "Expected Some value");
-            assert_eq!(arg, Some(expected_definition_key));
+            assert!(!arg.is_none(), "Expected not None");
 
-            // Verify it's the same key
-            let returned_key = arg.unwrap();
+            // Verify it's the right key
+            let returned_key_list = arg.unwrap();
 
-            assert_eq!(returned_key, expected_definition_key);
+            assert_eq!(returned_key_list.len(), expected_size);
+            assert_eq!(returned_key_list[0], expected_definition_key);
         }
         Err(err) => panic!("Test failed: Result returned an error: {:?}", err),
     }

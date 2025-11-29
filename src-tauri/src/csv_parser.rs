@@ -17,19 +17,22 @@ pub fn parse_csv(file: String) -> Response<String> {
                 .map(|(k, v)| (*k, Box::new(v.clone()) as Box<dyn CsvValidator>))
                 .collect();
 
-            let find_matched_definition: Result<Option<CsvDefinitionKey>, Box<dyn StdError>> =
+            let find_matched_definitions: Result<Option<Vec<CsvDefinitionKey>>, Box<dyn StdError>> =
                 open_csv_file(&file, &defs);
 
-            if find_matched_definition.is_ok() {
-                match find_matched_definition.unwrap() {
-                    Some(key) => {
-                        println!(
-                            "Matching definition found: {}",
-                            CSV_DEFINITIONS.get(&key).unwrap().get_name()
-                        );
+            if find_matched_definitions.is_ok() {
+                match find_matched_definitions.unwrap() {
+                    Some(list_of_keys) => {
+                        println!("Matching definition found");
+
+                        // TODO: Replace return type...
                         return Response::new(
                             Status::Ok,
-                            CSV_DEFINITIONS.get(&key).unwrap().get_name().to_string(),
+                            CSV_DEFINITIONS
+                                .get(&list_of_keys[0])
+                                .unwrap()
+                                .get_name()
+                                .to_string(),
                         );
                     }
                     None => {
