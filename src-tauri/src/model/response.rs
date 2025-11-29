@@ -28,37 +28,48 @@ impl Serialize for Status {
     }
 }
 
-pub struct Response<T> {
+pub struct Response {
     status: Status,
-    message: T,
+    header: String,
+    message: serde_json::Value,
 }
 
-impl<T> Response<T> {
-    pub fn new(status: Status, message: T) -> Self {
-        Response { status, message }
+impl Response {
+    pub fn new<T>(status: Status, header: String, message: T) -> Self
+    where
+        T: Serialize,
+    {
+        Response {
+            status,
+            header,
+            message: serde_json::to_value(message)
+                .expect("serialization to serde_json::Value failed"),
+        }
     }
 
-    // Helper function for OK
-    pub fn ok(message: T) -> Self {
-        return Response::new(Status::Ok, message);
+    pub fn ok<T>(header: String, message: T) -> Self
+    where
+        T: Serialize,
+    {
+        Self::new(Status::Ok, header, message)
     }
 
-    // Helper function for Error
-    pub fn err(message: T) -> Self {
-        return Response::new(Status::Error, message);
+    pub fn err<T>(header: String, message: T) -> Self
+    where
+        T: Serialize,
+    {
+        Self::new(Status::Error, header, message)
     }
 }
 
-impl<T> Serialize for Response<T>
-where
-    T: Serialize,
-{
+impl Serialize for Response {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: Serializer,
     {
-        let mut s = serializer.serialize_struct("Response", 2)?;
+        let mut s = serializer.serialize_struct("Response", 3)?;
         s.serialize_field("status", &self.status)?;
+        s.serialize_field("header", &self.header)?;
         s.serialize_field("message", &self.message)?;
         s.end()
     }

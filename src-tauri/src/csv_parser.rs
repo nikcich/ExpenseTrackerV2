@@ -5,7 +5,7 @@ use std::collections::HashMap;
 use std::error::Error as StdError;
 
 #[tauri::command]
-pub fn parse_csv(file: String) -> Response<serde_json::Value> {
+pub fn parse_csv(file: String) -> Response {
     match open_file_from_path(&file) {
         Ok(file) => {
             // process CSV here
@@ -24,27 +24,34 @@ pub fn parse_csv(file: String) -> Response<serde_json::Value> {
                 match find_matched_definitions.unwrap() {
                     Some(list_of_keys) => {
                         println!("Matching definition found");
-                        let serialized_definitions = serde_json::to_value(&list_of_keys);
-                        return Response::ok(serialized_definitions.unwrap());
+                        return Response::ok(
+                            String::from("Matching definition found"),
+                            &list_of_keys,
+                        );
                     }
                     None => {
                         println!("No matching definition found");
                         return Response::new(
                             Status::NotFound,
-                            serde_json::Value::String("No matching definition found".to_string()),
+                            String::from("No matching definition found"),
+                            Option::<Vec<CsvDefinitionKey>>::None,
                         );
                     }
                 }
             } else {
                 println!("Failed to find matching definition");
-                return Response::err(serde_json::Value::String(
-                    "Failed to find matching definition".to_string(),
-                ));
+                return Response::err(
+                    String::from("Failed to find matching definition"),
+                    Option::<Vec<CsvDefinitionKey>>::None,
+                );
             }
         }
         Err(e) => {
             eprintln!("Failed to open file: {}", e);
-            Response::err(serde_json::Value::String("Failed to open file".to_string()))
+            return Response::err(
+                format!("Failed to open file: {}", e),
+                Option::<Vec<CsvDefinitionKey>>::None,
+            );
         }
     }
 }
