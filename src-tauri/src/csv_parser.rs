@@ -43,17 +43,14 @@ pub fn parse_csv(file: String) -> Response<String> {
             } else {
                 println!("Failed to find matching definition");
                 return Response::new(
-                    Status::InternalServerError,
+                    Status::Error,
                     "Failed to find matching definition".to_string(),
                 );
             }
         }
         Err(e) => {
             eprintln!("Failed to open file: {}", e);
-            Response::new(
-                Status::InternalServerError,
-                "Failed to open file".to_string(),
-            )
+            Response::new(Status::Error, "Failed to open file".to_string())
         }
     }
 }
