@@ -5,7 +5,7 @@ use std::collections::HashMap;
 use std::error::Error as StdError;
 
 #[tauri::command]
-pub fn parse_csv(file: String) -> Response<String> {
+pub fn parse_csv(file: String) -> Response<serde_json::Value> {
     match open_file_from_path(&file) {
         Ok(file) => {
             // process CSV here
@@ -24,25 +24,27 @@ pub fn parse_csv(file: String) -> Response<String> {
                 match find_matched_definitions.unwrap() {
                     Some(list_of_keys) => {
                         println!("Matching definition found");
-                        let serialized_definitions = serde_json::to_string(&list_of_keys);
+                        let serialized_definitions = serde_json::to_value(&list_of_keys);
                         return Response::ok(serialized_definitions.unwrap());
                     }
                     None => {
                         println!("No matching definition found");
                         return Response::new(
                             Status::NotFound,
-                            "No matching definition found".to_string(),
+                            serde_json::Value::String("No matching definition found".to_string()),
                         );
                     }
                 }
             } else {
                 println!("Failed to find matching definition");
-                return Response::err("Failed to find matching definition".to_string());
+                return Response::err(serde_json::Value::String(
+                    "Failed to find matching definition".to_string(),
+                ));
             }
         }
         Err(e) => {
             eprintln!("Failed to open file: {}", e);
-            Response::err("Failed to open file".to_string())
+            Response::err(serde_json::Value::String("Failed to open file".to_string()))
         }
     }
 }
