@@ -2,7 +2,7 @@ use serde::ser::{SerializeStruct, Serializer};
 use serde::Serialize;
 
 #[repr(u16)]
-#[derive(Serialize)]
+#[derive(Copy, Clone)]
 pub enum Status {
     Ok = 200,
     Created = 201,
@@ -17,6 +17,15 @@ pub enum Status {
     Conflict = 409,
     Error = 500,
     InsufficientStorage = 507,
+}
+
+impl Serialize for Status {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        serializer.serialize_u16(*self as u16)
+    }
 }
 
 pub struct Response<T> {
