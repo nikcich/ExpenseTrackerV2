@@ -37,6 +37,16 @@ impl<T> Response<T> {
     pub fn new(status: Status, message: T) -> Self {
         Response { status, message }
     }
+
+    // Helper function for OK
+    pub fn ok(message: T) -> Self {
+        return Response::new(Status::Ok, message);
+    }
+
+    // Helper function for Error
+    pub fn err(message: T) -> Self {
+        return Response::new(Status::Error, message);
+    }
 }
 
 impl<T> Serialize for Response<T>

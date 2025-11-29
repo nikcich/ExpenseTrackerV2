@@ -2,6 +2,7 @@ use chrono::NaiveDate;
 use csv::StringRecord;
 use mockall::automock;
 use once_cell::sync::Lazy;
+use serde::Serialize;
 use std::collections::HashMap;
 
 ///GLOBAL DEFINITIONS
@@ -108,7 +109,7 @@ impl CsvValidator for CsvDefinition {
     }
 }
 
-#[derive(Hash, Eq, PartialEq, Debug, Clone, Copy)]
+#[derive(Serialize, Hash, Eq, PartialEq, Debug, Clone, Copy)]
 pub enum CsvDefinitionKey {
     WellsFargo,
     CapitalOne,
