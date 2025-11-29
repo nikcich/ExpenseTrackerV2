@@ -21,7 +21,8 @@ export function Home() {
     });
 
     if (file) {
-      await invoke(API.ParseCSV, { file });
+      const res = await invoke(API.ParseCSV, { file });
+      console.log(res);
     }
   };
 
