@@ -1,10 +1,11 @@
 use crate::definition::csv_definition::{CsvDefinitionKey, CsvValidator, CSV_DEFINITIONS};
+use crate::model::response::{Response, Status};
 use crate::service::csv_file_service::{open_csv_file, open_file_from_path};
 use std::collections::HashMap;
 use std::error::Error as StdError;
 
 #[tauri::command]
-pub fn parse_csv(file: String) {
+pub fn parse_csv(file: String) -> Response<String> {
     match open_file_from_path(&file) {
         Ok(file) => {
             // process CSV here
@@ -26,15 +27,33 @@ pub fn parse_csv(file: String) {
                             "Matching definition found: {}",
                             CSV_DEFINITIONS.get(&key).unwrap().get_name()
                         );
+                        return Response::new(
+                            Status::Ok,
+                            CSV_DEFINITIONS.get(&key).unwrap().get_name().to_string(),
+                        );
                     }
                     None => {
                         println!("No matching definition found");
+                        return Response::new(
+                            Status::NotFound,
+                            "No matching definition found".to_string(),
+                        );
                     }
                 }
             } else {
                 println!("Failed to find matching definition");
+                return Response::new(
+                    Status::InternalServerError,
+                    "Failed to find matching definition".to_string(),
+                );
             }
         }
-        Err(e) => eprintln!("Failed to open file: {}", e),
+        Err(e) => {
+            eprintln!("Failed to open file: {}", e);
+            Response::new(
+                Status::InternalServerError,
+                "Failed to open file".to_string(),
+            )
+        }
     }
 }

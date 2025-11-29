@@ -4,6 +4,7 @@ use tauri_plugin_store::StoreExt;
 mod config;
 mod csv_parser;
 pub mod definition;
+pub mod model;
 mod range_state;
 pub mod service;
 mod store;
