@@ -6,6 +6,7 @@ use std::error::Error as StdError;
 use std::fs::File;
 use std::io::Error as IoError;
 use std::io::{Seek, SeekFrom};
+use std::path::Path;
 
 /// FUNCTION DEFINITIONS
 
@@ -35,17 +36,30 @@ pub fn open_csv_file(
             .from_reader(reader_file);
 
         let mut all_valid = true;
+        let mut record_count = 0;
 
         for result in rdr.records() {
-            let record = result?;
+            let record = match result {
+                Ok(rec) => rec,
+                Err(_) => {
+                    all_valid = false;
+                    break;
+                }
+            };
 
             if !definition.validate_against_record(&record) {
                 all_valid = false;
                 break;
+            } else {
+                record_count += 1;
             }
         }
 
-        if all_valid {
+        if all_valid && record_count > 0 {
+            println!(
+                "Pushed definition key {:?} with record count: {}",
+                csv_definition_key, record_count
+            );
             matched_definition_keys.push(csv_definition_key);
         }
     }
@@ -58,7 +72,7 @@ pub fn open_csv_file(
     return Ok(Some(matched_definition_keys));
 }
 
-/// Opens a CSV file from a given path.
+/// Opens a CSV file from a given path, only if it has a `.csv` extension.
 ///
 /// Parameters:
 /// - `path`: The path to the CSV file.
@@ -66,6 +80,14 @@ pub fn open_csv_file(
 /// Returns:
 /// - `Result<File, IoError>`: The opened file or an error.
 pub fn open_file_from_path(path: &str) -> Result<File, IoError> {
-    let file = File::open(path)?;
-    return Ok(file);
+    let path_obj = Path::new(path);
+
+    // Check that the extension is .csv
+    match path_obj.extension().and_then(|ext| ext.to_str()) {
+        Some("csv") => File::open(path_obj),
+        _ => Err(IoError::new(
+            std::io::ErrorKind::InvalidInput,
+            "File must be a .csv extension",
+        )),
+    }
 }

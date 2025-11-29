@@ -24,8 +24,8 @@ pub fn parse_csv(file: String) -> Response<String> {
                 match find_matched_definitions.unwrap() {
                     Some(list_of_keys) => {
                         println!("Matching definition found");
-                        let serialized_definition = serde_json::to_string(&list_of_keys);
-                        return Response::ok(serialized_definition.unwrap());
+                        let serialized_definitions = serde_json::to_string(&list_of_keys);
+                        return Response::ok(serialized_definitions.unwrap());
                     }
                     None => {
                         println!("No matching definition found");

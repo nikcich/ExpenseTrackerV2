@@ -164,9 +164,9 @@ pub fn build_definitions() -> HashMap<CsvDefinitionKey, CsvDefinition> {
             "Capital One Spending Report",
             true,
             make_column_definitions(&[
-                (CsvColumnRole::Date, 0, CsvColumnDataType::DateObject),
                 (CsvColumnRole::Description, 1, CsvColumnDataType::String),
-                (CsvColumnRole::Amount, 2, CsvColumnDataType::Float),
+                (CsvColumnRole::Date, 2, CsvColumnDataType::DateObject),
+                (CsvColumnRole::Amount, 4, CsvColumnDataType::Float),
             ]),
         ),
     );
@@ -190,7 +190,7 @@ pub fn attempt_to_cast(raw_data: &str, col_data_type: CsvColumnDataType) -> bool
             Err(_) => return false,                // Reject parse failures
         },
         CsvColumnDataType::DateObject => {
-            return NaiveDate::parse_from_str(raw_data, "%Y-%m-%d").is_ok()
+            return NaiveDate::parse_from_str(raw_data, "%m/%d/%y").is_ok()
         }
     }
 }
