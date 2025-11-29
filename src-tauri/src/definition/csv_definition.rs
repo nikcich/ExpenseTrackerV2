@@ -5,11 +5,8 @@ use once_cell::sync::Lazy;
 use std::collections::HashMap;
 
 ///GLOBAL DEFINITIONS
-pub static DEFINITIONS: Lazy<HashMap<CsvDefinitionKey, CsvDefinition>> =
+pub static CSV_DEFINITIONS: Lazy<HashMap<CsvDefinitionKey, CsvDefinition>> =
     Lazy::new(|| build_definitions());
-
-static CSV_DEFINITION_KEYS: [CsvDefinitionKey; 2] =
-    [CsvDefinitionKey::WellsFargo, CsvDefinitionKey::CapitalOne];
 
 /// ENUM DEFINITIONS
 
@@ -51,6 +48,10 @@ impl CsvDefinition {
             has_headers,
             expected_columns,
         };
+    }
+
+    pub fn get_name(&self) -> &str {
+        self.name
     }
 }
 

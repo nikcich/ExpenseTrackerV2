@@ -33,7 +33,7 @@ fn setup_csv_definition_for_test() -> CsvDefinition {
 ///
 /// Returns:
 /// `MockCsvValidator` A mocked CSV Definition to test with
-fn setup_mock_csv_definition_for_test(success_on_validate: bool) -> Box<dyn CsvValidator> {
+fn setup_mock_csv_definition_for_test(success_on_validate: bool) -> Box<MockCsvValidator> {
     let mut mocked_definition = MockCsvValidator::new();
     mocked_definition
         .expect_validate_against_record()
@@ -47,13 +47,13 @@ fn setup_mock_csv_definition_for_test(success_on_validate: bool) -> Box<dyn CsvV
 /// Helper function to set up mock csv definition hashmap for test
 ///
 /// Returns:
-/// `HashMap<&'a CsvDefinitionKey, &'a Box<dyn CsvValidator>>` A mocked CSV Definition key to CSV definition map to test with
+/// `HashMap<CsvDefinitionKey, Box<MockCsvValidator>>` A mocked CSV Definition key to CSV definition map to test with
 fn setup_mock_csv_definition_map(
     definition_key: CsvDefinitionKey,
-    mocked_definition: Box<dyn CsvValidator>,
+    mocked_definition: Box<MockCsvValidator>,
 ) -> HashMap<CsvDefinitionKey, Box<dyn CsvValidator>> {
     let mut map = HashMap::new();
-    map.insert(definition_key, mocked_definition);
+    map.insert(definition_key, mocked_definition as Box<dyn CsvValidator>);
     return map;
 }
 
@@ -68,11 +68,6 @@ fn setup_mocked_file() -> NamedTempFile {
     writeln!(temp_file, "value1,value2").expect("Test failed: could not write to temp file");
 
     return temp_file;
-}
-
-/// Helper function to assert same pointer
-fn assert_same_ptr<T>(a: &T, b: &T) {
-    assert!(std::ptr::eq(a, b));
 }
 
 #[test]
@@ -248,7 +243,7 @@ fn test_open_csv_and_validate_true() {
     let expected_definition_key = CsvDefinitionKey::CapitalOne;
     let success_on_validate: bool = true;
     let mocked_temp_file: NamedTempFile = setup_mocked_file();
-    let mocked_definition_as_csv_validator: Box<dyn CsvValidator> =
+    let mocked_definition_as_csv_validator: Box<MockCsvValidator> =
         setup_mock_csv_definition_for_test(success_on_validate);
     let mocked_map =
         setup_mock_csv_definition_map(expected_definition_key, mocked_definition_as_csv_validator);
@@ -277,7 +272,7 @@ fn test_open_csv_and_validate_false() {
     let expected_definition_key = CsvDefinitionKey::CapitalOne;
     let success_on_validate: bool = false;
     let mocked_temp_file: NamedTempFile = setup_mocked_file();
-    let mocked_definition_as_csv_validator: Box<dyn CsvValidator> =
+    let mocked_definition_as_csv_validator: Box<MockCsvValidator> =
         setup_mock_csv_definition_for_test(success_on_validate);
     let mocked_map =
         setup_mock_csv_definition_map(expected_definition_key, mocked_definition_as_csv_validator);
