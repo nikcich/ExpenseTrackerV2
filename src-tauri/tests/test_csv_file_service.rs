@@ -331,3 +331,6 @@ fn test_open_csv_and_validate_false() {
         Err(err) => panic!("Test failed: Result returned an error: {:?}", err),
     }
 }
+
+#[test]
+fn test_parse_csv_result_error() {}

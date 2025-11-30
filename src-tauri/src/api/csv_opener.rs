@@ -4,8 +4,16 @@ use crate::service::csv_file_service::{open_csv_file, open_file_from_path};
 use std::collections::HashMap;
 use std::error::Error as StdError;
 
+/// Opens a CSV file from a given path.
+///
+/// If a valid definition was found, the response JSON body will contain the definition key.
+/// Multiple definitions may be found for a given CSV file.
+/// If no valid definition was found, the response will contain an error message in header.
+/// If an error occurred, the response will contain an error message in header.
+/// Returns:
+/// Response message containing Status code, Header message (String), and JSON Body
 #[tauri::command]
-pub fn parse_csv(file: String) -> Response {
+pub fn open_csv_from_path(file: String) -> Response {
     match open_file_from_path(&file) {
         Ok(file) => {
             // process CSV here

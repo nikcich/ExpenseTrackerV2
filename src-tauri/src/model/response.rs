@@ -47,6 +47,16 @@ impl Response {
         }
     }
 
+    // Explicit constructor specifically for serde_json::Value to avoid duplication of to_value
+    // Usually used for Stores or any form of data that already uses serde_json::Value
+    pub fn serde_value(status: Status, header: String, message: serde_json::Value) -> Self {
+        Response {
+            status,
+            header,
+            message,
+        }
+    }
+
     pub fn ok<T>(header: String, message: T) -> Self
     where
         T: Serialize,

@@ -1,15 +1,13 @@
 use tauri::Manager;
 use tauri_plugin_store::StoreExt;
 
+mod api;
 mod config;
-mod csv_parser;
 pub mod definition;
 pub mod model;
-mod range_state;
 pub mod service;
 mod store;
 mod utils;
-mod window_manager;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -40,12 +38,12 @@ pub fn run() {
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
-            store::store_set_value,
-            store::store_get_value,
-            window_manager::new_window,
-            range_state::set_date_range,
-            range_state::get_date_range,
-            csv_parser::parse_csv,
+            api::store::store_set_value,
+            api::store::store_get_value,
+            api::window_manager::new_window,
+            api::range_state::set_date_range,
+            api::range_state::get_date_range,
+            api::csv_opener::open_csv_from_path,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
