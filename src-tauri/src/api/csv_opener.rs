@@ -1,6 +1,6 @@
 use crate::definition::csv_definition::{CsvDefinitionKey, CsvValidator, CSV_DEFINITIONS};
 use crate::model::response::{Response, Status};
-use crate::service::csv_file_service::{open_csv_file, open_file_from_path};
+use crate::service::csv_file_service::{open_csv_file_and_find_definitions, open_file_from_path};
 use std::collections::HashMap;
 use std::error::Error as StdError;
 
@@ -26,7 +26,7 @@ pub fn open_csv_from_path(file: String) -> Response {
                 .collect();
 
             let find_matched_definitions: Result<Option<Vec<CsvDefinitionKey>>, Box<dyn StdError>> =
-                open_csv_file(&file, &defs);
+                open_csv_file_and_find_definitions(&file, &defs);
 
             if find_matched_definitions.is_ok() {
                 match find_matched_definitions.unwrap() {

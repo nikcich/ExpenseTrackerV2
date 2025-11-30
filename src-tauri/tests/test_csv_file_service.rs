@@ -10,7 +10,9 @@ use tauri_app_lib::definition::csv_definition::{
     attempt_to_cast, make_column_definitions, CsvColumnDataType, CsvColumnRole, CsvDefinition,
     CsvDefinitionKey, CsvValidator, MockCsvValidator,
 };
-use tauri_app_lib::service::csv_file_service::{open_csv_file, open_file_from_path};
+use tauri_app_lib::service::csv_file_service::{
+    open_csv_file_and_find_definitions, open_file_from_path,
+};
 
 use tempfile::NamedTempFile;
 
@@ -287,7 +289,7 @@ fn test_open_csv_and_validate_true() {
         setup_mock_csv_definition_map(expected_definition_key, mocked_definition_as_csv_validator);
 
     // Invoke
-    let result = open_csv_file(mocked_temp_file.as_file(), &mocked_map);
+    let result = open_csv_file_and_find_definitions(mocked_temp_file.as_file(), &mocked_map);
 
     // Analysis
     match result {
@@ -317,7 +319,7 @@ fn test_open_csv_and_validate_false() {
         setup_mock_csv_definition_map(expected_definition_key, mocked_definition_as_csv_validator);
 
     // Invoke
-    let result = open_csv_file(mocked_temp_file.as_file(), &mocked_map);
+    let result = open_csv_file_and_find_definitions(mocked_temp_file.as_file(), &mocked_map);
 
     // Analysis
     match result {
@@ -331,6 +333,3 @@ fn test_open_csv_and_validate_false() {
         Err(err) => panic!("Test failed: Result returned an error: {:?}", err),
     }
 }
-
-#[test]
-fn test_parse_csv_result_error() {}

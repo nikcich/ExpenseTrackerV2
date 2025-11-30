@@ -1,4 +1,4 @@
-use crate::definition::csv_definition::{CsvDefinitionKey, CsvValidator};
+use crate::definition::csv_definition::{CsvDefinitionKey, CsvValidator, CSV_DEFINITIONS};
 
 use csv::ReaderBuilder;
 use std::collections::HashMap;
@@ -17,7 +17,7 @@ use std::path::Path;
 ///
 /// Returns:
 /// - `Result<Option<CsvDefinitionKey>, Box<dyn StdError>>`: None or a valid CsvDefinitionKey
-pub fn open_csv_file(
+pub fn open_csv_file_and_find_definitions(
     file: &File,
     csv_definitions: &HashMap<CsvDefinitionKey, Box<dyn CsvValidator>>,
 ) -> Result<Option<Vec<CsvDefinitionKey>>, Box<dyn StdError>> {
@@ -70,6 +70,27 @@ pub fn open_csv_file(
 
     // If none matched, return None
     return Ok(Some(matched_definition_keys));
+}
+
+/// Parse a CSV file with a given definition and update the store
+///
+pub fn parse_csv_file_with_selected_definition(
+    path: String,
+    csv_definition_key: CsvDefinitionKey,
+) -> Result<bool, Box<dyn StdError>> {
+    let csv_definition = {
+        match CSV_DEFINITIONS.get(&csv_definition_key) {
+            Some(def) => def,
+            None => return Err("CSV definition not found".into()),
+        }
+    };
+
+    let file = match open_file_from_path(&path) {
+        Ok(f) => f,
+        Err(_) => return Err(format!("Failed to open file at path: {}", path).into()),
+    };
+
+    return Ok(true);
 }
 
 /// Opens a CSV file from a given path, only if it has a `.csv` extension.
