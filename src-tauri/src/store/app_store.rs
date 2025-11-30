@@ -9,7 +9,7 @@ fn get_store(app_handle: &tauri::AppHandle) -> Arc<Store<Wry>> {
     app_handle.state::<Arc<Store<Wry>>>().inner().clone()
 }
 
-fn store_get<K, V>(app_handle: &AppHandle, key: K) -> Result<V, String>
+pub fn store_get<K, V>(app_handle: &AppHandle, key: K) -> Result<V, String>
 where
     K: AsRef<str>,
     V: DeserializeOwned,
@@ -24,7 +24,7 @@ where
     }
 }
 
-fn store_set<K, V>(app_handle: &AppHandle, key: K, value: V) -> Result<(), String>
+pub fn store_set<K, V>(app_handle: &AppHandle, key: K, value: V) -> Result<(), String>
 where
     K: AsRef<str>,
     V: Serialize,
@@ -39,18 +39,4 @@ where
     store
         .save()
         .map_err(|e| format!("Failed to save store: {}", e))
-}
-
-#[tauri::command]
-pub fn store_set_value(
-    app_handle: AppHandle,
-    key: String,
-    value: serde_json::Value,
-) -> Result<(), String> {
-    store_set(&app_handle, key, value)
-}
-
-#[tauri::command]
-pub fn store_get_value(app_handle: AppHandle, key: String) -> Result<serde_json::Value, String> {
-    store_get::<_, serde_json::Value>(&app_handle, key)
 }
