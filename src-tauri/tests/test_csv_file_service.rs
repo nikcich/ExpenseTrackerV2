@@ -166,7 +166,7 @@ fn test_attempt_to_cast_float_not_a_number() {
 }
 
 #[test]
-fn test_attempt_to_cast_date_ok() {
+fn test_attempt_to_cast_date_ok_format() {
     // Setup
     let expected: bool = true;
 
@@ -178,12 +178,24 @@ fn test_attempt_to_cast_date_ok() {
 }
 
 #[test]
+fn test_attempt_to_cast_date_invalid_format_2() {
+    // Setup
+    let expected: bool = false;
+
+    // Invoke
+    let result: bool = attempt_to_cast("1999/11/05", CsvColumnDataType::DateObject("%Y-%m-%d"));
+
+    // Analysis
+    assert_eq!(expected, result);
+}
+
+#[test]
 fn test_attempt_to_cast_date_invalid() {
     // Setup
     let expected: bool = false;
 
     // Invoke
-    let result: bool = attempt_to_cast("Boo", CsvColumnDataType::DateObject("%y-%m-%d"));
+    let result: bool = attempt_to_cast("Boo", CsvColumnDataType::DateObject("%Y-%m-%d"));
 
     // Analysis
     assert_eq!(expected, result);
