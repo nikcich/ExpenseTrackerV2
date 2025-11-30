@@ -22,7 +22,7 @@ pub enum CsvColumnRole {
 pub enum CsvColumnDataType {
     Float,
     String,
-    DateObject,
+    DateObject(&'static str),
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -151,7 +151,11 @@ pub fn build_definitions() -> HashMap<CsvDefinitionKey, CsvDefinition> {
             "Wells Fargo Spending Report",
             true,
             make_column_definitions(&[
-                (CsvColumnRole::Date, 0, CsvColumnDataType::DateObject),
+                (
+                    CsvColumnRole::Date,
+                    0,
+                    CsvColumnDataType::DateObject("%m-%d-%Y"),
+                ),
                 (CsvColumnRole::Description, 1, CsvColumnDataType::String),
                 (CsvColumnRole::Amount, 2, CsvColumnDataType::Float),
             ]),
@@ -165,7 +169,11 @@ pub fn build_definitions() -> HashMap<CsvDefinitionKey, CsvDefinition> {
             true,
             make_column_definitions(&[
                 (CsvColumnRole::Description, 1, CsvColumnDataType::String),
-                (CsvColumnRole::Date, 2, CsvColumnDataType::DateObject),
+                (
+                    CsvColumnRole::Date,
+                    2,
+                    CsvColumnDataType::DateObject("%m/%d/%Y"),
+                ),
                 (CsvColumnRole::Amount, 4, CsvColumnDataType::Float),
             ]),
         ),
@@ -189,8 +197,8 @@ pub fn attempt_to_cast(raw_data: &str, col_data_type: CsvColumnDataType) -> bool
             Ok(value) => return value.is_finite(), // Reject infinity and NaN
             Err(_) => return false,                // Reject parse failures
         },
-        CsvColumnDataType::DateObject => {
-            return NaiveDate::parse_from_str(raw_data, "%m/%d/%y").is_ok()
+        CsvColumnDataType::DateObject(format) => {
+            return NaiveDate::parse_from_str(raw_data, format).is_ok()
         }
     }
 }

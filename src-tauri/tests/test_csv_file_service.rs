@@ -4,6 +4,7 @@ use std::f32;
 use std::fs::File;
 use std::io::Error as IoError;
 use std::io::Write;
+use tempfile::Builder;
 
 use tauri_app_lib::definition::csv_definition::{
     attempt_to_cast, make_column_definitions, CsvColumnDataType, CsvColumnRole, CsvDefinition,
@@ -22,7 +23,11 @@ fn setup_csv_definition_for_test() -> CsvDefinition {
         "Test",
         true,
         make_column_definitions(&[
-            (CsvColumnRole::Date, 0, CsvColumnDataType::DateObject),
+            (
+                CsvColumnRole::Date,
+                0,
+                CsvColumnDataType::DateObject("%Y-%m-%d"),
+            ),
             (CsvColumnRole::Description, 1, CsvColumnDataType::String),
             (CsvColumnRole::Amount, 2, CsvColumnDataType::Float),
         ]),
@@ -166,7 +171,7 @@ fn test_attempt_to_cast_date_ok() {
     let expected: bool = true;
 
     // Invoke
-    let result: bool = attempt_to_cast("1999-11-05", CsvColumnDataType::DateObject);
+    let result: bool = attempt_to_cast("1999-11-05", CsvColumnDataType::DateObject("%Y-%m-%d"));
 
     // Analysis
     assert_eq!(expected, result);
@@ -178,7 +183,7 @@ fn test_attempt_to_cast_date_invalid() {
     let expected: bool = false;
 
     // Invoke
-    let result: bool = attempt_to_cast("Boo", CsvColumnDataType::DateObject);
+    let result: bool = attempt_to_cast("Boo", CsvColumnDataType::DateObject("%y-%m-%d"));
 
     // Analysis
     assert_eq!(expected, result);
@@ -216,13 +221,33 @@ fn test_validate_csv_record_true() {
 }
 
 #[test]
-fn test_open_file_from_path_success() {
+fn test_open_file_from_path_valid_extension() {
     // Setup
-    let temp = tempfile::NamedTempFile::new().expect("Test failed: could not create temp file");
+    let temp = Builder::new()
+        .suffix(".csv")
+        .tempfile()
+        .expect("Test failed: could not create temp file");
 
     // Invoke
     let result: Result<File, IoError> = open_file_from_path(temp.path().to_str().unwrap());
+
+    // Analysis
     assert!(result.is_ok());
+}
+
+#[test]
+fn test_open_file_from_path_invalid_extension() {
+    // Setup
+    let temp = Builder::new()
+        .suffix(".json")
+        .tempfile()
+        .expect("Test failed: could not create temp file");
+
+    // Invoke
+    let result: Result<File, IoError> = open_file_from_path(temp.path().to_str().unwrap());
+
+    // Analysis
+    assert!(!result.is_ok());
 }
 
 #[test]
