@@ -4,7 +4,7 @@ use tauri_plugin_store::StoreExt;
 mod api;
 mod config;
 pub mod definition;
-pub mod model;
+mod model;
 pub mod service;
 mod store;
 mod utils;

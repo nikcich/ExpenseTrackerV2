@@ -1,3 +1,4 @@
+use crate::model::expense::Expense;
 use chrono::NaiveDate;
 use csv::StringRecord;
 use mockall::automock;
@@ -54,6 +55,17 @@ impl CsvDefinition {
     pub fn get_name(&self) -> &str {
         self.name
     }
+}
+
+pub trait CsvParser {
+    /// Parses a CSV record with a current definition
+    ///
+    /// Parameters:
+    /// - `record`: The CSV record to parse with.
+    ///
+    /// Returns:
+    /// - 'Expense': The Expense object containing converted data
+    fn parse_record(&self, record: &StringRecord) -> Expense;
 }
 
 #[automock]
