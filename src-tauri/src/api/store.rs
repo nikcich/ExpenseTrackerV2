@@ -1,6 +1,5 @@
 use crate::model::response::{Response, Status};
 use crate::store::app_store::ExpenseStore;
-use blake3::Hash;
 use tauri::State;
 
 #[tauri::command]
@@ -25,19 +24,24 @@ pub fn store_set_value(
 
 #[tauri::command]
 /// state is injected from tauri
-pub fn store_get_value(expense_store_state: State<'_, ExpenseStore>, hash: Hash) -> Response {
-    match expense_store_state.inner().get_expense(&hash) {
+pub fn store_get_value(expense_store_state: State<'_, ExpenseStore>) -> Response {
+    match expense_store_state.inner().get_all_expense() {
         Ok(None) => {
             return Response::new(
                 Status::NotFound,
-                format!("Could not find expense for a given key {}", hash),
+                format!("Could not find expenses"),
                 Option::<String>::None,
             )
         }
-        Ok(Some(val)) => return Response::ok(format!("Result: {}", hash).to_string(), val),
+        Ok(Some(val)) => {
+            return Response::ok(
+                format!("Successfully retrieved all expenses").to_string(),
+                val,
+            )
+        }
         Err(e) => {
             return Response::err(
-                format!("Error with hash {}, reason: {}", hash, e),
+                format!("Error occured when retrieving expenses: {}", e),
                 Option::<String>::None,
             )
         }

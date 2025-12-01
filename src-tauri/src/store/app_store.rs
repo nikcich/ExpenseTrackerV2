@@ -149,6 +149,15 @@ impl ExpenseStore {
         }
     }
 
+    pub fn get_all_expense(&self) -> Result<Option<StoreData>, Box<dyn StdError>> {
+        let loaded = self.load()?;
+
+        match loaded {
+            Some(store_data) => Ok(Some(store_data)),
+            None => Ok(None),
+        }
+    }
+
     /// Get an expense from store data
     pub fn get_expense(&self, hash: &Hash) -> Result<Option<Expense>, Box<dyn StdError>> {
         let loaded = self.load()?;
