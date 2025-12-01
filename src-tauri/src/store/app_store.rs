@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::error::Error as StdError;
 use std::sync::Arc;
-use tauri::{AppHandle, Manager, Wry};
+use tauri::Wry;
 use tauri_plugin_store::Store;
 /// STORE data structure example:
 /// {
@@ -39,24 +39,28 @@ pub struct StoreData {
 
 impl StoreData {
     /// Generate a deterministic UUID for an Expense based on description, date, and amount
-    fn generate_hash_for_new_entry(&self, expense: &Expense) -> Hash {
-        loop {
-            // Serialize expense fields
-            let input = format!(
-                "{}:{}:{}",
-                expense.get_description(),
-                expense.get_date(),
-                expense.get_amount()
-            );
+    fn generate_hash_for_new_entry(&self, expense: &Expense) -> Result<Hash, Box<dyn StdError>> {
+        // Serialize expense fields
+        let input = format!(
+            "{}:{}:{}",
+            expense.get_description(),
+            expense.get_date(),
+            expense.get_amount()
+        );
 
-            // Hash it using Blake3
-            let hash = Hasher::new().update(input.as_bytes()).finalize();
+        // Hash it using Blake3
+        let hash = Hasher::new().update(input.as_bytes()).finalize();
 
-            // Ensure uniqueness in store
-            if !self.data.contains_key(&hash) {
-                return hash;
-            }
+        // Ensure uniqueness in store
+        if !self.data.contains_key(&hash) {
+            return Ok(hash);
         }
+
+        return Err(format!(
+            "Error, we have an existing expense entry for input: {}",
+            input
+        )
+        .into());
     }
 }
 
@@ -123,7 +127,7 @@ impl ExpenseStore {
         };
 
         // Add the new expense
-        let hash: Hash = store_data.generate_hash_for_new_entry(&expense);
+        let hash: Hash = store_data.generate_hash_for_new_entry(&expense)?;
 
         // Add to the header
         store_data.data.insert(hash, expense);
@@ -145,7 +149,7 @@ impl ExpenseStore {
             self.save(&store_data)?; // save only if removed
             Ok(true)
         } else {
-            Ok(false) // UUID not found
+            Ok(false) // hash not found
         }
     }
 
@@ -175,7 +179,7 @@ impl ExpenseStore {
         return Ok(Some(expense.clone()));
     }
 
-    /// Check if a UUID exists
+    /// Check if a hash exists
     pub fn exists(&self, hash: &Hash) -> Result<bool, Box<dyn StdError>> {
         if let Some(store_data) = self.load()? {
             Ok(store_data.data.contains_key(hash))
