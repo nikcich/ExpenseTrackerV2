@@ -42,8 +42,8 @@ pub fn run() {
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
-            // api::store::store_set_value,
-            // api::store::store_get_value,
+            api::store::store_set_value,
+            api::store::store_get_value,
             api::window_manager::new_window,
             api::range_state::set_date_range,
             api::range_state::get_date_range,

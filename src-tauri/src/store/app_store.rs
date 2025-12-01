@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::error::Error as StdError;
 use std::sync::Arc;
-use tauri::Wry;
+use tauri::{AppHandle, Manager, Wry};
 use tauri_plugin_store::Store;
 /// STORE data structure example:
 /// {
@@ -31,14 +31,6 @@ use tauri_plugin_store::Store;
 /// }
 
 static STORE_NAME: &str = "store_data";
-
-// Initialize the store once and make it globally accessible
-// Thread-safe global backend store
-// pub static EXPENSE_STORE: Lazy<Arc<ExpenseStore>> = Lazy::new(|| {
-//     // Initialize your Tauri store
-//     let store = Store::<Wry>::new("store.json").expect("Failed to create store");
-//     Arc::new(ExpenseStore::new(Arc::new(store)))
-// });
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct StoreData {
@@ -70,12 +62,22 @@ impl StoreData {
 
 /// Helper struct for backend store operations
 pub struct ExpenseStore {
-    store: Arc<Store<Wry>>, // your Tauri store
+    store: Arc<Store<Wry>>, // Tauri store
 }
 
 impl ExpenseStore {
     pub fn new(store: Arc<Store<Wry>>) -> Self {
         Self { store }
+    }
+
+    /// This is a dangerous call, UI only should call this when absolutely necessary
+    pub fn overwrite_using_json(
+        &self,
+        json_value: serde_json::Value,
+    ) -> Result<bool, Box<dyn StdError>> {
+        self.store.set(STORE_NAME, json_value);
+        self.store.save()?;
+        return Ok(true);
     }
 
     /// Load the persisted store data
@@ -86,7 +88,8 @@ impl ExpenseStore {
             .unwrap_or(serde_json::Value::Null);
 
         if json_data_from_disk.is_null() {
-            return Err(format!("There was an error trying to read from {}", STORE_NAME).into());
+            // Not an error, the disk was just empty and had nothing to load from
+            return Ok(None);
         }
 
         // Deserialize JSON -> StoreData
@@ -132,7 +135,6 @@ impl ExpenseStore {
     }
 
     // Removes an expense from store
-    // Removes an expense by UUID
     pub fn remove_expense(&self, hash: &Hash) -> Result<bool, Box<dyn StdError>> {
         let mut store_data = match self.load()? {
             Some(data) => data,
@@ -145,6 +147,23 @@ impl ExpenseStore {
         } else {
             Ok(false) // UUID not found
         }
+    }
+
+    /// Get an expense from store data
+    pub fn get_expense(&self, hash: &Hash) -> Result<Option<Expense>, Box<dyn StdError>> {
+        let loaded = self.load()?;
+
+        let store_data = match loaded {
+            Some(data) => data,
+            None => return Ok(None),
+        };
+
+        let expense = match store_data.data.get(hash) {
+            Some(e) => e,            // found expense
+            None => return Ok(None), // not found
+        };
+
+        return Ok(Some(expense.clone()));
     }
 
     /// Check if a UUID exists
