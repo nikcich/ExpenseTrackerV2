@@ -1,23 +1,33 @@
 use chrono::NaiveDate;
-use std::collections::HashSet;
-use uuid::Uuid;
+use serde::{Deserialize, Serialize};
 
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Expense {
-    id: Uuid,
     description: String,
     amount: f64,
-    tags: HashSet<String>,
+    tags: Vec<String>,
     date: NaiveDate,
 }
 
 impl Expense {
     pub fn new(description: String, amount: f64, date: NaiveDate) -> Self {
         return Expense {
-            id: Uuid::new_v4(),
             description: description,
             amount: amount,
-            tags: HashSet::new(),
+            tags: Vec::new(),
             date: date,
         };
+    }
+
+    pub fn get_description(&self) -> &str {
+        &self.description
+    }
+
+    pub fn get_date(&self) -> &NaiveDate {
+        &self.date
+    }
+
+    pub fn get_amount(&self) -> f64 {
+        self.amount
     }
 }
