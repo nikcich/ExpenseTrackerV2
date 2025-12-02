@@ -10,6 +10,8 @@ import { invoke } from "@tauri-apps/api/core";
 import { useEffect, useState } from "react";
 import { API, KnownStoreKeys, POLL_INTERVAL_MS } from "../types/types";
 import { debounceTime, distinctUntilChanged } from "rxjs/operators";
+import { Response } from "../types/types";
+import { parse } from "date-fns";
 
 function deepEqual(a: any, b: any): boolean {
   if (Object.is(a, b)) return true;
@@ -45,11 +47,13 @@ export function makeUseStoreValue<T>(
   };
 }
 
-export const createTauriInvoker = (
+export const createTauriInvoker = <T>(
   command: API,
   args?: Record<string, unknown>
-) => {
-  return async () => await invoke(command, args);
+): (() => Promise<Response<T>>) => {
+  return async (): Promise<Response<T>> => {
+    return await invoke(command, args);
+  };
 };
 
 type TauriStoreOptions<T> = {
@@ -69,11 +73,19 @@ export function createTauriPoller<T>(
   interval(POLL_INTERVAL_MS)
     .pipe(
       startWith(0),
-      switchMap(() => invoke<T>(command, pArgs?.args))
+      switchMap(() => invoke<Response<T>>(command, pArgs?.args))
     )
     .subscribe({
       next: (val) => {
-        pArgs.subject.next(val);
+        if (val.status >= 400 || !val.message) {
+          console.error(
+            `Polling for "${command}" returned error:`,
+            val?.header
+          );
+          return;
+        }
+
+        pArgs.subject.next(val.message);
       },
       error: (err) => console.error(`Polling for "${command}" failed:`, err),
     });
@@ -96,8 +108,20 @@ export function createTauriApiHooks<
   const value$ = new BehaviorSubject<T | undefined>(subject.getValue?.());
 
   // Fetch initial value asynchronously and push into the BehaviorSubject
-  invoke<T>(getCommand, args)
-    .then((val) => value$.next(val))
+  invoke<Response<T>>(getCommand, args)
+    .then((val) => {
+      if (val.status >= 400) {
+        console.error(
+          `Error fetching initial value for "${getCommand}":`,
+          val?.header
+        );
+        return;
+      }
+
+      if (!val.message) return;
+
+      value$.next(val.message);
+    })
     .catch(() => {
       // optional: keep current value if invoke fails
       value$.next(subject.getValue?.());
@@ -107,7 +131,16 @@ export function createTauriApiHooks<
   const setValue = setCommand
     ? async (newVal: T | undefined) => {
         if (newVal === undefined) return;
-        await invoke(setCommand, { ...args, value: newVal });
+        const res: Response<T> = await invoke(setCommand, {
+          ...args,
+          value: newVal,
+        });
+
+        if (res.status >= 400) {
+          console.error("Error setting value:", res.header);
+          return;
+        }
+
         subject.next(newVal);
       }
     : undefined;
@@ -166,7 +199,15 @@ export function createTauriStoreHook<T>(options: TauriStoreOptions<T>) {
   const setValue = async (newVal: T | undefined) => {
     if (newVal === undefined) return;
     try {
-      await invoke(API.SetValue, { key: options.key, value: newVal });
+      const res: Response<null> = await invoke(API.SetValue, {
+        value: newVal,
+      });
+
+      if (res.status >= 400) {
+        console.error("Error setting value:", res.header);
+        return;
+      }
+
       value$.next(newVal);
     } finally {
     }
@@ -195,7 +236,16 @@ export function createDebouncedTauriStoreHook<T>(
   const setValue = async (newVal: T | undefined) => {
     if (newVal === undefined) return;
     try {
-      await invoke(API.SetValue, { key: options.key, value: newVal });
+      const res: Response<T> = await invoke(API.SetValue, {
+        key: options.key,
+        value: newVal,
+      });
+
+      if (res.status >= 400) {
+        console.error("Error setting value:", res.header);
+        return;
+      }
+
       value$.next(newVal); // still push immediately so backend stays up-to-date
     } finally {
     }
@@ -254,3 +304,8 @@ export function createDebouncedObservableHook<T>(
     return value;
   };
 }
+
+export const parseDate = (dateStr: string): Date => {
+  const date = parse(dateStr, "yyyy-MM-dd'T'HH:mm:ss", new Date());
+  return date;
+};

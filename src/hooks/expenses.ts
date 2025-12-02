@@ -1,6 +1,7 @@
 import { useSettingsStore } from "@/store/SettingsStore";
 import { useDebouncedBrushRange, useExpensesStore } from "@/store/store";
 import { NonExpenseTags } from "@/types/types";
+import { parseDate } from "@/utils/utils";
 import { useMemo } from "react";
 
 export const useFilteredExpenses = () => {
@@ -12,7 +13,7 @@ export const useFilteredExpenses = () => {
     if (!range) return expenses;
     return expenses
       .filter((expense) => {
-        const expenseDate = new Date(expense.date).getTime();
+        const expenseDate = parseDate(expense.date).getTime();
         return expenseDate >= range[0] && expenseDate <= range[1];
       })
       .filter((expense) =>
@@ -30,7 +31,7 @@ export const useFilteredIncome = () => {
   const filtered = useMemo(() => {
     if (!range) return income;
     return income.filter((income) => {
-      const expenseDate = new Date(income.date).getTime();
+      const expenseDate = parseDate(income.date).getTime();
       return expenseDate >= range[0] && expenseDate <= range[1];
     });
   }, [range, income]);

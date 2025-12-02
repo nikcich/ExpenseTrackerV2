@@ -1,4 +1,4 @@
-import { API, Expense, KnownStoreKeys } from "../types/types";
+import { API, KnownStoreKeys, StoreExpenseMap } from "../types/types";
 import { createTauriApiHooks, createTauriStoreHook } from "../utils/utils";
 
 export const {
@@ -7,10 +7,19 @@ export const {
   value$: instantBrushRange$,
 } = createTauriApiHooks<[number, number]>(API.DateRange);
 
-export const [useValue, value$] = createTauriStoreHook<number>({
-  key: KnownStoreKeys.MyValue,
-});
+const [useExpensesStoreInner, expenses$] =
+  createTauriStoreHook<StoreExpenseMap>({
+    key: KnownStoreKeys.Expenses,
+  });
 
-export const [useExpensesStore, expenses$] = createTauriStoreHook<Expense[]>({
-  key: KnownStoreKeys.Expenses,
-});
+const useExpensesStore = () => {
+  const { setValue, value } = useExpensesStoreInner();
+  const realValue = value ?? {};
+
+  return {
+    value: Object.values(realValue),
+    setValue,
+  };
+};
+
+export { useExpensesStore, expenses$ };

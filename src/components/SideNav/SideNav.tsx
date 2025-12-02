@@ -10,6 +10,7 @@ import { FaTable } from "react-icons/fa6";
 import { FaChartBar } from "react-icons/fa";
 import { LuChartColumnStacked } from "react-icons/lu";
 import { FaSlidersH } from "react-icons/fa";
+import { PiFileCsvBold } from "react-icons/pi";
 
 const NavButton = ({ Icon, page }: { Icon: React.FC; page: string }) => {
   const navigate = useNavigate();
@@ -31,6 +32,7 @@ export function SideNav() {
   return (
     <div className={styles.navContainer}>
       <NavButton Icon={AiOutlineHome} page={Pages.Home} />
+      <NavButton Icon={PiFileCsvBold} page={Pages.FileOpener} />
       <NavButton Icon={FaSlidersH} page={Pages.Settings} />
       <NavButton Icon={GrTest} page={Pages.Test} />
       <NavButton Icon={FaTable} page={Pages.TableView} />

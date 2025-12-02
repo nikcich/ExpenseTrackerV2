@@ -4,11 +4,16 @@ use std::f32;
 use std::fs::File;
 use std::io::Error as IoError;
 use std::io::Write;
-use tauri_app_lib::service::csv_file_service::{
-    attempt_to_cast, make_column_definitions, open_csv_file, open_file_from_path,
-    CsvColumnDataType, CsvColumnRole, CsvDefinition, CsvDefinitionKey, CsvValidator,
-    MockCsvValidator,
+use tempfile::Builder;
+
+use tauri_app_lib::definition::csv_definition::{
+    attempt_to_cast, make_column_definitions, CsvColumnDataType, CsvColumnRole, CsvDefinition,
+    CsvDefinitionKey, CsvValidator, MockCsvValidator,
 };
+use tauri_app_lib::service::csv_file_service::{
+    open_csv_file_and_find_definitions, open_file_from_path,
+};
+
 use tempfile::NamedTempFile;
 
 /// Helper function to set up csv definition for test
@@ -20,7 +25,11 @@ fn setup_csv_definition_for_test() -> CsvDefinition {
         "Test",
         true,
         make_column_definitions(&[
-            (CsvColumnRole::Date, 0, CsvColumnDataType::DateObject),
+            (
+                CsvColumnRole::Date,
+                0,
+                CsvColumnDataType::DateObject("%Y-%m-%d"),
+            ),
             (CsvColumnRole::Description, 1, CsvColumnDataType::String),
             (CsvColumnRole::Amount, 2, CsvColumnDataType::Float),
         ]),
@@ -31,7 +40,7 @@ fn setup_csv_definition_for_test() -> CsvDefinition {
 ///
 /// Returns:
 /// `MockCsvValidator` A mocked CSV Definition to test with
-fn setup_mock_csv_definition_for_test(success_on_validate: bool) -> MockCsvValidator {
+fn setup_mock_csv_definition_for_test(success_on_validate: bool) -> Box<MockCsvValidator> {
     let mut mocked_definition = MockCsvValidator::new();
     mocked_definition
         .expect_validate_against_record()
@@ -39,20 +48,20 @@ fn setup_mock_csv_definition_for_test(success_on_validate: bool) -> MockCsvValid
 
     mocked_definition.expect_has_header().return_const(true);
 
-    return mocked_definition;
+    return Box::new(mocked_definition);
 }
 
 /// Helper function to set up mock csv definition hashmap for test
 ///
 /// Returns:
-/// `HashMap<&'a CsvDefinitionKey, &'a Box<dyn CsvValidator>>` A mocked CSV Definition key to CSV definition map to test with
-fn setup_mock_csv_definition_map<'a>(
-    definition_key: &'a CsvDefinitionKey,
-    mocked_definition: &'a Box<dyn CsvValidator>,
-) -> HashMap<&'a CsvDefinitionKey, &'a Box<dyn CsvValidator>> {
+/// `HashMap<CsvDefinitionKey, Box<MockCsvValidator>>` A mocked CSV Definition key to CSV definition map to test with
+fn setup_mock_csv_definition_map(
+    definition_key: CsvDefinitionKey,
+    mocked_definition: Box<MockCsvValidator>,
+) -> HashMap<CsvDefinitionKey, Box<dyn CsvValidator>> {
     let mut map = HashMap::new();
-    map.insert(definition_key, mocked_definition);
-    map
+    map.insert(definition_key, mocked_definition as Box<dyn CsvValidator>);
+    return map;
 }
 
 /// Helper function to set up mocked file for test
@@ -66,11 +75,6 @@ fn setup_mocked_file() -> NamedTempFile {
     writeln!(temp_file, "value1,value2").expect("Test failed: could not write to temp file");
 
     return temp_file;
-}
-
-/// Helper function to assert same pointer
-fn assert_same_ptr<T>(a: &T, b: &T) {
-    assert!(std::ptr::eq(a, b));
 }
 
 #[test]
@@ -164,12 +168,24 @@ fn test_attempt_to_cast_float_not_a_number() {
 }
 
 #[test]
-fn test_attempt_to_cast_date_ok() {
+fn test_attempt_to_cast_date_ok_format() {
     // Setup
     let expected: bool = true;
 
     // Invoke
-    let result: bool = attempt_to_cast("1999-11-05", CsvColumnDataType::DateObject);
+    let result: bool = attempt_to_cast("1999-11-05", CsvColumnDataType::DateObject("%Y-%m-%d"));
+
+    // Analysis
+    assert_eq!(expected, result);
+}
+
+#[test]
+fn test_attempt_to_cast_date_invalid_format_2() {
+    // Setup
+    let expected: bool = false;
+
+    // Invoke
+    let result: bool = attempt_to_cast("1999/11/05", CsvColumnDataType::DateObject("%Y-%m-%d"));
 
     // Analysis
     assert_eq!(expected, result);
@@ -181,7 +197,7 @@ fn test_attempt_to_cast_date_invalid() {
     let expected: bool = false;
 
     // Invoke
-    let result: bool = attempt_to_cast("Boo", CsvColumnDataType::DateObject);
+    let result: bool = attempt_to_cast("Boo", CsvColumnDataType::DateObject("%Y-%m-%d"));
 
     // Analysis
     assert_eq!(expected, result);
@@ -219,13 +235,33 @@ fn test_validate_csv_record_true() {
 }
 
 #[test]
-fn test_open_file_from_path_success() {
+fn test_open_file_from_path_valid_extension() {
     // Setup
-    let temp = tempfile::NamedTempFile::new().expect("Test failed: could not create temp file");
+    let temp = Builder::new()
+        .suffix(".csv")
+        .tempfile()
+        .expect("Test failed: could not create temp file");
 
     // Invoke
     let result: Result<File, IoError> = open_file_from_path(temp.path().to_str().unwrap());
+
+    // Analysis
     assert!(result.is_ok());
+}
+
+#[test]
+fn test_open_file_from_path_invalid_extension() {
+    // Setup
+    let temp = Builder::new()
+        .suffix(".json")
+        .tempfile()
+        .expect("Test failed: could not create temp file");
+
+    // Invoke
+    let result: Result<File, IoError> = open_file_from_path(temp.path().to_str().unwrap());
+
+    // Analysis
+    assert!(!result.is_ok());
 }
 
 #[test]
@@ -243,31 +279,29 @@ fn test_open_file_from_path_fail() {
 #[test]
 fn test_open_csv_and_validate_true() {
     // Setup
+    let expected_size: usize = 1;
     let expected_definition_key = CsvDefinitionKey::CapitalOne;
     let success_on_validate: bool = true;
     let mocked_temp_file: NamedTempFile = setup_mocked_file();
-    let mocked_definition_as_csv_validator: Box<dyn CsvValidator> =
-        Box::new(setup_mock_csv_definition_for_test(success_on_validate));
-    let mocked_map = setup_mock_csv_definition_map(
-        &expected_definition_key,
-        &mocked_definition_as_csv_validator,
-    );
+    let mocked_definition_as_csv_validator: Box<MockCsvValidator> =
+        setup_mock_csv_definition_for_test(success_on_validate);
+    let mocked_map =
+        setup_mock_csv_definition_map(expected_definition_key, mocked_definition_as_csv_validator);
 
     // Invoke
-    let result = open_csv_file(mocked_temp_file.as_file(), &mocked_map);
+    let result = open_csv_file_and_find_definitions(mocked_temp_file.as_file(), &mocked_map);
 
     // Analysis
     match result {
         Ok(arg) => {
             assert!(arg.is_some(), "Expected Some value");
-            assert_eq!(arg, Some(expected_definition_key));
+            assert!(!arg.is_none(), "Expected not None");
 
-            // Verify it's the same instance in memory
-            let returned_key = arg.unwrap();
-            let returned_def = mocked_map.get(&returned_key).unwrap();
-            let original_def = mocked_map.get(&expected_definition_key).unwrap();
+            // Verify it's the right key
+            let returned_key_list = arg.unwrap();
 
-            assert_same_ptr(&**returned_def, &**original_def);
+            assert_eq!(returned_key_list.len(), expected_size);
+            assert_eq!(returned_key_list[0], expected_definition_key);
         }
         Err(err) => panic!("Test failed: Result returned an error: {:?}", err),
     }
@@ -279,15 +313,13 @@ fn test_open_csv_and_validate_false() {
     let expected_definition_key = CsvDefinitionKey::CapitalOne;
     let success_on_validate: bool = false;
     let mocked_temp_file: NamedTempFile = setup_mocked_file();
-    let mocked_definition_as_csv_validator: Box<dyn CsvValidator> =
-        Box::new(setup_mock_csv_definition_for_test(success_on_validate));
-    let mocked_map = setup_mock_csv_definition_map(
-        &expected_definition_key,
-        &mocked_definition_as_csv_validator,
-    );
+    let mocked_definition_as_csv_validator: Box<MockCsvValidator> =
+        setup_mock_csv_definition_for_test(success_on_validate);
+    let mocked_map =
+        setup_mock_csv_definition_map(expected_definition_key, mocked_definition_as_csv_validator);
 
     // Invoke
-    let result = open_csv_file(mocked_temp_file.as_file(), &mocked_map);
+    let result = open_csv_file_and_find_definitions(mocked_temp_file.as_file(), &mocked_map);
 
     // Analysis
     match result {
