@@ -9,6 +9,7 @@ import { TableView } from "./pages/TableView/TableView";
 import { GroupedBarChart } from "./pages/GroupedBarChart/GroupedBarChart";
 import { TagStackedBarChart } from "./pages/TagStackedBarChart/TagStackedBarChart";
 import { Settings } from "./pages/Settings/Settings";
+import { FileOpener } from "./pages/FileOpener/FileOpener";
 
 const RouteComponent = ({ element }: { element: JSX.Element }) => {
   return (
@@ -51,6 +52,11 @@ export function AppRouter() {
         <Route
           path={Pages.StackedBarChart}
           element={<RouteComponent element={<TagStackedBarChart />} />}
+        />
+
+        <Route
+          path={Pages.FileOpener}
+          element={<RouteComponent element={<FileOpener />} />}
         />
       </Routes>
     </BrowserRouter>

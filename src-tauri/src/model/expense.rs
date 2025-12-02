@@ -1,17 +1,19 @@
-use chrono::NaiveDate;
+use chrono::NaiveDateTime;
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Expense {
+    id: String,
     description: String,
     amount: f64,
     tags: Vec<String>,
-    date: NaiveDate,
+    date: NaiveDateTime,
 }
 
 impl Expense {
-    pub fn new(description: String, amount: f64, date: NaiveDate) -> Self {
+    pub fn new(id: String, description: String, amount: f64, date: NaiveDateTime) -> Self {
         return Expense {
+            id: id,
             description: description,
             amount: amount,
             tags: Vec::new(),
@@ -23,7 +25,8 @@ impl Expense {
         &self.description
     }
 
-    pub fn get_date(&self) -> &NaiveDate {
+    /// Returns a reference to the date of the expense.
+    pub fn get_date(&self) -> &NaiveDateTime {
         &self.date
     }
 

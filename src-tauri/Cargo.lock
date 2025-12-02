@@ -993,6 +993,7 @@ dependencies = [
  "blake3",
  "chrono",
  "csv",
+ "hex",
  "lazy_static",
  "mockall",
  "once_cell",

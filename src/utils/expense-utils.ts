@@ -1,4 +1,6 @@
 import { Expense, NonExpenseTags } from "@/types/types";
+import { parseDate } from "./utils";
+import { format } from "date-fns";
 
 export function groupBy<T>(
   items: T[],
@@ -68,16 +70,21 @@ export function groupAndSumExpenses<T>(
 }
 
 export const byYear = (e: Expense) => {
-  const year = e.date.split("/")[2];
+  const year = parseDate(e.date).getFullYear();
   return `${year}‎`;
 };
 export const byMonth = (e: Expense) => {
-  const [m, , y] = e.date.split("/");
-  const monthName = new Date(parseInt(y), parseInt(m) - 1).toLocaleString(
-    "default",
-    { month: "short" }
-  );
+  const date = parseDate(e.date);
+  const m = date.getMonth();
+  const y = date.getFullYear();
+
+  const monthName = new Date(y, m).toLocaleString("default", {
+    month: "short",
+  });
   return `${monthName} ${y}`;
 };
-export const byDay = (e: Expense) => e.date;
+export const byDay = (e: Expense) => {
+  const date = parseDate(e.date);
+  return format(date, "MM/dd/yyyy");
+};
 export const byTag = (e: Expense) => e.tags;

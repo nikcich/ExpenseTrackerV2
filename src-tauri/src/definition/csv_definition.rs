@@ -1,5 +1,5 @@
 use crate::model::expense::Expense;
-use chrono::NaiveDate;
+use chrono::{NaiveDate, NaiveDateTime};
 use csv::StringRecord;
 use mockall::automock;
 use once_cell::sync::Lazy;
@@ -161,15 +161,11 @@ pub fn build_definitions() -> HashMap<CsvDefinitionKey, CsvDefinition> {
         CsvDefinitionKey::WellsFargo,
         CsvDefinition::new(
             "Wells Fargo Spending Report",
-            true,
+            false,
             make_column_definitions(&[
-                (
-                    CsvColumnRole::Date,
-                    0,
-                    CsvColumnDataType::DateObject("%m-%d-%Y"),
-                ),
-                (CsvColumnRole::Description, 1, CsvColumnDataType::String),
-                (CsvColumnRole::Amount, 2, CsvColumnDataType::Float),
+                (CsvColumnRole::Date, 0, CsvColumnDataType::DateObject("%m/%d/%Y")),
+                (CsvColumnRole::Amount, 1, CsvColumnDataType::Float),
+                (CsvColumnRole::Description, 4, CsvColumnDataType::String),
             ]),
         ),
     );
@@ -210,7 +206,10 @@ pub fn attempt_to_cast(raw_data: &str, col_data_type: CsvColumnDataType) -> bool
             Err(_) => return false,                // Reject parse failures
         },
         CsvColumnDataType::DateObject(format) => {
-            return NaiveDate::parse_from_str(raw_data, format).is_ok()
+            match NaiveDate::parse_from_str(raw_data, format) {
+                Ok(date) => date.and_hms_opt(0, 0, 0).is_some(),
+                Err(_) => false,
+            }
         }
     }
 }

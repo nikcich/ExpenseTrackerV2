@@ -6,6 +6,7 @@ export enum API {
   NewWindow = "new_window",
   DateRange = "get_date_range",
   ParseCSV = "open_csv_from_path",
+  SetDateRange = "set_date_range",
 }
 
 export enum KnownStoreKeys {
@@ -19,7 +20,10 @@ export type Expense = {
   tags: Tag[];
   date: string;
   description: string;
-  source: string;
+};
+
+export type StoreExpenseMap = {
+  [key: string]: Expense;
 };
 
 export enum Mode {
@@ -56,3 +60,9 @@ export enum NonExpenseTags {
 export type Tag = ExpenseTag | NonExpenseTags;
 
 export const ALL_EXPENSE_TAGS: Tag[] = Object.values(ExpenseTag) as Tag[];
+
+export type Response<T> = {
+  status: number;
+  header: string;
+  message: T | null;
+};

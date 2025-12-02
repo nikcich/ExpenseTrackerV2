@@ -36,7 +36,7 @@ pub fn store_get_value(expense_store_state: State<'_, ExpenseStore>) -> Response
         Ok(Some(val)) => {
             return Response::ok(
                 format!("Successfully retrieved all expenses").to_string(),
-                val,
+                val.data,
             )
         }
         Err(e) => {

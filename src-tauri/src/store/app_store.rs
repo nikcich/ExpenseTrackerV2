@@ -1,8 +1,10 @@
 use crate::model::expense::Expense;
 use blake3::{Hash, Hasher};
 use serde::{Deserialize, Serialize};
+use serde_json::json;
 use std::collections::HashMap;
 use std::error::Error as StdError;
+use std::fmt::{self, Debug};
 use std::sync::Arc;
 use tauri::Wry;
 use tauri_plugin_store::Store;
@@ -34,12 +36,12 @@ static STORE_NAME: &str = "store_data";
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct StoreData {
-    pub data: HashMap<Hash, Expense>,
+    pub data: HashMap<String, Expense>,
 }
 
 impl StoreData {
     /// Generate a deterministic UUID for an Expense based on description, date, and amount
-    fn generate_hash_for_new_entry(&self, expense: &Expense) -> Result<Hash, Box<dyn StdError>> {
+    fn generate_hash_for_new_entry(&self, expense: &Expense) -> Result<String, Box<dyn StdError>> {
         // Serialize expense fields
         let input = format!(
             "{}:{}:{}",
@@ -50,10 +52,11 @@ impl StoreData {
 
         // Hash it using Blake3
         let hash = Hasher::new().update(input.as_bytes()).finalize();
+        let hash_str = hash.to_hex().to_string();
 
         // Ensure uniqueness in store
-        if !self.data.contains_key(&hash) {
-            return Ok(hash);
+        if !self.data.contains_key(&hash_str) {
+            return Ok(hash_str);
         }
 
         return Err(format!(
@@ -79,7 +82,8 @@ impl ExpenseStore {
         &self,
         json_value: serde_json::Value,
     ) -> Result<bool, Box<dyn StdError>> {
-        self.store.set(STORE_NAME, json_value);
+        let data = json!({ "data": json_value });
+        self.store.set(STORE_NAME, data);
         self.store.save()?;
         return Ok(true);
     }
@@ -127,7 +131,7 @@ impl ExpenseStore {
         };
 
         // Add the new expense
-        let hash: Hash = store_data.generate_hash_for_new_entry(&expense)?;
+        let hash: String = store_data.generate_hash_for_new_entry(&expense)?;
 
         // Add to the header
         store_data.data.insert(hash, expense);
@@ -139,7 +143,7 @@ impl ExpenseStore {
     }
 
     // Removes an expense from store
-    pub fn remove_expense(&self, hash: &Hash) -> Result<bool, Box<dyn StdError>> {
+    pub fn remove_expense(&self, hash: &String) -> Result<bool, Box<dyn StdError>> {
         let mut store_data = match self.load()? {
             Some(data) => data,
             None => return Ok(false), // nothing to remove
@@ -163,7 +167,7 @@ impl ExpenseStore {
     }
 
     /// Get an expense from store data
-    pub fn get_expense(&self, hash: &Hash) -> Result<Option<Expense>, Box<dyn StdError>> {
+    pub fn get_expense(&self, hash: &String) -> Result<Option<Expense>, Box<dyn StdError>> {
         let loaded = self.load()?;
 
         let store_data = match loaded {
@@ -180,7 +184,7 @@ impl ExpenseStore {
     }
 
     /// Check if a hash exists
-    pub fn exists(&self, hash: &Hash) -> Result<bool, Box<dyn StdError>> {
+    pub fn exists(&self, hash: &String) -> Result<bool, Box<dyn StdError>> {
         if let Some(store_data) = self.load()? {
             Ok(store_data.data.contains_key(hash))
         } else {
