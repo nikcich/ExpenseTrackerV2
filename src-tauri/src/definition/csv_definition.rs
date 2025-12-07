@@ -125,7 +125,7 @@ impl CsvParser for CsvDefinition {
         let amount_is_standard = amount_info
             .data_type
             .is_standard()
-            .ok_or("Amount column must have Inverse boolean specified")?;
+            .ok_or("Amount column must have Float type with inversion flag specified")?;
 
         // Parse as NaiveDate, then convert to NaiveDateTime at midnight
         let date = NaiveDate::parse_from_str(date_str, date_format)?
