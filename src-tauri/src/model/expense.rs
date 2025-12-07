@@ -21,8 +21,8 @@ impl Expense {
         };
     }
 
-    pub fn set_id(&mut self, id: &String) {
-        self.id = id.clone();
+    pub fn set_id(&mut self, id: &str) {
+        self.id = id.to_string();
     }
 
     pub fn get_description(&self) -> &str {

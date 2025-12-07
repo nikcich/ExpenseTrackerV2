@@ -96,12 +96,20 @@ impl CsvParser for CsvDefinition {
             .get(amount_info.index as usize)
             .ok_or("Missing amount")?;
 
-        let date = NaiveDateTime::parse_from_str(date_str, "%Y-%m-%d %H:%M:%S")?;
-        let desc_str_as_string: String = desc_str.to_string();
+        // Use the format from the column definition
+        let date_format = match date_info.data_type {
+            CsvColumnDataType::DateObject(fmt) => fmt,
+            _ => return Err("Date column must have DateObject type".into()),
+        };
+        // Parse as NaiveDate, then convert to NaiveDateTime at midnight
+        let date = NaiveDate::parse_from_str(date_str, date_format)?
+            .and_hms_opt(0, 0, 0)
+            .ok_or("Failed to create datetime")?;
+        let description: String = desc_str.to_string();
         let amount: f64 = amount_str.parse()?;
 
         // Construct the Expense
-        let expense = Expense::new(desc_str_as_string, amount, date);
+        let expense = Expense::new(description, amount, date);
 
         Ok(expense)
     }

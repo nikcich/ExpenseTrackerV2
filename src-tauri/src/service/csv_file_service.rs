@@ -100,8 +100,7 @@ pub fn parse_csv_file_with_selected_definition(
         let record = match record {
             Ok(rec) => rec,
             Err(err) => {
-                eprintln!("Failed to read CSV record: {}", err);
-                break;
+                return Err(format!("Failed to read CSV record: {}", err).into());
             }
         };
 
