@@ -25,6 +25,10 @@ impl Expense {
         self.id = id.to_string();
     }
 
+    pub fn get_id(&self) -> &str {
+        &self.id
+    }
+
     pub fn get_description(&self) -> &str {
         &self.description
     }

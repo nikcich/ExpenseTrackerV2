@@ -1,4 +1,5 @@
 use crate::definition::csv_definition::{CsvDefinitionKey, CsvValidator, CSV_DEFINITIONS};
+use crate::model::expense::Expense;
 use crate::model::response::{Response, Status};
 use crate::service::csv_file_service::{
     open_csv_file_and_find_definitions, open_file_from_path,
@@ -85,6 +86,36 @@ pub fn parse_csv_from_path(
         Err(e) => {
             return Response::err(
                 format!("Failed to parse CSV: {}", e),
+                Option::<String>::None,
+            );
+        }
+    }
+}
+
+#[tauri::command]
+pub fn update_expense(
+    expense_store_state: State<'_, ExpenseStore>,
+    hash: String,
+    expense: Expense,
+) -> Response {
+    match expense_store_state.update_expense(hash, expense) {
+        Ok(updated) => {
+            if updated {
+                return Response::ok(
+                    String::from("Expense updated successfully"),
+                    Option::<String>::None,
+                );
+            } else {
+                return Response::new(
+                    Status::NotFound,
+                    String::from("Expense not found"),
+                    Option::<String>::None,
+                );
+            }
+        }
+        Err(e) => {
+            return Response::err(
+                format!("Failed to update expense: {}", e),
                 Option::<String>::None,
             );
         }

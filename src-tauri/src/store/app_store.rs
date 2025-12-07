@@ -214,4 +214,31 @@ impl ExpenseStore {
             Ok(false)
         }
     }
+
+    /// Update an expense in store
+    pub fn update_expense(
+        &self,
+        hash: String,
+        expense: Expense,
+    ) -> Result<bool, Box<dyn StdError>> {
+        let mut store_data = match self.load()? {
+            Some(data) => data,
+            None => return Err("Store data is null, could not load it to update expense".into()),
+        };
+
+        if !store_data.data.contains_key(&hash) {
+            return Ok(false); // hash not found
+        }
+
+        if hash != expense.get_id() {
+            return Err(
+                "Expense ID must have the same value as the hash, please check the ID before updating".into(),
+            );
+        }
+
+        store_data.data.insert(hash, expense);
+        self.save(&store_data)?;
+
+        return Ok(true);
+    }
 }
