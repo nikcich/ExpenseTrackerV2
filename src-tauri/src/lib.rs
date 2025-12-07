@@ -49,6 +49,7 @@ pub fn run() {
             api::range_state::get_date_range,
             api::csv_opener::open_csv_from_path,
             api::csv_opener::parse_csv_from_path,
+            api::csv_opener::update_expense
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
