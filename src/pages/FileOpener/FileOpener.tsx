@@ -15,9 +15,12 @@ export function FileOpener() {
     setResult(null);
     setSelectedFile(null);
     setLoading(true);
+
     const file = await open({
       multiple: false,
       directory: false,
+      recursive: false,
+      canCreateDirectories: false,
     });
 
     if (file) {

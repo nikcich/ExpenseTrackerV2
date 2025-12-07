@@ -10,7 +10,7 @@ type OverlayStore = {
 
 export const { useStore: useOverlayStore, setState: setOverlayStore } =
   createStore<OverlayStore>({
-    visibleOverlay: Overlay.DateRangeModal,
+    visibleOverlay: undefined,
   });
 
 export const enableOverlay = (overlay: Overlay) => {
