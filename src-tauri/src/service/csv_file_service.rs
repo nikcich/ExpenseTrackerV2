@@ -105,7 +105,8 @@ pub fn parse_csv_file_with_selected_definition(
             }
         };
 
-        let parsed_record = csv_definition.parse_record(&record)?;
+        // Parse a record and return as Expense object if successfully
+        let parsed_record: Expense = csv_definition.parse_record(&record)?;
         expense_store.add_expense(parsed_record)?;
     }
 
