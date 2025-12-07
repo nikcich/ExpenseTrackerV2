@@ -22,15 +22,15 @@ pub enum CsvColumnRole {
 
 #[derive(Debug, Eq, PartialEq, Clone, Copy)]
 pub enum CsvColumnDataType {
-    Float(&'static bool), // True if standard, False if inversed sign
+    Float(bool), // True if standard, False if inversed sign
     String,
     DateObject(&'static str), // Format string for parsing dates
 }
 
 impl CsvColumnDataType {
-    pub fn is_standard(&self) -> Option<bool> {
+    pub fn is_standard(&self) -> Option<&bool> {
         if let CsvColumnDataType::Float(b) = self {
-            return Some(**b);
+            return Some(&b);
         } else {
             return None;
         }
@@ -246,7 +246,7 @@ pub fn build_definitions() -> HashMap<CsvDefinitionKey, CsvDefinition> {
                     0,
                     CsvColumnDataType::DateObject("%m/%d/%Y"),
                 ),
-                (CsvColumnRole::Amount, 1, CsvColumnDataType::Float(&false)),
+                (CsvColumnRole::Amount, 1, CsvColumnDataType::Float(false)),
                 (CsvColumnRole::Description, 4, CsvColumnDataType::String),
             ]),
         ),
@@ -264,7 +264,7 @@ pub fn build_definitions() -> HashMap<CsvDefinitionKey, CsvDefinition> {
                     2,
                     CsvColumnDataType::DateObject("%m/%d/%Y"),
                 ),
-                (CsvColumnRole::Amount, 4, CsvColumnDataType::Float(&true)),
+                (CsvColumnRole::Amount, 4, CsvColumnDataType::Float(true)),
             ]),
         ),
     );
