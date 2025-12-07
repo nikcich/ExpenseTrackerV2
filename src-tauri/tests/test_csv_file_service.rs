@@ -8,7 +8,7 @@ use tempfile::Builder;
 
 use tauri_app_lib::definition::csv_definition::{
     attempt_to_cast, make_column_definitions, CsvColumnDataType, CsvColumnRole, CsvDefinition,
-    CsvDefinitionKey, CsvValidator, MockCsvValidator,
+    CsvDefinitionKey, CsvValidator, MockCsvValidator, INVERSED, STANDARD,
 };
 use tauri_app_lib::service::csv_file_service::{
     open_csv_file_and_find_definitions, open_file_from_path,
@@ -31,7 +31,11 @@ fn setup_csv_definition_for_test() -> CsvDefinition {
                 CsvColumnDataType::DateObject("%Y-%m-%d"),
             ),
             (CsvColumnRole::Description, 1, CsvColumnDataType::String),
-            (CsvColumnRole::Amount, 2, CsvColumnDataType::Float),
+            (
+                CsvColumnRole::Amount,
+                2,
+                CsvColumnDataType::Float(&STANDARD),
+            ),
         ]),
     );
 }
@@ -95,7 +99,7 @@ fn test_attempt_to_cast_float_ok_1() {
     let expected: bool = true;
 
     // Invoke
-    let result: bool = attempt_to_cast("1.0", CsvColumnDataType::Float);
+    let result: bool = attempt_to_cast("1.0", CsvColumnDataType::Float(&STANDARD));
 
     // Analysis
     assert_eq!(expected, result);
@@ -107,7 +111,7 @@ fn test_attempt_to_cast_float_ok_2() {
     let expected: bool = true;
 
     // Invoke
-    let result: bool = attempt_to_cast("1000000.0", CsvColumnDataType::Float);
+    let result: bool = attempt_to_cast("1000000.0", CsvColumnDataType::Float(&STANDARD));
 
     // Analysis
     assert_eq!(expected, result);
@@ -119,7 +123,10 @@ fn test_attempt_to_cast_float_ok_max() {
     let expected: bool = true;
 
     // Invoke
-    let result: bool = attempt_to_cast(f32::MAX.to_string().as_str(), CsvColumnDataType::Float);
+    let result: bool = attempt_to_cast(
+        f32::MAX.to_string().as_str(),
+        CsvColumnDataType::Float(&STANDARD),
+    );
 
     // Analysis
     assert_eq!(expected, result);
@@ -131,7 +138,10 @@ fn test_attempt_to_cast_float_ok_min() {
     let expected: bool = true;
 
     // Invoke
-    let result: bool = attempt_to_cast(f32::MIN.to_string().as_str(), CsvColumnDataType::Float);
+    let result: bool = attempt_to_cast(
+        f32::MIN.to_string().as_str(),
+        CsvColumnDataType::Float(&STANDARD),
+    );
 
     // Analysis
     assert_eq!(expected, result);
@@ -147,8 +157,14 @@ fn test_attempt_to_cast_float_overflow() {
     assert_eq!(overflow_1, overflow_2); // Max + some large value should end up as INFINITY
 
     // Invoke
-    let result_1: bool = attempt_to_cast(overflow_1.to_string().as_str(), CsvColumnDataType::Float);
-    let result_2: bool = attempt_to_cast(overflow_2.to_string().as_str(), CsvColumnDataType::Float);
+    let result_1: bool = attempt_to_cast(
+        overflow_1.to_string().as_str(),
+        CsvColumnDataType::Float(&STANDARD),
+    );
+    let result_2: bool = attempt_to_cast(
+        overflow_2.to_string().as_str(),
+        CsvColumnDataType::Float(&STANDARD),
+    );
 
     // Analysis
     assert_eq!(expected, result_1);
@@ -161,7 +177,7 @@ fn test_attempt_to_cast_float_not_a_number() {
     let expected: bool = false;
 
     // Invoke
-    let result: bool = attempt_to_cast("Boo", CsvColumnDataType::Float);
+    let result: bool = attempt_to_cast("Boo", CsvColumnDataType::Float(&STANDARD));
 
     // Analysis
     assert_eq!(expected, result);
