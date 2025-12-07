@@ -69,12 +69,12 @@ pub fn open_csv_from_path(file: String) -> Response {
 pub fn parse_csv_from_path(
     expense_store_state: State<'_, ExpenseStore>,
     path: String,
-    csv_definition_key: CsvDefinitionKey,
+    csvDefinitionKey: CsvDefinitionKey,
 ) -> Response {
     match parse_csv_file_with_selected_definition(
         expense_store_state.inner(),
         path,
-        csv_definition_key,
+        csvDefinitionKey,
     ) {
         Ok(data) => {
             return Response::ok(String::from("CSV parsed successfully"), &data);

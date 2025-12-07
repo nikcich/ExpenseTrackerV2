@@ -87,4 +87,5 @@ export const byDay = (e: Expense) => {
   const date = parseDate(e.date);
   return format(date, "MM/dd/yyyy");
 };
-export const byTag = (e: Expense) => e.tags;
+export const byTag = (e: Expense) =>
+  e.tags.length > 0 ? e.tags : ["Untagged"];

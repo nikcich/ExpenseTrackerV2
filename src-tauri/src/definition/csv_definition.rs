@@ -1,9 +1,9 @@
 use crate::model::expense::Expense;
-use chrono::{NaiveDate, NaiveDateTime};
+use chrono::{NaiveDate};
 use csv::StringRecord;
 use mockall::automock;
 use once_cell::sync::Lazy;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::error::Error as StdError;
 
@@ -169,7 +169,7 @@ impl CsvValidator for CsvDefinition {
     }
 }
 
-#[derive(Serialize, Hash, Eq, PartialEq, Debug, Clone, Copy)]
+#[derive(Serialize, Hash, Eq, PartialEq, Debug, Clone, Copy, Deserialize)]
 pub enum CsvDefinitionKey {
     WellsFargo,
     CapitalOne,
