@@ -12,6 +12,7 @@ import { API, KnownStoreKeys, POLL_INTERVAL_MS } from "../types/types";
 import { debounceTime, distinctUntilChanged } from "rxjs/operators";
 import { Response } from "../types/types";
 import { parse } from "date-fns";
+import * as d3 from "d3";
 
 function deepEqual(a: any, b: any): boolean {
   if (Object.is(a, b)) return true;
@@ -308,4 +309,42 @@ export function createDebouncedObservableHook<T>(
 export const parseDate = (dateStr: string): Date => {
   const date = parse(dateStr, "yyyy-MM-dd'T'HH:mm:ss", new Date());
   return date;
+};
+
+const parsers = [
+  d3.timeParse("%b %Y"), // "Aug 2025"
+  d3.timeParse("%m/%d/%Y"), // "08/16/2025"
+  d3.timeParse("%Y"), // "2025"
+  d3.timeParse("%Y-%m-%d"), // optional: "2025-08-16"
+];
+
+function normalizeDateToken(input: string): string {
+  // Keep up to first invalid character
+  const match = input.match(/^[A-Za-z0-9\/\-\s]+/);
+
+  return match ? match[0].trim() : input.trim();
+}
+
+function parseFlexibleDate(raw: string): Date | null {
+  const cleaned = normalizeDateToken(raw);
+
+  for (const parse of parsers) {
+    const result = parse(cleaned);
+    if (result) return result;
+  }
+
+  // fallback to JS date
+  const native = new Date(cleaned);
+  return isNaN(native.getTime()) ? null : native;
+}
+
+export const chartDateCompare = (a: string, b: string): number => {
+  const da = parseFlexibleDate(a);
+  const db = parseFlexibleDate(b);
+
+  if (!da && !db) return 0;
+  if (!da) return 1;
+  if (!db) return -1;
+
+  return da.getTime() - db.getTime();
 };

@@ -1,5 +1,6 @@
 import Plot from "react-plotly.js";
 import { Layout } from "plotly.js";
+import { chartDateCompare } from "@/utils/utils";
 
 type Datum = string | number | Date | null;
 
@@ -20,6 +21,8 @@ export const parseStackedFormat = (
     const [category, group] = e.group.split(" > ");
     return { category, group, total: e.total };
   });
+
+  parsedData.sort((a, b) => chartDateCompare(a.group, b.group));
 
   const categories = Array.from(new Set(parsedData.map((d) => d.category)));
   const groups = Array.from(new Set(parsedData.map((d) => d.group)));

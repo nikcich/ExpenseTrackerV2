@@ -10,10 +10,12 @@ import { GroupedBarChart } from "./pages/GroupedBarChart/GroupedBarChart";
 import { TagStackedBarChart } from "./pages/TagStackedBarChart/TagStackedBarChart";
 import { Settings } from "./pages/Settings/Settings";
 import { FileOpener } from "./pages/FileOpener/FileOpener";
+import { Overlays } from "./Overlays";
 
 const RouteComponent = ({ element }: { element: JSX.Element }) => {
   return (
     <div className={styles.routeContainer}>
+      <Overlays />
       <SideNav />
       <div className={styles.content}>{element}</div>
     </div>
