@@ -11,6 +11,7 @@ import {
 import { useMemo, useState } from "react";
 import { SegmentGroup } from "@chakra-ui/react";
 import { Mode } from "@/types/types";
+import { chartDateCompare } from "@/utils/utils";
 
 export function GroupedBarChart() {
   const filteredExpenses = useFilteredExpenses();
@@ -25,6 +26,10 @@ export function GroupedBarChart() {
       return groupAndSumExpenses(filteredExpenses, byDay);
     }
   }, [filteredExpenses, mode]);
+
+  const sortedGroupedExpenses = useMemo(() => {
+    return groupedExpenses.sort((a, b) => chartDateCompare(a.group, b.group));
+  }, [groupedExpenses]);
 
   return (
     <GenericPage
@@ -43,8 +48,8 @@ export function GroupedBarChart() {
       }
     >
       <BarChart
-        x={groupedExpenses.map((e) => e.group)}
-        y={groupedExpenses.map((e) => e.total)}
+        x={sortedGroupedExpenses.map((e) => e.group)}
+        y={sortedGroupedExpenses.map((e) => e.total)}
       />
     </GenericPage>
   );

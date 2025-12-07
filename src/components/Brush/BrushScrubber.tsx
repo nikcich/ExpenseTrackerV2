@@ -4,6 +4,7 @@ import { updateDateRange } from "@/store/RustInterfaceHandlers";
 import { instantBrushRange$ } from "@/store/store";
 import { debounceTime, distinctUntilChanged } from "rxjs";
 import { useExpenses, useIncome } from "@/hooks/expenses";
+import { enableOverlay, Overlay } from "@/store/OverlayStore";
 
 interface BrushScrubberProps {
   height?: number;
@@ -48,11 +49,20 @@ export const BrushScrubber: React.FC<BrushScrubberProps> = ({
     const dates = expenses.map((e) => new Date(e.date));
     const incomeDates = income.map((e) => new Date(e.date));
 
-    const xScale = d3
-      .scaleTime()
-      .domain(d3.extent(dates) as [Date, Date])
-      .range([0, innerWidth])
-      .nice();
+    const rawExtent = d3.extent(dates) as [Date, Date];
+    const snappedExtent: [Date, Date] = [
+      d3.timeMonth.floor(rawExtent[0]), // push start back to 1st of its month
+      d3.timeMonth.ceil(rawExtent[1]), // push end forward to 1st of next month
+    ];
+
+    const xScale = d3.scaleTime().domain(snappedExtent).range([0, innerWidth]);
+
+    const [domainStart, domainEnd] = xScale.domain();
+
+    const months = d3.timeMonth.range(
+      d3.timeMonth.floor(domainStart),
+      d3.timeMonth.ceil(domainEnd)
+    );
 
     const container = svg
       .append("g")
@@ -66,6 +76,33 @@ export const BrushScrubber: React.FC<BrushScrubberProps> = ({
       .attr("y2", innerHeight / 2)
       .attr("stroke", "#858585ff")
       .attr("stroke-width", 1);
+
+    container
+      .append("g")
+      .attr("class", "month-labels")
+      .selectAll("text")
+      .data(months)
+      .join("text")
+      .attr("x", (d) => xScale(d) + 28)
+      .attr("y", innerHeight) // position text slightly below chart line
+      .attr("text-anchor", "middle")
+      .style("font-size", "10px")
+      .style("fill", "#666")
+      .text((d) => d3.timeFormat("%b %Y")(d)); // "Jan", "Feb", etc.
+
+    container
+      .append("g")
+      .attr("class", "month-lines")
+      .selectAll("line")
+      .data(months)
+      .join("line")
+      .attr("x1", (d) => xScale(d))
+      .attr("x2", (d) => xScale(d))
+      .attr("y1", 0)
+      .attr("y2", innerHeight)
+      .attr("stroke", "#bababa")
+      .attr("stroke-width", 1)
+      .attr("stroke-dasharray", "2,2");
 
     const expenseY = innerHeight * 0.7;
     const incomeY = innerHeight * 0.3;
@@ -150,7 +187,14 @@ export const BrushScrubber: React.FC<BrushScrubberProps> = ({
   }, [expenses, income, width, height]);
 
   return (
-    <div ref={containerRef} style={{ width: "100%" }}>
+    <div
+      ref={containerRef}
+      style={{ width: "100%" }}
+      onDoubleClick={(e) => {
+        e.stopPropagation();
+        enableOverlay(Overlay.DateRangeModal);
+      }}
+    >
       <svg
         ref={svgRef}
         width={width}
