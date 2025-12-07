@@ -96,7 +96,6 @@ pub fn parse_csv_file_with_selected_definition(
     let mut duplicate_count: u16 = 0;
     let mut added_count: u16 = 0;
 
-
     for record in reader.records() {
         let record = match record {
             Ok(rec) => rec,

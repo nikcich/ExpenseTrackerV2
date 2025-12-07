@@ -1,11 +1,13 @@
 use crate::model::expense::Expense;
 use blake3::Hasher;
+use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::collections::HashMap;
 use std::error::Error as StdError;
 use std::fmt::Debug;
 use std::sync::Arc;
+use std::time::SystemTime;
 use tauri::Wry;
 use tauri_plugin_store::Store;
 /// STORE data structure example:
@@ -48,14 +50,25 @@ impl StoreData {
         })
     }
     /// Generate a deterministic UUID for an Expense based on description, date, and amount
-    fn generate_hash_for_new_entry(&self, expense: &Expense) -> Result<String, Box<dyn StdError>> {
+    fn generate_hash_for_new_entry(
+        &self,
+        expense: &Expense,
+        manual: bool,
+    ) -> Result<String, Box<dyn StdError>> {
         // Serialize expense fields
-        let input = format!(
+
+        let mut input = format!(
             "{}:{}:{}",
             expense.get_description(),
             expense.get_date(),
             expense.get_amount()
         );
+
+        if manual {
+            let datetime: DateTime<Utc> = SystemTime::now().into();
+            let formatted_time = datetime.format("%Y-%m-%d %H:%M:%S").to_string();
+            input.insert_str(0, &formatted_time);
+        }
 
         // Hash it using Blake3
         let hash = Hasher::new().update(input.as_bytes()).finalize();
@@ -128,6 +141,35 @@ impl ExpenseStore {
     }
 
     /// Add a new expense
+    pub fn add_expense_manual(&self, mut expense: Expense) -> Result<bool, Box<dyn StdError>> {
+        // Load store data
+        let mut store_data = match self.load()? {
+            Some(data) => data,
+            None => StoreData::default(), // create default if nothing is saved
+        };
+
+        // Add the new expense
+        let hash: String = store_data.generate_hash_for_new_entry(&expense, true)?;
+
+        // Copies the ID into expense
+        expense.set_id(&hash);
+
+        // Duplicate was found, return Ok(false), this is not an error but will
+        // indicate that the expense was not added due to a duplicate entry
+        if store_data.data.contains_key(&hash) {
+            return Ok(false);
+        }
+
+        // Add to the header
+        store_data.data.insert(hash, expense);
+
+        // Save updated store
+        self.save(&store_data)?;
+
+        return Ok(true);
+    }
+
+    /// Add a new expense
     pub fn add_expense(&self, mut expense: Expense) -> Result<bool, Box<dyn StdError>> {
         // Load store data
         let mut store_data = match self.load()? {
@@ -136,7 +178,7 @@ impl ExpenseStore {
         };
 
         // Add the new expense
-        let hash: String = store_data.generate_hash_for_new_entry(&expense)?;
+        let hash: String = store_data.generate_hash_for_new_entry(&expense, false)?;
 
         // Copies the ID into expense
         expense.set_id(&hash);
