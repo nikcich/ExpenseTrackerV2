@@ -11,9 +11,9 @@ pub struct Expense {
 }
 
 impl Expense {
-    pub fn new(id: String, description: String, amount: f64, date: NaiveDateTime) -> Self {
+    pub fn new(description: String, amount: f64, date: NaiveDateTime) -> Self {
         return Expense {
-            id: id,
+            id: "0".to_string(),
             description: description,
             amount: amount,
             tags: Vec::new(),
@@ -21,11 +21,14 @@ impl Expense {
         };
     }
 
+    pub fn set_id(&mut self, id: &str) {
+        self.id = id.to_string();
+    }
+
     pub fn get_description(&self) -> &str {
         &self.description
     }
 
-    /// Returns a reference to the date of the expense.
     pub fn get_date(&self) -> &NaiveDateTime {
         &self.date
     }

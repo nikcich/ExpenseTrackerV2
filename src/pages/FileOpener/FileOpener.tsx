@@ -9,9 +9,11 @@ import { Alert } from "@chakra-ui/react";
 export function FileOpener() {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<Response<string[]> | null>(null);
+  const [selectedFile, setSelectedFile] = useState<string | null>(null);
 
   const openFile = useCallback(async () => {
     setResult(null);
+    setSelectedFile(null);
     setLoading(true);
     const file = await open({
       multiple: false,
@@ -19,9 +21,10 @@ export function FileOpener() {
     });
 
     if (file) {
-      const res: Response<string[]> = await invoke(API.ParseCSV, {
+      const res: Response<string[]> = await invoke(API.OpenCSV, {
         file,
       });
+      setSelectedFile(file);
       setResult(res);
     }
 
@@ -51,18 +54,32 @@ export function FileOpener() {
         Select File
       </Button>
 
-      {result && result.message && <FormatSelector options={result.message} />}
+      {result && result.message && (
+        <FormatSelector filePath={selectedFile!} options={result.message} />
+      )}
     </div>
   );
 }
 
-const FormatSelector = ({ options }: { options: string[] }) => {
+const FormatSelector = ({
+  options,
+  filePath,
+}: {
+  filePath: string;
+  options: string[];
+}) => {
   const [selection, setSelection] = useState<string | undefined>(undefined);
 
-  const finishParsingCsv = useCallback(() => {
+  const finishParsingCsv = useCallback(async () => {
     console.log("Selected format:", selection);
-    // TODO: Invoke some backend thing with the chosen format? Do we need the file path here?
-  }, [selection]);
+
+    const res = await invoke(API.ParseCSV, {
+      path: filePath,
+      csvDefinitionKey: selection!,
+    });
+
+    console.log(res);
+  }, [selection, filePath]);
 
   return (
     <>

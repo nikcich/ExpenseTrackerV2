@@ -108,7 +108,11 @@ export const DataTable = ({ items }: { items: Expense[] }) => {
 
       <Table.Cell>{item.date}</Table.Cell>
       <Table.Cell>{item.description}</Table.Cell>
-      <Table.Cell>${item.amount}</Table.Cell>
+      <Table.Cell>
+        <span className={item.amount < 0 ? styles.income : styles.expense}>
+          ${item.amount}
+        </span>
+      </Table.Cell>
     </Table.Row>
   ));
 

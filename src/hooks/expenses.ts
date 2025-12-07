@@ -9,6 +9,8 @@ export const useFilteredExpenses = () => {
   const expenses = useExpenses();
   const enabledTags = useSettingsStore("enabledTags");
 
+  console.log(expenses);
+
   const filtered = useMemo(() => {
     if (!range) return expenses;
     return expenses
@@ -16,8 +18,10 @@ export const useFilteredExpenses = () => {
         const expenseDate = parseDate(expense.date).getTime();
         return expenseDate >= range[0] && expenseDate <= range[1];
       })
-      .filter((expense) =>
-        enabledTags.some((tag) => expense.tags.includes(tag))
+      .filter(
+        (expense) =>
+          enabledTags.some((tag) => expense.tags.includes(tag)) ||
+          expense.tags.length === 0
       );
   }, [range, expenses]);
 

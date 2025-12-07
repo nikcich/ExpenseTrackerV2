@@ -1,10 +1,11 @@
 use crate::model::expense::Expense;
-use chrono::{NaiveDate, NaiveDateTime};
+use chrono::{NaiveDate};
 use csv::StringRecord;
 use mockall::automock;
 use once_cell::sync::Lazy;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+use std::error::Error as StdError;
 
 ///GLOBAL DEFINITIONS
 pub static CSV_DEFINITIONS: Lazy<HashMap<CsvDefinitionKey, CsvDefinition>> =
@@ -65,7 +66,54 @@ pub trait CsvParser {
     ///
     /// Returns:
     /// - 'Expense': The Expense object containing converted data
-    fn parse_record(&self, record: &StringRecord) -> Expense;
+    fn parse_record(&self, record: &StringRecord) -> Result<Expense, Box<dyn StdError>>;
+}
+
+impl CsvParser for CsvDefinition {
+    fn parse_record(&self, record: &StringRecord) -> Result<Expense, Box<dyn StdError>> {
+        // Get all of the column infos to parse with
+        let date_info: &CsvColumnInfo = self
+            .expected_columns
+            .get(&CsvColumnRole::Date)
+            .ok_or("Missing date column definition in CSV definition")?;
+
+        let desc_info: &CsvColumnInfo = self
+            .expected_columns
+            .get(&CsvColumnRole::Description)
+            .ok_or("Missing description column definition in CSV definition")?;
+
+        let amount_info: &CsvColumnInfo = self
+            .expected_columns
+            .get(&CsvColumnRole::Amount)
+            .ok_or("Missing amount column definition in CSV definition")?;
+
+        // Extract all of the str from record
+        let date_str: &str = record.get(date_info.index as usize)
+            .ok_or(format!("Missing date at column {}", date_info.index))?;
+        let desc_str: &str = record
+            .get(desc_info.index as usize)
+            .ok_or(format!("Missing description at column {}", desc_info.index))?;
+        let amount_str: &str = record
+            .get(amount_info.index as usize)
+            .ok_or(format!("Missing amount at column {}", amount_info.index))?;
+
+        // Use the format from the column definition
+        let date_format = match date_info.data_type {
+            CsvColumnDataType::DateObject(fmt) => fmt,
+            _ => return Err("Date column must have DateObject type".into()),
+        };
+        // Parse as NaiveDate, then convert to NaiveDateTime at midnight
+        let date = NaiveDate::parse_from_str(date_str, date_format)?
+            .and_hms_opt(0, 0, 0)
+            .ok_or("Failed to create datetime")?;
+        let description: String = desc_str.to_string();
+        let amount: f64 = amount_str.parse()?;
+
+        // Construct the Expense
+        let expense = Expense::new(description, amount, date);
+
+        Ok(expense)
+    }
 }
 
 #[automock]
@@ -121,7 +169,7 @@ impl CsvValidator for CsvDefinition {
     }
 }
 
-#[derive(Serialize, Hash, Eq, PartialEq, Debug, Clone, Copy)]
+#[derive(Serialize, Hash, Eq, PartialEq, Debug, Clone, Copy, Deserialize)]
 pub enum CsvDefinitionKey {
     WellsFargo,
     CapitalOne,
@@ -163,7 +211,11 @@ pub fn build_definitions() -> HashMap<CsvDefinitionKey, CsvDefinition> {
             "Wells Fargo Spending Report",
             false,
             make_column_definitions(&[
-                (CsvColumnRole::Date, 0, CsvColumnDataType::DateObject("%m/%d/%Y")),
+                (
+                    CsvColumnRole::Date,
+                    0,
+                    CsvColumnDataType::DateObject("%m/%d/%Y"),
+                ),
                 (CsvColumnRole::Amount, 1, CsvColumnDataType::Float),
                 (CsvColumnRole::Description, 4, CsvColumnDataType::String),
             ]),

@@ -1,8 +1,13 @@
 use crate::definition::csv_definition::{CsvDefinitionKey, CsvValidator, CSV_DEFINITIONS};
 use crate::model::response::{Response, Status};
-use crate::service::csv_file_service::{open_csv_file_and_find_definitions, open_file_from_path};
+use crate::service::csv_file_service::{
+    open_csv_file_and_find_definitions, open_file_from_path,
+    parse_csv_file_with_selected_definition,
+};
+use crate::store::app_store::ExpenseStore;
 use std::collections::HashMap;
 use std::error::Error as StdError;
+use tauri::State;
 
 /// Opens a CSV file from a given path.
 ///
@@ -31,14 +36,12 @@ pub fn open_csv_from_path(file: String) -> Response {
             if find_matched_definitions.is_ok() {
                 match find_matched_definitions.unwrap() {
                     Some(list_of_keys) => {
-                        println!("Matching definition found");
                         return Response::ok(
                             String::from("Matching definition found"),
                             &list_of_keys,
                         );
                     }
                     None => {
-                        println!("No matching definition found");
                         return Response::new(
                             Status::NotFound,
                             String::from("No matching definition found"),
@@ -47,7 +50,6 @@ pub fn open_csv_from_path(file: String) -> Response {
                     }
                 }
             } else {
-                println!("Failed to find matching definition");
                 return Response::err(
                     String::from("Failed to find matching definition"),
                     Option::<Vec<CsvDefinitionKey>>::None,
@@ -55,10 +57,32 @@ pub fn open_csv_from_path(file: String) -> Response {
             }
         }
         Err(e) => {
-            eprintln!("Failed to open file: {}", e);
             return Response::err(
                 format!("Failed to open file: {}", e),
                 Option::<Vec<CsvDefinitionKey>>::None,
+            );
+        }
+    }
+}
+
+#[tauri::command]
+pub fn parse_csv_from_path(
+    expense_store_state: State<'_, ExpenseStore>,
+    path: String,
+    csvDefinitionKey: CsvDefinitionKey,
+) -> Response {
+    match parse_csv_file_with_selected_definition(
+        expense_store_state.inner(),
+        path,
+        csvDefinitionKey,
+    ) {
+        Ok(data) => {
+            return Response::ok(String::from("CSV parsed successfully"), &data);
+        }
+        Err(e) => {
+            return Response::err(
+                format!("Failed to parse CSV: {}", e),
+                Option::<String>::None,
             );
         }
     }

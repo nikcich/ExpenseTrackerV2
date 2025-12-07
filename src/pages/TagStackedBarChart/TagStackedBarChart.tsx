@@ -35,8 +35,6 @@ export function TagStackedBarChart() {
     [groupedExpenses]
   );
 
-  console.log(traces);
-
   return (
     <GenericPage
       title="Expenses by Tag"

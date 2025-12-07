@@ -1,5 +1,8 @@
-use crate::definition::csv_definition::{CsvDefinitionKey, CsvValidator, CSV_DEFINITIONS};
-
+use crate::definition::csv_definition::{
+    CsvDefinitionKey, CsvParser, CsvValidator, CSV_DEFINITIONS,
+};
+use crate::model::expense::Expense;
+use crate::store::app_store::ExpenseStore;
 use csv::ReaderBuilder;
 use std::collections::HashMap;
 use std::error::Error as StdError;
@@ -7,6 +10,7 @@ use std::fs::File;
 use std::io::Error as IoError;
 use std::io::{Seek, SeekFrom};
 use std::path::Path;
+use tauri::State;
 
 /// FUNCTION DEFINITIONS
 
@@ -31,15 +35,15 @@ pub fn open_csv_file_and_find_definitions(
         // Check if the CSV definition has headers
         let has_header: bool = definition.has_header();
 
-        let mut rdr = ReaderBuilder::new()
+        let mut reader = ReaderBuilder::new()
             .has_headers(has_header)
             .from_reader(reader_file);
 
         let mut all_valid = true;
         let mut record_count = 0;
 
-        for result in rdr.records() {
-            let record = match result {
+        for record in reader.records() {
+            let record = match record {
                 Ok(rec) => rec,
                 Err(_) => {
                     all_valid = false;
@@ -73,22 +77,34 @@ pub fn open_csv_file_and_find_definitions(
 }
 
 /// Parse a CSV file with a given definition and update the store
-///
 pub fn parse_csv_file_with_selected_definition(
+    expense_store: &ExpenseStore,
     path: String,
     csv_definition_key: CsvDefinitionKey,
 ) -> Result<bool, Box<dyn StdError>> {
-    let csv_definition = {
-        match CSV_DEFINITIONS.get(&csv_definition_key) {
-            Some(def) => def,
-            None => return Err("CSV definition not found".into()),
-        }
-    };
+    let csv_definition = CSV_DEFINITIONS
+        .get(&csv_definition_key)
+        .ok_or("CSV definition not found")?;
 
-    let file = match open_file_from_path(&path) {
-        Ok(f) => f,
-        Err(_) => return Err(format!("Failed to open file at path: {}", path).into()),
-    };
+    let file =
+        open_file_from_path(&path).map_err(|_| format!("Failed to open file at path: {}", path))?;
+
+    let mut reader = ReaderBuilder::new()
+        .has_headers(csv_definition.has_header())
+        .from_reader(file);
+
+    for record in reader.records() {
+        let record = match record {
+            Ok(rec) => rec,
+            Err(err) => {
+                return Err(format!("Failed to read CSV record: {}", err).into());
+            }
+        };
+
+        // Parse a record and return as Expense object if successfully
+        let parsed_record: Expense = csv_definition.parse_record(&record)?;
+        expense_store.add_expense(parsed_record)?;
+    }
 
     return Ok(true);
 }
