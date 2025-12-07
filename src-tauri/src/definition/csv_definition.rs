@@ -28,7 +28,7 @@ pub enum CsvColumnDataType {
 }
 
 impl CsvColumnDataType {
-    pub fn is_inversed(&self) -> Option<bool> {
+    pub fn is_standard(&self) -> Option<bool> {
         if let CsvColumnDataType::Float(b) = self {
             return Some(**b);
         } else {
@@ -122,9 +122,9 @@ impl CsvParser for CsvDefinition {
             .get_format_from_date()
             .ok_or("Date column must have DateObject format specified")?;
 
-        let amount_inversed = amount_info
+        let amount_is_standard = amount_info
             .data_type
-            .is_inversed()
+            .is_standard()
             .ok_or("Amount column must have Inverse boolean specified")?;
 
         // Parse as NaiveDate, then convert to NaiveDateTime at midnight
@@ -134,7 +134,8 @@ impl CsvParser for CsvDefinition {
         let description: String = desc_str.to_string();
         let mut amount: f64 = amount_str.parse()?;
 
-        if amount_inversed {
+        if !amount_is_standard {
+            // The amount is not standard, so we need to invert it
             amount = -amount;
         }
 
