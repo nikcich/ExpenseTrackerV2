@@ -1,5 +1,5 @@
 use crate::model::expense::Expense;
-use chrono::{NaiveDate};
+use chrono::NaiveDate;
 use csv::StringRecord;
 use mockall::automock;
 use once_cell::sync::Lazy;
@@ -22,9 +22,27 @@ pub enum CsvColumnRole {
 
 #[derive(Debug, Eq, PartialEq, Clone, Copy)]
 pub enum CsvColumnDataType {
-    Float,
+    Float(&'static bool), // True if standard, False if inversed sign
     String,
-    DateObject(&'static str),
+    DateObject(&'static str), // Format string for parsing dates
+}
+
+impl CsvColumnDataType {
+    pub fn is_inversed(&self) -> Option<bool> {
+        if let CsvColumnDataType::Float(b) = self {
+            return Some(**b);
+        } else {
+            return None;
+        }
+    }
+
+    pub fn get_format_from_date(&self) -> Option<&'static str> {
+        if let CsvColumnDataType::DateObject(s) = self {
+            return Some(s);
+        } else {
+            return None;
+        }
+    }
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -98,17 +116,27 @@ impl CsvParser for CsvDefinition {
             .get(amount_info.index as usize)
             .ok_or(format!("Missing amount at column {}", amount_info.index))?;
 
-        // Use the format from the column definition
-        let date_format = match date_info.data_type {
-            CsvColumnDataType::DateObject(fmt) => fmt,
-            _ => return Err("Date column must have DateObject type".into()),
-        };
+        // Use the date format from the column definition
+        let date_format = date_info
+            .data_type
+            .get_format_from_date()
+            .ok_or("Date column must have DateObject format specified")?;
+
+        let amount_inversed = amount_info
+            .data_type
+            .is_inversed()
+            .ok_or("Amount column must have Inverse boolean specified")?;
+
         // Parse as NaiveDate, then convert to NaiveDateTime at midnight
         let date = NaiveDate::parse_from_str(date_str, date_format)?
             .and_hms_opt(0, 0, 0)
             .ok_or("Failed to create datetime")?;
         let description: String = desc_str.to_string();
-        let amount: f64 = amount_str.parse()?;
+        let mut amount: f64 = amount_str.parse()?;
+
+        if amount_inversed {
+            amount = -amount;
+        }
 
         // Construct the Expense
         let expense = Expense::new(description, amount, date);
@@ -217,7 +245,7 @@ pub fn build_definitions() -> HashMap<CsvDefinitionKey, CsvDefinition> {
                     0,
                     CsvColumnDataType::DateObject("%m/%d/%Y"),
                 ),
-                (CsvColumnRole::Amount, 1, CsvColumnDataType::Float),
+                (CsvColumnRole::Amount, 1, CsvColumnDataType::Float(&false)),
                 (CsvColumnRole::Description, 4, CsvColumnDataType::String),
             ]),
         ),
@@ -235,7 +263,7 @@ pub fn build_definitions() -> HashMap<CsvDefinitionKey, CsvDefinition> {
                     2,
                     CsvColumnDataType::DateObject("%m/%d/%Y"),
                 ),
-                (CsvColumnRole::Amount, 4, CsvColumnDataType::Float),
+                (CsvColumnRole::Amount, 4, CsvColumnDataType::Float(&true)),
             ]),
         ),
     );
@@ -254,7 +282,7 @@ pub fn build_definitions() -> HashMap<CsvDefinitionKey, CsvDefinition> {
 pub fn attempt_to_cast(raw_data: &str, col_data_type: CsvColumnDataType) -> bool {
     match col_data_type {
         CsvColumnDataType::String => return true, // Always valid for raw data that is already a string
-        CsvColumnDataType::Float => match raw_data.parse::<f32>() {
+        CsvColumnDataType::Float(_) => match raw_data.parse::<f32>() {
             Ok(value) => return value.is_finite(), // Reject infinity and NaN
             Err(_) => return false,                // Reject parse failures
         },
