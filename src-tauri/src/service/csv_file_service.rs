@@ -81,7 +81,7 @@ pub fn parse_csv_file_with_selected_definition(
     expense_store: &ExpenseStore,
     path: String,
     csv_definition_key: CsvDefinitionKey,
-) -> Result<bool, Box<dyn StdError>> {
+) -> Result<u16, Box<dyn StdError>> {
     let csv_definition = CSV_DEFINITIONS
         .get(&csv_definition_key)
         .ok_or("CSV definition not found")?;
@@ -93,6 +93,8 @@ pub fn parse_csv_file_with_selected_definition(
         .has_headers(csv_definition.has_header())
         .from_reader(file);
 
+    let mut duplicate_count: u16 = 0;
+
     for record in reader.records() {
         let record = match record {
             Ok(rec) => rec,
@@ -103,10 +105,15 @@ pub fn parse_csv_file_with_selected_definition(
 
         // Parse a record and return as Expense object if successfully
         let parsed_record: Expense = csv_definition.parse_record(&record)?;
-        expense_store.add_expense(parsed_record)?;
+
+        let result_expense_added: bool = expense_store.add_expense(parsed_record)?;
+
+        if !result_expense_added {
+            duplicate_count += 1;
+        }
     }
 
-    return Ok(true);
+    return Ok(duplicate_count);
 }
 
 /// Opens a CSV file from a given path, only if it has a `.csv` extension.

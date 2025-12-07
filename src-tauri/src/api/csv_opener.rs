@@ -76,8 +76,11 @@ pub fn parse_csv_from_path(
         path,
         csvDefinitionKey,
     ) {
-        Ok(data) => {
-            return Response::ok(String::from("CSV parsed successfully"), &data);
+        Ok(duplicate_count) => {
+            return Response::ok(
+                String::from("CSV parsed successfully, There were {} Duplicates."),
+                &duplicate_count,
+            );
         }
         Err(e) => {
             return Response::err(
