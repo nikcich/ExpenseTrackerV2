@@ -88,13 +88,14 @@ impl CsvParser for CsvDefinition {
             .ok_or("Amount column info not found")?;
 
         // Extract all of the str from record
-        let date_str: &str = record.get(date_info.index as usize).ok_or("Missing date")?;
+        let date_str: &str = record.get(date_info.index as usize)
+            .ok_or(format!("Missing date at column {}", date_info.index))?;
         let desc_str: &str = record
             .get(desc_info.index as usize)
-            .ok_or("Missing description")?;
+            .ok_or(format!("Missing description at column {}", desc_info.index))?;
         let amount_str: &str = record
             .get(amount_info.index as usize)
-            .ok_or("Missing amount")?;
+            .ok_or(format!("Missing amount at column {}", amount_info.index))?;
 
         // Use the format from the column definition
         let date_format = match date_info.data_type {
