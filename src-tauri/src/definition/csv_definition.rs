@@ -98,11 +98,10 @@ impl CsvParser for CsvDefinition {
 
         let date = NaiveDateTime::parse_from_str(date_str, "%Y-%m-%d %H:%M:%S")?;
         let desc_str_as_string: String = desc_str.to_string();
-        let amount: f64 = amount_str.parse()?; // parse string to f64
-                                               // adjust format to match your CSV
+        let amount: f64 = amount_str.parse()?;
 
         // Construct the Expense
-        let expense = Expense::new("0".to_string(), desc_str_as_string, amount, date);
+        let expense = Expense::new(desc_str_as_string, amount, date);
 
         Ok(expense)
     }
