@@ -75,17 +75,17 @@ impl CsvParser for CsvDefinition {
         let date_info: &CsvColumnInfo = self
             .expected_columns
             .get(&CsvColumnRole::Date)
-            .ok_or("Date column info not found")?;
+            .ok_or("Missing date column definition in CSV definition")?;
 
         let desc_info: &CsvColumnInfo = self
             .expected_columns
             .get(&CsvColumnRole::Description)
-            .ok_or("Desc column info not found")?;
+            .ok_or("Missing description column definition in CSV definition")?;
 
         let amount_info: &CsvColumnInfo = self
             .expected_columns
             .get(&CsvColumnRole::Amount)
-            .ok_or("Amount column info not found")?;
+            .ok_or("Missing amount column definition in CSV definition")?;
 
         // Extract all of the str from record
         let date_str: &str = record.get(date_info.index as usize)
