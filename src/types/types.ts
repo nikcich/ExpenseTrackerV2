@@ -5,7 +5,8 @@ export enum API {
   SetValue = "store_set_value",
   NewWindow = "new_window",
   DateRange = "get_date_range",
-  ParseCSV = "open_csv_from_path",
+  OpenCSV = "open_csv_from_path",
+  ParseCSV = "parse_csv_from_path",
   SetDateRange = "set_date_range",
 }
 

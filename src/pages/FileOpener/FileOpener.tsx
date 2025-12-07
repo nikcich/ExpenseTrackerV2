@@ -19,7 +19,7 @@ export function FileOpener() {
     });
 
     if (file) {
-      const res: Response<string[]> = await invoke(API.ParseCSV, {
+      const res: Response<string[]> = await invoke(API.OpenCSV, {
         file,
       });
       setResult(res);

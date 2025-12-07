@@ -77,9 +77,8 @@ pub fn open_csv_file_and_find_definitions(
 }
 
 /// Parse a CSV file with a given definition and update the store
-///
 pub fn parse_csv_file_with_selected_definition(
-    expense_store_state: State<'_, ExpenseStore>,
+    expense_store: &ExpenseStore,
     path: String,
     csv_definition_key: CsvDefinitionKey,
 ) -> Result<bool, Box<dyn StdError>> {
@@ -94,8 +93,6 @@ pub fn parse_csv_file_with_selected_definition(
         .has_headers(csv_definition.has_header())
         .from_reader(file);
 
-    let expense_store: &ExpenseStore = expense_store_state.inner();
-
     for record in reader.records() {
         let record = match record {
             Ok(rec) => rec,
@@ -109,7 +106,7 @@ pub fn parse_csv_file_with_selected_definition(
         expense_store.add_expense(parsed_record)?;
     }
 
-    Ok(true)
+    return Ok(true);
 }
 
 /// Opens a CSV file from a given path, only if it has a `.csv` extension.
