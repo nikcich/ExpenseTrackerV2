@@ -78,8 +78,8 @@ pub fn parse_csv_from_path(
     ) {
         Ok(duplicate_count) => {
             return Response::ok(
-                String::from("CSV parsed successfully, There were {} Duplicates."),
-                &duplicate_count,
+                String::from("CSV parsed successfully"),
+                format!("Duplication count: {}", &duplicate_count),
             );
         }
         Err(e) => {
