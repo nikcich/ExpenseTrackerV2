@@ -137,7 +137,7 @@ impl ExpenseStore {
     }
 
     /// Add a new expense
-    pub fn add_expense(&self, expense: Expense) -> Result<bool, Box<dyn StdError>> {
+    pub fn add_expense(&self, mut expense: Expense) -> Result<bool, Box<dyn StdError>> {
         // Load store data
         let mut store_data = match self.load()? {
             Some(data) => data,
@@ -146,6 +146,9 @@ impl ExpenseStore {
 
         // Add the new expense
         let hash: String = store_data.generate_hash_for_new_entry(&expense)?;
+
+        // Copies the ID into expense
+        expense.set_id(&hash);
 
         // Add to the header
         store_data.data.insert(hash, expense);

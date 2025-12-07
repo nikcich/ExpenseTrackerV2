@@ -5,6 +5,7 @@ use mockall::automock;
 use once_cell::sync::Lazy;
 use serde::Serialize;
 use std::collections::HashMap;
+use std::error::Error as StdError;
 
 ///GLOBAL DEFINITIONS
 pub static CSV_DEFINITIONS: Lazy<HashMap<CsvDefinitionKey, CsvDefinition>> =
@@ -65,7 +66,46 @@ pub trait CsvParser {
     ///
     /// Returns:
     /// - 'Expense': The Expense object containing converted data
-    fn parse_record(&self, record: &StringRecord) -> Expense;
+    fn parse_record(&self, record: &StringRecord) -> Result<Expense, Box<dyn StdError>>;
+}
+
+impl CsvParser for CsvDefinition {
+    fn parse_record(&self, record: &StringRecord) -> Result<Expense, Box<dyn StdError>> {
+        // Get all of the column infos to parse with
+        let date_info: &CsvColumnInfo = self
+            .expected_columns
+            .get(&CsvColumnRole::Date)
+            .ok_or("Date column info not found")?;
+
+        let desc_info: &CsvColumnInfo = self
+            .expected_columns
+            .get(&CsvColumnRole::Description)
+            .ok_or("Desc column info not found")?;
+
+        let amount_info: &CsvColumnInfo = self
+            .expected_columns
+            .get(&CsvColumnRole::Amount)
+            .ok_or("Amount column info not found")?;
+
+        // Extract all of the str from record
+        let date_str: &str = record.get(date_info.index as usize).ok_or("Missing date")?;
+        let desc_str: &str = record
+            .get(desc_info.index as usize)
+            .ok_or("Missing description")?;
+        let amount_str: &str = record
+            .get(amount_info.index as usize)
+            .ok_or("Missing amount")?;
+
+        let date = NaiveDateTime::parse_from_str(date_str, "%Y-%m-%d %H:%M:%S")?;
+        let desc_str_as_string: String = desc_str.to_string();
+        let amount: f64 = amount_str.parse()?; // parse string to f64
+                                               // adjust format to match your CSV
+
+        // Construct the Expense
+        let expense = Expense::new("0".to_string(), desc_str_as_string, amount, date);
+
+        Ok(expense)
+    }
 }
 
 #[automock]
@@ -163,7 +203,11 @@ pub fn build_definitions() -> HashMap<CsvDefinitionKey, CsvDefinition> {
             "Wells Fargo Spending Report",
             false,
             make_column_definitions(&[
-                (CsvColumnRole::Date, 0, CsvColumnDataType::DateObject("%m/%d/%Y")),
+                (
+                    CsvColumnRole::Date,
+                    0,
+                    CsvColumnDataType::DateObject("%m/%d/%Y"),
+                ),
                 (CsvColumnRole::Amount, 1, CsvColumnDataType::Float),
                 (CsvColumnRole::Description, 4, CsvColumnDataType::String),
             ]),
