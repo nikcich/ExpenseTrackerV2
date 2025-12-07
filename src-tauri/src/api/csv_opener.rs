@@ -77,10 +77,10 @@ pub fn parse_csv_from_path(
         path,
         csvDefinitionKey,
     ) {
-        Ok(duplicate_count) => {
+        Ok((added_count, duplicate_count)) => {
             return Response::ok(
                 String::from("CSV parsed successfully"),
-                format!("Duplication count: {}", &duplicate_count),
+                format!("Added {} entries, ignored {} duplicate entries", &added_count, &duplicate_count),
             );
         }
         Err(e) => {

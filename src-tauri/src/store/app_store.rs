@@ -61,16 +61,7 @@ impl StoreData {
         let hash = Hasher::new().update(input.as_bytes()).finalize();
         let hash_str = hash.to_hex().to_string();
 
-        // Ensure uniqueness in store
-        if !self.data.contains_key(&hash_str) {
-            return Ok(hash_str);
-        }
-
-        return Err(format!(
-            "Error, we have an existing expense entry for input: {}",
-            input
-        )
-        .into());
+        return Ok(hash_str);
     }
 }
 

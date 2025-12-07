@@ -6,14 +6,18 @@ import { useCallback, useState } from "react";
 import styles from "./FileOpener.module.scss";
 import { Alert } from "@chakra-ui/react";
 
-export function FileOpener() {
+const useFileOpener = () => {
   const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState<Response<string[]> | null>(null);
+  const [result, setResult] = useState<
+    Response<string[]> | Response<string> | null
+  >(null);
   const [selectedFile, setSelectedFile] = useState<string | null>(null);
+  const [selectedFormat, setSelectedFormat] = useState<string | undefined>(
+    undefined
+  );
 
   const openFile = useCallback(async () => {
-    setResult(null);
-    setSelectedFile(null);
+    reset();
     setLoading(true);
 
     const file = await open({
@@ -36,13 +40,54 @@ export function FileOpener() {
     }, 500);
   }, []);
 
+  const finishParsingCsv = useCallback(async () => {
+    const res = await invoke<Response<string>>(API.ParseCSV, {
+      path: selectedFile!,
+      csvDefinitionKey: selectedFormat!,
+    });
+
+    console.log(res);
+
+    reset();
+    setResult(res);
+  }, [selectedFormat, selectedFile]);
+
+  const reset = useCallback(() => {
+    setResult(null);
+    setSelectedFile(null);
+    setSelectedFormat(undefined);
+  }, []);
+
+  return {
+    loading,
+    result,
+    openFile,
+    selectedFile,
+    setSelectedFile,
+    selectedFormat,
+    setSelectedFormat,
+    finishParsingCsv,
+  };
+};
+
+export function FileOpener() {
+  const {
+    loading,
+    result,
+    openFile,
+    selectedFile,
+    selectedFormat,
+    setSelectedFormat,
+    finishParsingCsv,
+  } = useFileOpener();
+
   return (
     <div className={styles.container}>
       {result && (
         <Alert.Root status={result.status >= 400 ? "error" : "success"}>
           <Alert.Indicator />
           <Alert.Content>
-            <Alert.Title>{result.header}</Alert.Title>
+            <Alert.Title>{`${result.header}, ${result.message}`}</Alert.Title>
           </Alert.Content>
         </Alert.Root>
       )}
@@ -57,8 +102,17 @@ export function FileOpener() {
         Select File
       </Button>
 
-      {result && result.message && (
-        <FormatSelector filePath={selectedFile!} options={result.message} />
+      {selectedFile && (
+        <FormatSelector
+          options={
+            Array.isArray(result?.message)
+              ? result.message
+              : [result?.message || ""]
+          }
+          selectedFormat={selectedFormat}
+          setSelectedFormat={setSelectedFormat}
+          finishParsingCsv={finishParsingCsv}
+        />
       )}
     </div>
   );
@@ -66,40 +120,29 @@ export function FileOpener() {
 
 const FormatSelector = ({
   options,
-  filePath,
+  selectedFormat,
+  setSelectedFormat,
+  finishParsingCsv,
 }: {
-  filePath: string;
   options: string[];
+  selectedFormat: string | undefined;
+  setSelectedFormat: React.Dispatch<React.SetStateAction<string | undefined>>;
+  finishParsingCsv: () => Promise<void>;
 }) => {
-  const [selection, setSelection] = useState<string | undefined>(undefined);
-
-  const finishParsingCsv = useCallback(async () => {
-    console.log("Selected format:", selection);
-
-    const res = await invoke(API.ParseCSV, {
-      path: filePath,
-      csvDefinitionKey: selection!,
-    });
-
-    console.log(res);
-  }, [selection, filePath]);
-
   return (
     <>
       <Text>Select matching CSV format:</Text>
       <NativeSelect.Root>
         <NativeSelect.Field
-          value={selection}
-          onChange={(e) => setSelection(e.currentTarget.value)}
+          value={selectedFormat}
+          onChange={(e) => setSelectedFormat(e.currentTarget.value)}
         >
           <option value={undefined}></option>
-          {options.map((key, index) => {
-            return (
-              <option key={index} value={key}>
-                {key}
-              </option>
-            );
-          })}
+          {options.map((key, index) => (
+            <option key={index} value={key}>
+              {key}
+            </option>
+          ))}
         </NativeSelect.Field>
         <NativeSelect.Indicator />
       </NativeSelect.Root>
@@ -107,7 +150,7 @@ const FormatSelector = ({
       <Button
         onClick={finishParsingCsv}
         colorPalette={"green"}
-        disabled={!selection}
+        disabled={!selectedFormat}
       >
         Parse File with Selected Format
       </Button>
