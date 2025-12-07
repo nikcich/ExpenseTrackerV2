@@ -88,7 +88,8 @@ impl CsvParser for CsvDefinition {
             .ok_or("Missing amount column definition in CSV definition")?;
 
         // Extract all of the str from record
-        let date_str: &str = record.get(date_info.index as usize)
+        let date_str: &str = record
+            .get(date_info.index as usize)
             .ok_or(format!("Missing date at column {}", date_info.index))?;
         let desc_str: &str = record
             .get(desc_info.index as usize)
@@ -112,7 +113,7 @@ impl CsvParser for CsvDefinition {
         // Construct the Expense
         let expense = Expense::new(description, amount, date);
 
-        Ok(expense)
+        return Ok(expense);
     }
 }
 

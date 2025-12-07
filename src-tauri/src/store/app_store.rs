@@ -150,6 +150,12 @@ impl ExpenseStore {
         // Copies the ID into expense
         expense.set_id(&hash);
 
+        // Duplicate was found, return Ok(false), this is not an error but will
+        // indicate that the expense was not added due to a duplicate entry
+        if store_data.data.contains_key(&hash) {
+            return Ok(false);
+        }
+
         // Add to the header
         store_data.data.insert(hash, expense);
 
