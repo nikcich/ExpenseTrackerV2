@@ -1,10 +1,10 @@
 use crate::model::expense::Expense;
-use blake3::{Hash, Hasher};
+use blake3::Hasher;
 use serde::{Deserialize, Serialize};
-use serde_json::json;
+use serde_json::Value;
 use std::collections::HashMap;
 use std::error::Error as StdError;
-use std::fmt::{self, Debug};
+use std::fmt::Debug;
 use std::sync::Arc;
 use tauri::Wry;
 use tauri_plugin_store::Store;
@@ -40,6 +40,13 @@ pub struct StoreData {
 }
 
 impl StoreData {
+    fn new(json_value: Value) -> Result<Self, Box<dyn StdError>> {
+        let data_from_json_as_hashmap: HashMap<String, Expense> =
+            serde_json::from_value(json_value)?;
+        Ok(Self {
+            data: data_from_json_as_hashmap,
+        })
+    }
     /// Generate a deterministic UUID for an Expense based on description, date, and amount
     fn generate_hash_for_new_entry(&self, expense: &Expense) -> Result<String, Box<dyn StdError>> {
         // Serialize expense fields
@@ -82,10 +89,17 @@ impl ExpenseStore {
         &self,
         json_value: serde_json::Value,
     ) -> Result<bool, Box<dyn StdError>> {
-        let data = json!({ "data": json_value });
-        self.store.set(STORE_NAME, data);
+        // Deserialize JSON into StoreData
+        let store_data = StoreData::new(json_value)?;
+
+        // Convert StoreData back to JSON value to store it
+        let data_as_json = serde_json::to_value(&store_data)?;
+
+        // Store it and save
+        self.store.set(STORE_NAME, data_as_json);
         self.store.save()?;
-        return Ok(true);
+
+        Ok(true)
     }
 
     /// Load the persisted store data
