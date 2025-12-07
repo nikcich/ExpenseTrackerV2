@@ -7,6 +7,9 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::error::Error as StdError;
 
+pub const STANDARD: bool = true;
+pub const INVERSED: bool = false;
+
 ///GLOBAL DEFINITIONS
 pub static CSV_DEFINITIONS: Lazy<HashMap<CsvDefinitionKey, CsvDefinition>> =
     Lazy::new(|| build_definitions());
@@ -22,7 +25,7 @@ pub enum CsvColumnRole {
 
 #[derive(Debug, Eq, PartialEq, Clone, Copy)]
 pub enum CsvColumnDataType {
-    Float(bool), // True if standard, False if inversed sign
+    Float(&'static bool), // True if standard, False if inversed sign
     String,
     DateObject(&'static str), // Format string for parsing dates
 }
@@ -246,7 +249,11 @@ pub fn build_definitions() -> HashMap<CsvDefinitionKey, CsvDefinition> {
                     0,
                     CsvColumnDataType::DateObject("%m/%d/%Y"),
                 ),
-                (CsvColumnRole::Amount, 1, CsvColumnDataType::Float(false)),
+                (
+                    CsvColumnRole::Amount,
+                    1,
+                    CsvColumnDataType::Float(&INVERSED),
+                ),
                 (CsvColumnRole::Description, 4, CsvColumnDataType::String),
             ]),
         ),
@@ -264,7 +271,11 @@ pub fn build_definitions() -> HashMap<CsvDefinitionKey, CsvDefinition> {
                     2,
                     CsvColumnDataType::DateObject("%m/%d/%Y"),
                 ),
-                (CsvColumnRole::Amount, 4, CsvColumnDataType::Float(true)),
+                (
+                    CsvColumnRole::Amount,
+                    4,
+                    CsvColumnDataType::Float(&STANDARD),
+                ),
             ]),
         ),
     );
