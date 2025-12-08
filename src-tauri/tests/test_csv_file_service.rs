@@ -8,7 +8,7 @@ use tempfile::Builder;
 
 use tauri_app_lib::definition::csv_definition::{
     attempt_to_cast, make_column_definitions, CsvColumnDataType, CsvColumnRole, CsvDefinition,
-    CsvDefinitionKey, CsvValidator, MockCsvValidator, INVERSED, STANDARD,
+    CsvDefinitionKey, CsvValidator, MockCsvValidator, STANDARD,
 };
 use tauri_app_lib::service::csv_file_service::{
     open_csv_file_and_find_definitions, open_file_from_path,
@@ -37,6 +37,7 @@ fn setup_csv_definition_for_test() -> CsvDefinition {
                 CsvColumnDataType::Float(&STANDARD),
             ),
         ]),
+        Vec::new(),
     );
 }
 

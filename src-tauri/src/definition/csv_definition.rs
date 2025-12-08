@@ -54,11 +54,50 @@ pub struct CsvColumnInfo {
     data_type: CsvColumnDataType,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct CsvDefinition {
     name: &'static str,
     has_headers: bool,
     expected_columns: HashMap<CsvColumnRole, CsvColumnInfo>,
+    // Meta Data currently supports only mutating the amount column
+    meta_data: Vec<(MetaDataType, CsvColumnInfo)>,
+}
+
+#[derive(Clone, Debug)]
+pub enum MetaDataType {
+    // CsvColumnInfo is to grab the column info of other amount
+    // MetaDataType enums can have any supplemental dependencies owned by the enum itself
+    Currency(CsvColumnInfo),
+}
+
+impl MetaDataType {
+    pub fn handle(
+        &self,
+        amount_to_mutate: &mut f64,
+        parsed_meta_value: &str,
+        string_record: &StringRecord,
+    ) -> Result<(), Box<dyn StdError>> {
+        match self {
+            MetaDataType::Currency(second_amount_column_info) => {
+                if parsed_meta_value == "$" {
+                    // The currency is reported as dollars, we need to override the amount
+                    let raw = string_record
+                        .get(second_amount_column_info.index as usize)
+                        .ok_or("Missing second amount column")?;
+
+                    let parsed_amount: f64 = raw.parse()?;
+                    *amount_to_mutate = parsed_amount;
+
+                    return Ok(());
+                } else if parsed_meta_value == "₪" {
+                    *amount_to_mutate /= 3.5;
+                    return Ok(());
+                } else {
+                    return Err(format!("Unknown currency symbol: {}", parsed_meta_value).into());
+                }
+            }
+        }
+    }
 }
 
 impl CsvDefinition {
@@ -66,11 +105,13 @@ impl CsvDefinition {
         name: &'static str,
         has_headers: bool,
         expected_columns: HashMap<CsvColumnRole, CsvColumnInfo>,
+        meta_data: Vec<(MetaDataType, CsvColumnInfo)>,
     ) -> Self {
         return Self {
             name,
             has_headers,
             expected_columns,
+            meta_data,
         };
     }
 
@@ -140,6 +181,22 @@ impl CsvParser for CsvDefinition {
         if !amount_is_standard {
             // The amount is not standard, so we need to invert it
             amount = -amount;
+        }
+
+        // If we have meta data that we care about, apply the handler to transform the amount
+        if !self.meta_data.is_empty() {
+            for (meta_type, meta_data_column_info) in &self.meta_data {
+                // Get the current value from the metadata column
+                let value_str = record
+                    .get(meta_data_column_info.index as usize)
+                    .ok_or(format!(
+                        "Missing column at index {}",
+                        meta_data_column_info.index
+                    ))?;
+
+                // Apply the handler with the amount and value string from the meta_type
+                meta_type.handle(&mut amount, value_str, record)?;
+            }
         }
 
         // Construct the Expense
@@ -256,6 +313,7 @@ pub fn build_definitions() -> HashMap<CsvDefinitionKey, CsvDefinition> {
                 ),
                 (CsvColumnRole::Description, 4, CsvColumnDataType::String),
             ]),
+            Vec::new(),
         ),
     );
 
@@ -277,6 +335,7 @@ pub fn build_definitions() -> HashMap<CsvDefinitionKey, CsvDefinition> {
                     CsvColumnDataType::Float(&STANDARD),
                 ),
             ]),
+            Vec::new(),
         ),
     );
 
