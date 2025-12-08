@@ -10,7 +10,6 @@ use std::fs::File;
 use std::io::Error as IoError;
 use std::io::{Seek, SeekFrom};
 use std::path::Path;
-use tauri::State;
 
 /// FUNCTION DEFINITIONS
 

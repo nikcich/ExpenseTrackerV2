@@ -98,7 +98,7 @@ pub fn parse_csv_from_path(
 #[tauri::command]
 pub fn add_expense_manual(
     expense_store_state: State<'_, ExpenseStore>,
-    mut expense: Expense,
+    expense: Expense,
 ) -> Response {
     match expense_store_state.add_expense(expense, true) {
         Ok(added) => {
