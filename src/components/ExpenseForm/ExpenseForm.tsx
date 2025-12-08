@@ -81,16 +81,16 @@ export const ExpenseForm = ({
   onSubmit,
   type = "edit",
 }: {
-  expense: Expense;
+  expense: Expense | undefined;
   onSubmit: (partial: Partial<Expense>) => void;
   type: "edit" | "create";
 }) => {
   const [date, setDate] = useState(
-    expense.date ? format(new Date(expense.date), "yyyy-MM-dd") : ""
+    expense?.date ? format(new Date(expense?.date), "yyyy-MM-dd") : ""
   );
-  const [amount, setAmount] = useState(expense.amount ?? 0);
-  const [description, setDescription] = useState(expense.description ?? "");
-  const [tags, setTags] = useState<string[]>(expense.tags ?? []);
+  const [amount, setAmount] = useState(expense?.amount ?? 0);
+  const [description, setDescription] = useState(expense?.description ?? "");
+  const [tags, setTags] = useState<string[]>(expense?.tags ?? []);
 
   const onFormSubmit = useCallback(
     (dt: string, a: number, d: string, t: string[]) => {
@@ -109,6 +109,8 @@ export const ExpenseForm = ({
   );
 
   const isFormDirty = () => {
+    if (!expense) return true;
+
     const dirty =
       date !== format(new Date(expense.date), "yyyy-MM-dd") ||
       amount !== expense.amount ||

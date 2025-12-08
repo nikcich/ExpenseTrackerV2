@@ -1,6 +1,6 @@
 import { Button, Checkbox, Table } from "@chakra-ui/react";
-import { useMemo, useState } from "react";
-import { Expense, NonExpenseTags, Tag } from "@/types/types";
+import { useCallback, useMemo, useState } from "react";
+import { API, Expense, NonExpenseTags, Response, Tag } from "@/types/types";
 import { BrushScrubber } from "../Brush/BrushScrubber";
 import { GenericPage } from "../GenericPage/GenericPage";
 import { Tag as TagComp } from "@chakra-ui/react";
@@ -9,6 +9,7 @@ import { FaChevronUp } from "react-icons/fa";
 import styles from "./DataTable.module.scss";
 import { setSelection, useSelection } from "@/store/SelectionStore";
 import { enableOverlay, Overlay } from "@/store/OverlayStore";
+import { invoke } from "@tauri-apps/api/core";
 
 const TagCell = ({ tags }: { tags: Tag[] }) => {
   return (
@@ -82,6 +83,14 @@ export const DataTable = ({ items }: { items: Expense[] }) => {
     }
   };
 
+  const handleDeleteSelection = useCallback(async (selection: string[]) => {
+    for (const id of selection) {
+      await invoke<Response<string>>(API.RemoveExpense, {
+        hash: id,
+      });
+    }
+  }, []);
+
   const rows = sortedItems.map((item) => (
     <Table.Row
       key={item.id}
@@ -128,18 +137,33 @@ export const DataTable = ({ items }: { items: Expense[] }) => {
       title={`Expenses (${items.length})`}
       actions={
         <>
+          <Button
+            size={"xs"}
+            colorPalette={"green"}
+            onClick={() => enableOverlay(Overlay.ManualModal)}
+          >
+            Add Expense
+          </Button>
           {selection.length > 0 && (
             <>
-              <Button size={"xs"} colorPalette={"red"}>
-                Delete Selection
+              <Button
+                size={"xs"}
+                colorPalette={"blue"}
+                onClick={() => {
+                  if (selection.length > 0) {
+                    enableOverlay(Overlay.EditModal);
+                  }
+                }}
+              >
+                Modify Selection
               </Button>
 
               <Button
                 size={"xs"}
-                colorPalette={"blue"}
-                onClick={() => enableOverlay(Overlay.EditModal)}
+                colorPalette={"red"}
+                onClick={() => handleDeleteSelection(selection)}
               >
-                Modify Selection
+                Delete Selection
               </Button>
             </>
           )}

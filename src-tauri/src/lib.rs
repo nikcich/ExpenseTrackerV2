@@ -50,7 +50,8 @@ pub fn run() {
             api::csv_opener::open_csv_from_path,
             api::csv_opener::parse_csv_from_path,
             api::csv_opener::update_expense,
-            api::csv_opener::add_expense_manual
+            api::csv_opener::add_expense_manual,
+            api::csv_opener::remove_expense
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

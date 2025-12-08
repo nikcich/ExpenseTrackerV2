@@ -9,6 +9,8 @@ export enum API {
   ParseCSV = "parse_csv_from_path",
   SetDateRange = "set_date_range",
   UpdateExpense = "update_expense",
+  AddManualExpense = "add_expense_manual",
+  RemoveExpense = "remove_expense",
 }
 
 export enum KnownStoreKeys {
