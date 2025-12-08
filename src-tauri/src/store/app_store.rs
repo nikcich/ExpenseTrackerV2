@@ -141,7 +141,11 @@ impl ExpenseStore {
     }
 
     /// Add a new expense
-    pub fn add_expense_manual(&self, mut expense: Expense) -> Result<bool, Box<dyn StdError>> {
+    pub fn add_expense(
+        &self,
+        mut expense: Expense,
+        manual: bool,
+    ) -> Result<bool, Box<dyn StdError>> {
         // Load store data
         let mut store_data = match self.load()? {
             Some(data) => data,
@@ -149,36 +153,7 @@ impl ExpenseStore {
         };
 
         // Add the new expense
-        let hash: String = store_data.generate_hash_for_new_entry(&expense, true)?;
-
-        // Copies the ID into expense
-        expense.set_id(&hash);
-
-        // Duplicate was found, return Ok(false), this is not an error but will
-        // indicate that the expense was not added due to a duplicate entry
-        if store_data.data.contains_key(&hash) {
-            return Ok(false);
-        }
-
-        // Add to the header
-        store_data.data.insert(hash, expense);
-
-        // Save updated store
-        self.save(&store_data)?;
-
-        return Ok(true);
-    }
-
-    /// Add a new expense
-    pub fn add_expense(&self, mut expense: Expense) -> Result<bool, Box<dyn StdError>> {
-        // Load store data
-        let mut store_data = match self.load()? {
-            Some(data) => data,
-            None => StoreData::default(), // create default if nothing is saved
-        };
-
-        // Add the new expense
-        let hash: String = store_data.generate_hash_for_new_entry(&expense, false)?;
+        let hash: String = store_data.generate_hash_for_new_entry(&expense, manual)?;
 
         // Copies the ID into expense
         expense.set_id(&hash);

@@ -100,7 +100,7 @@ pub fn add_expense_manual(
     expense_store_state: State<'_, ExpenseStore>,
     mut expense: Expense,
 ) -> Response {
-    match expense_store_state.add_expense_manual(expense) {
+    match expense_store_state.add_expense(expense, true) {
         Ok(added) => {
             if added {
                 return Response::ok(
