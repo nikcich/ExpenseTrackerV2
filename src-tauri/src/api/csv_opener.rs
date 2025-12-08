@@ -80,12 +80,44 @@ pub fn parse_csv_from_path(
         Ok((added_count, duplicate_count)) => {
             return Response::ok(
                 String::from("CSV parsed successfully"),
-                format!("Added {} entries, ignored {} duplicate entries", &added_count, &duplicate_count),
+                format!(
+                    "Added {} entries, ignored {} duplicate entries",
+                    &added_count, &duplicate_count
+                ),
             );
         }
         Err(e) => {
             return Response::err(
                 format!("Failed to parse CSV: {}", e),
+                Option::<String>::None,
+            );
+        }
+    }
+}
+
+#[tauri::command]
+pub fn add_expense_manual(
+    expense_store_state: State<'_, ExpenseStore>,
+    expense: Expense,
+) -> Response {
+    match expense_store_state.add_expense(expense, true) {
+        Ok(added) => {
+            if added {
+                return Response::ok(
+                    String::from("Expense added successfully"),
+                    Option::<String>::None,
+                );
+            } else {
+                return Response::new(
+                    Status::Conflict,
+                    String::from("Expense already exists for same time"),
+                    Option::<String>::None,
+                );
+            }
+        }
+        Err(e) => {
+            return Response::err(
+                format!("Failed to add expense: {}", e),
                 Option::<String>::None,
             );
         }
