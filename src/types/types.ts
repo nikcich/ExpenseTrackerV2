@@ -8,6 +8,7 @@ export enum API {
   OpenCSV = "open_csv_from_path",
   ParseCSV = "parse_csv_from_path",
   SetDateRange = "set_date_range",
+  UpdateExpense = "update_expense",
 }
 
 export enum KnownStoreKeys {
@@ -61,6 +62,16 @@ export enum NonExpenseTags {
 export type Tag = ExpenseTag | NonExpenseTags;
 
 export const ALL_EXPENSE_TAGS: Tag[] = Object.values(ExpenseTag) as Tag[];
+
+const ALL_TAGS: Tag[] = [
+  ...Object.values(ExpenseTag),
+  ...Object.values(NonExpenseTags),
+];
+
+export const ALL_TAGS_OPTIONS = ALL_TAGS.map((tag) => ({
+  value: tag,
+  label: tag,
+}));
 
 export type Response<T> = {
   status: number;

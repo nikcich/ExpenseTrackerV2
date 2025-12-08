@@ -46,8 +46,6 @@ const useFileOpener = () => {
       csvDefinitionKey: selectedFormat!,
     });
 
-    console.log(res);
-
     reset();
     setResult(res);
   }, [selectedFormat, selectedFile]);

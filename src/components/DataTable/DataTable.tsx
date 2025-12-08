@@ -7,6 +7,9 @@ import { Tag as TagComp } from "@chakra-ui/react";
 import { FaChevronDown } from "react-icons/fa";
 import { FaChevronUp } from "react-icons/fa";
 import styles from "./DataTable.module.scss";
+import { setSelection, useSelection } from "@/store/SelectionStore";
+import { enableOverlay, Overlay } from "@/store/OverlayStore";
+
 const TagCell = ({ tags }: { tags: Tag[] }) => {
   return (
     <div>
@@ -41,7 +44,7 @@ const compareDates = (
 };
 
 export const DataTable = ({ items }: { items: Expense[] }) => {
-  const [selection, setSelection] = useState<string[]>([]);
+  const selection = useSelection();
   const [sortColumn, setSortColumn] = useState<SortKey>("date");
   const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
 
@@ -83,6 +86,10 @@ export const DataTable = ({ items }: { items: Expense[] }) => {
     <Table.Row
       key={item.id}
       data-selected={selection.includes(item.id) ? "" : undefined}
+      onDoubleClick={() => {
+        setSelection([item.id]);
+        enableOverlay(Overlay.EditModal);
+      }}
     >
       <Table.Cell>
         <Checkbox.Root
@@ -127,7 +134,11 @@ export const DataTable = ({ items }: { items: Expense[] }) => {
                 Delete Selection
               </Button>
 
-              <Button size={"xs"} colorPalette={"blue"}>
+              <Button
+                size={"xs"}
+                colorPalette={"blue"}
+                onClick={() => enableOverlay(Overlay.EditModal)}
+              >
                 Modify Selection
               </Button>
             </>

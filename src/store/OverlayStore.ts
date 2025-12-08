@@ -2,6 +2,7 @@ import { createStore } from "./generic-store";
 
 export enum Overlay {
   DateRangeModal = "DateRangeModal",
+  EditModal = "EditModal",
 }
 
 type OverlayStore = {
