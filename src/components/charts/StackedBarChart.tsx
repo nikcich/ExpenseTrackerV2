@@ -31,7 +31,7 @@ export const parseStackedFormat = (
     x: groups,
     y: groups.map((g) => {
       const item = parsedData.find((d) => d.category === cat && d.group === g);
-      return item ? item.total : 0;
+      return item ? Math.abs(item.total) : 0;
     }),
     name: cat,
     type: "bar",

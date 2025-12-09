@@ -44,9 +44,7 @@ export function sumGroupedExpenses(grouped: any) {
     if (Array.isArray(obj)) {
       output.push({
         group: parentKey,
-        total: obj
-          .filter((e) => !e.tags.includes(NonExpenseTags.Income))
-          .reduce((sum, e) => sum + e.amount, 0),
+        total: obj.reduce((sum, e) => sum + e.amount, 0),
       });
       return;
     }

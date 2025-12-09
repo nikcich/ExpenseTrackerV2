@@ -3,30 +3,38 @@ import styles from "./BarChart.module.scss";
 
 type Datum = string | number | Date | null;
 
-interface BarChartProps<T extends Datum, K extends Datum> {
+interface BarChartProps<T extends Datum> {
   x: T[];
-  y: K[];
+  barCharts: BarChartItem[];
+  horizontal?: boolean;
 }
 
-export const BarChart = <T extends Datum, K extends Datum>({
+interface BarChartItem {
+  name: string;
+  y: number[];
+  color: string;
+}
+
+export const BarChart = <T extends Datum>({
   x,
-  y,
-}: BarChartProps<T, K>) => {
+  barCharts,
+  horizontal = false,
+}: BarChartProps<T>) => {
   return (
     <div className={styles.container}>
       <div className={styles.plotContainer}>
         <Plot
-          data={[
-            {
-              x,
-              y,
-              type: "bar",
-              marker: { color: "#1f77b4" },
-            },
-          ]}
+          data={barCharts.map((chart) => ({
+            x: horizontal ? chart.y : x,
+            y: horizontal ? x : chart.y,
+            type: "bar",
+            name: chart.name,
+            orientation: horizontal ? "h" : "v",
+            marker: { color: chart.color },
+          }))}
           layout={{
             autosize: true,
-            margin: { t: 40, r: 20, l: 40, b: 40 },
+            margin: { t: 40, r: 20, l: horizontal ? 70 : 40, b: 40 },
             paper_bgcolor: "transparent",
             plot_bgcolor: "transparent",
             font: {

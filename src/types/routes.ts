@@ -6,4 +6,5 @@ export enum Pages {
   StackedBarChart = "/stacked-bar-chart",
   Settings = "/settings",
   FileOpener = "/file-opener",
+  RangeIncomeExpense = "/range-income-expense",
 }

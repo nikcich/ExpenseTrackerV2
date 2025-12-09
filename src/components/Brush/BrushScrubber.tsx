@@ -48,11 +48,12 @@ export const BrushScrubber: React.FC<BrushScrubberProps> = ({
 
     const dates = expenses.map((e) => new Date(e.date));
     const incomeDates = income.map((e) => new Date(e.date));
+    const allDates = [...dates, ...incomeDates];
 
-    const rawExtent = d3.extent(dates) as [Date, Date];
+    const rawExtent = d3.extent(allDates) as [Date, Date];
     const snappedExtent: [Date, Date] = [
-      d3.timeMonth.floor(rawExtent[0]), // push start back to 1st of its month
-      d3.timeMonth.ceil(rawExtent[1]), // push end forward to 1st of next month
+      d3.timeMonth.floor(rawExtent[0]),
+      d3.timeMonth.ceil(rawExtent[1]),
     ];
 
     const xScale = d3.scaleTime().domain(snappedExtent).range([0, innerWidth]);
@@ -88,7 +89,7 @@ export const BrushScrubber: React.FC<BrushScrubberProps> = ({
       .attr("text-anchor", "middle")
       .style("font-size", "10px")
       .style("fill", "#666")
-      .text((d) => d3.timeFormat("%b %Y")(d)); // "Jan", "Feb", etc.
+      .text((d) => d3.timeFormat("%b %y")(d)); // "Jan", "Feb", etc.
 
     container
       .append("g")
@@ -133,8 +134,9 @@ export const BrushScrubber: React.FC<BrushScrubberProps> = ({
         [0, 0],
         [innerWidth, innerHeight],
       ])
-      .on("brush end", ({ selection }) => {
+      .on("start end", ({ selection }) => {
         if (!selection) return;
+
         const [x0, x1] = selection;
         const start = xScale.invert(x0);
         const end = xScale.invert(x1);
@@ -144,17 +146,29 @@ export const BrushScrubber: React.FC<BrushScrubberProps> = ({
         const current = instantBrushRange$.getValue();
         if (current && current[0] === st && current[1] === en) return;
 
-        instantBrushRange$.next([st, en]);
-        updateDateRange(start, end);
+        const rangeDiff = Math.abs((en - st) / (1000 * 60 * 60 * 24));
+        if (rangeDiff < 1) return;
+
+        if (!Number.isNaN(st) && !Number.isNaN(en)) {
+          instantBrushRange$.next([st, en]);
+          updateDateRange(start, end);
+        }
       });
 
-    const brushG = container.append("g").call(brush);
+    const brushG = container
+      .append("g")
+      .call(brush)
+      .on("dblclick", () => {
+        enableOverlay(Overlay.DateRangeModal);
+      });
 
     const updateBrush = (range: [number, number]) => {
-      brushG.call(brush.move as any, [
-        xScale(new Date(range[0])),
-        xScale(new Date(range[1])),
-      ]);
+      if (!Number.isNaN(range[0]) && !Number.isNaN(range[1])) {
+        brushG.call(brush.move as any, [
+          xScale(new Date(range[0])),
+          xScale(new Date(range[1])),
+        ]);
+      }
     };
 
     const currentBrushRange = instantBrushRange$.getValue();
@@ -187,14 +201,7 @@ export const BrushScrubber: React.FC<BrushScrubberProps> = ({
   }, [expenses, income, width, height]);
 
   return (
-    <div
-      ref={containerRef}
-      style={{ width: "100%" }}
-      onDoubleClick={(e) => {
-        e.stopPropagation();
-        enableOverlay(Overlay.DateRangeModal);
-      }}
-    >
+    <div ref={containerRef} style={{ width: "100%" }}>
       <svg
         ref={svgRef}
         width={width}

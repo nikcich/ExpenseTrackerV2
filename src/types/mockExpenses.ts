@@ -53,5 +53,5 @@ const generateSampleData = (
 export const MOCK_EXPENSES: StoreExpenseMap = generateSampleData(
   new Date("2025-01-01"),
   new Date("2025-12-31"),
-  300
+  10
 );

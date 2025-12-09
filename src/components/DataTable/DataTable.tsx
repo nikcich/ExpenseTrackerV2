@@ -1,5 +1,5 @@
-import { Button, Checkbox, Table } from "@chakra-ui/react";
-import { useCallback, useMemo, useState } from "react";
+import { Button, Checkbox, Input, Table } from "@chakra-ui/react";
+import { memo, useCallback, useMemo, useState } from "react";
 import { API, Expense, NonExpenseTags, Response, Tag } from "@/types/types";
 import { BrushScrubber } from "../Brush/BrushScrubber";
 import { GenericPage } from "../GenericPage/GenericPage";
@@ -10,6 +10,7 @@ import styles from "./DataTable.module.scss";
 import { setSelection, useSelection } from "@/store/SelectionStore";
 import { enableOverlay, Overlay } from "@/store/OverlayStore";
 import { invoke } from "@tauri-apps/api/core";
+import { debounce } from "lodash";
 
 const TagCell = ({ tags }: { tags: Tag[] }) => {
   return (
@@ -46,42 +47,7 @@ const compareDates = (
 
 export const DataTable = ({ items }: { items: Expense[] }) => {
   const selection = useSelection();
-  const [sortColumn, setSortColumn] = useState<SortKey>("date");
-  const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
-
-  const indeterminate = selection.length > 0 && selection.length < items.length;
-
-  const sortedItems = useMemo(() => {
-    const sorted = [...items].sort((a, b) => {
-      const aVal = a[sortColumn];
-      const bVal = b[sortColumn];
-
-      if (
-        sortColumn === "date" &&
-        typeof aVal === "string" &&
-        typeof bVal === "string"
-      ) {
-        return compareDates(aVal, bVal, sortDirection);
-      }
-
-      if (typeof aVal === "number" && typeof bVal === "number") {
-        return sortDirection === "asc" ? aVal - bVal : bVal - aVal;
-      }
-      return sortDirection === "asc"
-        ? String(aVal).localeCompare(String(bVal))
-        : String(bVal).localeCompare(String(aVal));
-    });
-    return sorted;
-  }, [items, sortColumn, sortDirection]);
-
-  const handleSort = (column: SortKey) => {
-    if (sortColumn === column) {
-      setSortDirection((prev) => (prev === "asc" ? "desc" : "asc"));
-    } else {
-      setSortColumn(column);
-      setSortDirection("asc");
-    }
-  };
+  const [searchString, setSearchString] = useState<string>("");
 
   const handleDeleteSelection = useCallback(async (selection: string[]) => {
     for (const id of selection) {
@@ -91,46 +57,15 @@ export const DataTable = ({ items }: { items: Expense[] }) => {
     }
   }, []);
 
-  const rows = sortedItems.map((item) => (
-    <Table.Row
-      key={item.id}
-      data-selected={selection.includes(item.id) ? "" : undefined}
-      onDoubleClick={() => {
-        setSelection([item.id]);
-        enableOverlay(Overlay.EditModal);
-      }}
-    >
-      <Table.Cell>
-        <Checkbox.Root
-          size="sm"
-          mt="0.5"
-          aria-label="Select row"
-          checked={selection.includes(item.id)}
-          onCheckedChange={(changes) => {
-            setSelection((prev) =>
-              changes.checked
-                ? [...prev, item.id]
-                : selection.filter((name) => name !== item.id)
-            );
-          }}
-        >
-          <Checkbox.HiddenInput />
-          <Checkbox.Control />
-        </Checkbox.Root>
-      </Table.Cell>
-      <Table.Cell>
-        <TagCell tags={item.tags} />
-      </Table.Cell>
+  const filteredItems = useMemo(() => {
+    return items.filter((item) =>
+      item.description.toLowerCase().includes(searchString.toLowerCase())
+    );
+  }, [items, searchString]);
 
-      <Table.Cell>{item.date}</Table.Cell>
-      <Table.Cell>{item.description}</Table.Cell>
-      <Table.Cell>
-        <span className={item.amount < 0 ? styles.income : styles.expense}>
-          ${item.amount}
-        </span>
-      </Table.Cell>
-    </Table.Row>
-  ));
+  const debouncedSearchString = useMemo(() => {
+    return debounce(setSearchString, 300);
+  }, [searchString]);
 
   return (
     <GenericPage
@@ -146,6 +81,18 @@ export const DataTable = ({ items }: { items: Expense[] }) => {
           </Button>
           {selection.length > 0 && (
             <>
+              <Button
+                size={"xs"}
+                colorPalette={"orange"}
+                onClick={() => {
+                  if (selection.length > 0) {
+                    enableOverlay(Overlay.TagModal);
+                  }
+                }}
+              >
+                Tag Selection
+              </Button>
+
               <Button
                 size={"xs"}
                 colorPalette={"blue"}
@@ -171,78 +118,172 @@ export const DataTable = ({ items }: { items: Expense[] }) => {
       }
       footer={<BrushScrubber />}
     >
-      <Table.Root variant={"line"} striped stickyHeader>
-        <Table.Header>
-          <Table.Row>
-            <Table.ColumnHeader w="6">
-              <Checkbox.Root
-                size="sm"
-                mt="0.5"
-                aria-label="Select all rows"
-                checked={indeterminate ? "indeterminate" : selection.length > 0}
-                onCheckedChange={(changes) => {
-                  setSelection(
-                    changes.checked ? items.map((item) => item.id) : []
-                  );
-                }}
-              >
-                <Checkbox.HiddenInput />
-                <Checkbox.Control />
-              </Checkbox.Root>
-            </Table.ColumnHeader>
+      <Input
+        type="search"
+        onChange={(e) => debouncedSearchString(e.target.value)}
+        placeholder="Search..."
+        style={{
+          width: "99%",
+        }}
+      />
 
-            <Table.ColumnHeader>
-              <span className={styles.header}>Tags</span>
-            </Table.ColumnHeader>
-
-            <Table.ColumnHeader
-              onClick={() => handleSort("date")}
-              cursor="pointer"
-            >
-              <span className={styles.header}>
-                Date
-                {sortColumn === "date" &&
-                  (sortDirection === "asc" ? (
-                    <FaChevronUp size={14} />
-                  ) : (
-                    <FaChevronDown size={14} />
-                  ))}
-              </span>
-            </Table.ColumnHeader>
-
-            <Table.ColumnHeader
-              onClick={() => handleSort("description")}
-              cursor="pointer"
-            >
-              <span className={styles.header}>
-                Description
-                {sortColumn === "description" &&
-                  (sortDirection === "asc" ? (
-                    <FaChevronUp size={14} />
-                  ) : (
-                    <FaChevronDown size={14} />
-                  ))}
-              </span>
-            </Table.ColumnHeader>
-
-            <Table.ColumnHeader
-              onClick={() => handleSort("amount")}
-              cursor="pointer"
-            >
-              <span className={styles.header}>
-                Amount
-                {sortColumn === "amount" &&
-                  (sortDirection === "asc" ? (
-                    <FaChevronUp size={14} />
-                  ) : (
-                    <FaChevronDown size={14} />
-                  ))}
-              </span>
-            </Table.ColumnHeader>
-          </Table.Row>
-        </Table.Header>
-        <Table.Body>{rows}</Table.Body>
-      </Table.Root>
+      <CoreTable items={filteredItems} />
     </GenericPage>
   );
 };
+
+const CoreTable = memo(({ items }: { items: Expense[] }) => {
+  const selection = useSelection();
+  const [sortColumn, setSortColumn] = useState<SortKey>("date");
+  const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
+  const handleSort = (column: SortKey) => {
+    if (sortColumn === column) {
+      setSortDirection((prev) => (prev === "asc" ? "desc" : "asc"));
+    } else {
+      setSortColumn(column);
+      setSortDirection("asc");
+    }
+  };
+  const indeterminate = selection.length > 0 && selection.length < items.length;
+
+  const sortedItems = useMemo(() => {
+    const sorted = [...items].sort((a, b) => {
+      const aVal = a[sortColumn];
+      const bVal = b[sortColumn];
+
+      if (
+        sortColumn === "date" &&
+        typeof aVal === "string" &&
+        typeof bVal === "string"
+      ) {
+        return compareDates(aVal, bVal, sortDirection);
+      }
+
+      if (typeof aVal === "number" && typeof bVal === "number") {
+        return sortDirection === "asc" ? aVal - bVal : bVal - aVal;
+      }
+      return sortDirection === "asc"
+        ? String(aVal).localeCompare(String(bVal))
+        : String(bVal).localeCompare(String(aVal));
+    });
+    return sorted;
+  }, [items, sortColumn, sortDirection]);
+
+  const rows = useMemo(() => {
+    return sortedItems.map((item) => (
+      <Table.Row
+        key={item.id}
+        data-selected={selection.includes(item.id) ? "" : undefined}
+        onDoubleClick={() => {
+          setSelection([item.id]);
+          enableOverlay(Overlay.EditModal);
+        }}
+      >
+        <Table.Cell>
+          <Checkbox.Root
+            size="sm"
+            mt="0.5"
+            aria-label="Select row"
+            checked={selection.includes(item.id)}
+            onCheckedChange={(changes) => {
+              setSelection((prev) =>
+                changes.checked
+                  ? [...prev, item.id]
+                  : selection.filter((name) => name !== item.id)
+              );
+            }}
+          >
+            <Checkbox.HiddenInput />
+            <Checkbox.Control />
+          </Checkbox.Root>
+        </Table.Cell>
+        <Table.Cell>
+          <TagCell tags={item.tags} />
+        </Table.Cell>
+
+        <Table.Cell>{item.date}</Table.Cell>
+        <Table.Cell>{item.description}</Table.Cell>
+        <Table.Cell>
+          <span className={item.amount < 0 ? styles.income : styles.expense}>
+            ${item.amount}
+          </span>
+        </Table.Cell>
+      </Table.Row>
+    ));
+  }, [sortedItems, selection]);
+
+  return (
+    <Table.Root variant={"line"} striped stickyHeader>
+      <Table.Header>
+        <Table.Row>
+          <Table.ColumnHeader w="6">
+            <Checkbox.Root
+              size="sm"
+              mt="0.5"
+              aria-label="Select all rows"
+              checked={indeterminate ? "indeterminate" : selection.length > 0}
+              onCheckedChange={(changes) => {
+                setSelection(
+                  changes.checked ? items.map((item) => item.id) : []
+                );
+              }}
+            >
+              <Checkbox.HiddenInput />
+              <Checkbox.Control />
+            </Checkbox.Root>
+          </Table.ColumnHeader>
+
+          <Table.ColumnHeader>
+            <span className={styles.header}>Tags</span>
+          </Table.ColumnHeader>
+
+          <Table.ColumnHeader
+            onClick={() => handleSort("date")}
+            cursor="pointer"
+          >
+            <span className={styles.header}>
+              Date
+              {sortColumn === "date" &&
+                (sortDirection === "asc" ? (
+                  <FaChevronUp size={14} />
+                ) : (
+                  <FaChevronDown size={14} />
+                ))}
+            </span>
+          </Table.ColumnHeader>
+
+          <Table.ColumnHeader
+            onClick={() => handleSort("description")}
+            cursor="pointer"
+          >
+            <span className={styles.header}>
+              Description
+              {sortColumn === "description" &&
+                (sortDirection === "asc" ? (
+                  <FaChevronUp size={14} />
+                ) : (
+                  <FaChevronDown size={14} />
+                ))}
+            </span>
+          </Table.ColumnHeader>
+
+          <Table.ColumnHeader
+            onClick={() => handleSort("amount")}
+            cursor="pointer"
+          >
+            <span className={styles.header}>
+              Amount
+              {sortColumn === "amount" &&
+                (sortDirection === "asc" ? (
+                  <FaChevronUp size={14} />
+                ) : (
+                  <FaChevronDown size={14} />
+                ))}
+            </span>
+          </Table.ColumnHeader>
+        </Table.Row>
+      </Table.Header>
+      <Table.Body>{rows}</Table.Body>
+    </Table.Root>
+  );
+});

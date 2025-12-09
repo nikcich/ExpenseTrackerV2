@@ -11,6 +11,7 @@ import { TagStackedBarChart } from "./pages/TagStackedBarChart/TagStackedBarChar
 import { Settings } from "./pages/Settings/Settings";
 import { FileOpener } from "./pages/FileOpener/FileOpener";
 import { Overlays } from "./Overlays";
+import { RangeIncomeExpenseChart } from "./pages/RangeIncomeExpenseChart/RangeIncomeExpenseChart";
 
 const RouteComponent = ({ element }: { element: JSX.Element }) => {
   return (
@@ -44,6 +45,11 @@ export function AppRouter() {
         <Route
           path={Pages.TableView}
           element={<RouteComponent element={<TableView />} />}
+        />
+
+        <Route
+          path={Pages.RangeIncomeExpense}
+          element={<RouteComponent element={<RangeIncomeExpenseChart />} />}
         />
 
         <Route
