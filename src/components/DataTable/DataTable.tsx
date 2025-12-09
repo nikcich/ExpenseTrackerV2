@@ -151,6 +151,12 @@ const CoreTable = memo(({ items }: { items: Expense[] }) => {
       const aVal = a[sortColumn];
       const bVal = b[sortColumn];
 
+      if (sortColumn === "tags" && Array.isArray(aVal) && Array.isArray(bVal)) {
+        return sortDirection === "asc"
+          ? aVal.length - bVal.length
+          : bVal.length - aVal.length;
+      }
+
       if (
         sortColumn === "date" &&
         typeof aVal === "string" &&
@@ -233,8 +239,16 @@ const CoreTable = memo(({ items }: { items: Expense[] }) => {
             </Checkbox.Root>
           </Table.ColumnHeader>
 
-          <Table.ColumnHeader>
-            <span className={styles.header}>Tags</span>
+          <Table.ColumnHeader onClick={() => handleSort("tags")}>
+            <span className={styles.header}>
+              Tags
+              {sortColumn === "tags" &&
+                (sortDirection === "asc" ? (
+                  <FaChevronUp size={14} />
+                ) : (
+                  <FaChevronDown size={14} />
+                ))}
+            </span>
           </Table.ColumnHeader>
 
           <Table.ColumnHeader
