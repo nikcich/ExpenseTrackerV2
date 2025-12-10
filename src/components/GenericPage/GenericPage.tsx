@@ -25,11 +25,13 @@ export const GenericPage = ({
   title,
   children,
   footer,
+  hasRange = true,
 }: {
   actions?: JSX.Element;
   title: string;
   children: React.ReactNode;
   footer?: JSX.Element;
+  hasRange?: boolean;
 }) => {
   const [range] = useDebouncedBrushRange();
   const hasDisplayData = useHasDisplayData();
@@ -52,7 +54,8 @@ export const GenericPage = ({
     <div className={styles.container}>
       <div className={styles.header}>
         <Heading size="xl">
-          {title} {dateRangeText !== "" ? `: ${dateRangeText}` : ""}
+          {title}
+          {hasRange ? (dateRangeText !== "" ? `: ${dateRangeText}` : "") : ""}
         </Heading>
 
         <div className={styles.actions}>{actions}</div>

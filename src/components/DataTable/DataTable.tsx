@@ -11,6 +11,7 @@ import { setSelection, useSelection } from "@/store/SelectionStore";
 import { enableOverlay, Overlay } from "@/store/OverlayStore";
 import { invoke } from "@tauri-apps/api/core";
 import { debounce } from "lodash";
+import { format } from "date-fns";
 
 const TagCell = ({ tags }: { tags: Tag[] }) => {
   return (
@@ -18,7 +19,13 @@ const TagCell = ({ tags }: { tags: Tag[] }) => {
       {tags.map((tag) => (
         <TagComp.Root
           key={tag}
-          colorPalette={tag === NonExpenseTags.Income ? "green" : "red"}
+          colorPalette={
+            tag === NonExpenseTags.Income
+              ? "green"
+              : tag === NonExpenseTags.Savings
+              ? "yellow"
+              : "red"
+          }
         >
           <TagComp.Label>{tag}</TagComp.Label>
         </TagComp.Root>
@@ -124,6 +131,10 @@ export const DataTable = ({ items }: { items: Expense[] }) => {
         placeholder="Search..."
         style={{
           width: "99%",
+          position: "sticky",
+          top: 0,
+          zIndex: 100,
+          background: "black",
         }}
       />
 
@@ -207,7 +218,7 @@ const CoreTable = memo(({ items }: { items: Expense[] }) => {
           <TagCell tags={item.tags} />
         </Table.Cell>
 
-        <Table.Cell>{item.date}</Table.Cell>
+        <Table.Cell>{format(new Date(item.date), "MM-dd-yyyy")}</Table.Cell>
         <Table.Cell>{item.description}</Table.Cell>
         <Table.Cell>
           <span className={item.amount < 0 ? styles.income : styles.expense}>
@@ -220,7 +231,14 @@ const CoreTable = memo(({ items }: { items: Expense[] }) => {
 
   return (
     <Table.Root variant={"line"} striped stickyHeader>
-      <Table.Header>
+      <Table.Header
+        style={{
+          position: "sticky",
+          top: "40px",
+          zIndex: 100,
+          background: "black",
+        }}
+      >
         <Table.Row>
           <Table.ColumnHeader w="6">
             <Checkbox.Root

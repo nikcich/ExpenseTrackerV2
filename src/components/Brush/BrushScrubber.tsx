@@ -3,7 +3,7 @@ import * as d3 from "d3";
 import { updateDateRange } from "@/store/RustInterfaceHandlers";
 import { instantBrushRange$ } from "@/store/store";
 import { debounceTime, distinctUntilChanged } from "rxjs";
-import { useExpenses, useIncome } from "@/hooks/expenses";
+import { useExpenses, useIncome, useSavings } from "@/hooks/expenses";
 import { enableOverlay, Overlay } from "@/store/OverlayStore";
 
 interface BrushScrubberProps {
@@ -22,6 +22,7 @@ export const BrushScrubber: React.FC<BrushScrubberProps> = ({
 
   const expenses = useExpenses();
   const income = useIncome();
+  const savings = useSavings();
 
   useEffect(() => {
     if (!containerRef.current) return;
@@ -48,7 +49,8 @@ export const BrushScrubber: React.FC<BrushScrubberProps> = ({
 
     const dates = expenses.map((e) => new Date(e.date));
     const incomeDates = income.map((e) => new Date(e.date));
-    const allDates = [...dates, ...incomeDates];
+    const savingsDates = savings.map((s) => new Date(s.date));
+    const allDates = [...dates, ...incomeDates, ...savingsDates];
 
     const rawExtent = d3.extent(allDates) as [Date, Date];
     const snappedExtent: [Date, Date] = [
@@ -106,6 +108,7 @@ export const BrushScrubber: React.FC<BrushScrubberProps> = ({
       .attr("stroke-dasharray", "2,2");
 
     const expenseY = innerHeight * 0.7;
+    const savingsY = innerHeight * 0.5;
     const incomeY = innerHeight * 0.3;
 
     const expensesGroup = container.append("g").attr("class", "expenses");
@@ -117,6 +120,16 @@ export const BrushScrubber: React.FC<BrushScrubberProps> = ({
       .attr("cy", expenseY)
       .attr("r", 2)
       .attr("fill", "red");
+
+    const savingsGroup = container.append("g").attr("class", "savings");
+    savingsGroup
+      .selectAll("circle")
+      .data(savingsDates)
+      .join("circle")
+      .attr("cx", (d) => xScale(d))
+      .attr("cy", savingsY)
+      .attr("r", 2)
+      .attr("fill", "#ffd000ff");
 
     const incomeGroup = container.append("g").attr("class", "income");
     incomeGroup

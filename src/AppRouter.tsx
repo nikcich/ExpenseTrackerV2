@@ -12,6 +12,7 @@ import { Settings } from "./pages/Settings/Settings";
 import { FileOpener } from "./pages/FileOpener/FileOpener";
 import { Overlays } from "./Overlays";
 import { RangeIncomeExpenseChart } from "./pages/RangeIncomeExpenseChart/RangeIncomeExpenseChart";
+import { YearToDateChart } from "./pages/YearToDateChart/YearToDateChart";
 
 const RouteComponent = ({ element }: { element: JSX.Element }) => {
   return (
@@ -65,6 +66,11 @@ export function AppRouter() {
         <Route
           path={Pages.FileOpener}
           element={<RouteComponent element={<FileOpener />} />}
+        />
+
+        <Route
+          path={Pages.YTDChart}
+          element={<RouteComponent element={<YearToDateChart />} />}
         />
       </Routes>
     </BrowserRouter>

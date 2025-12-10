@@ -1,7 +1,11 @@
 import { BrushScrubber } from "@/components/Brush/BrushScrubber";
 import { BarChart } from "../../components/charts/BarChart";
 import { GenericPage } from "@/components/GenericPage/GenericPage";
-import { useFilteredExpenses, useFilteredIncome } from "@/hooks/expenses";
+import {
+  useFilteredExpenses,
+  useFilteredIncome,
+  useFilteredSavings,
+} from "@/hooks/expenses";
 import {
   byDay,
   byMonth,
@@ -31,6 +35,7 @@ const getGroupedAndSortedData = (mode: Mode, data: Expense[]) => {
 export function GroupedBarChart() {
   const filteredExpenses = useFilteredExpenses();
   const filteredIncome = useFilteredIncome();
+  const filteredSavings = useFilteredSavings();
 
   const [mode, setMode] = useState<Mode>(Mode.MONTHLY);
 
@@ -42,12 +47,17 @@ export function GroupedBarChart() {
     return getGroupedAndSortedData(mode, filteredIncome);
   }, [filteredIncome, mode]);
 
+  const sortedGroupedSavings = useMemo(() => {
+    return getGroupedAndSortedData(mode, filteredSavings);
+  }, [filteredSavings, mode]);
+
   const groups = useMemo(() => {
     const groupsSet = new Set<string>();
     sortedGroupedExpenses.forEach((e) => groupsSet.add(e.group));
     sortedGroupedIncome.forEach((e) => groupsSet.add(e.group));
+    sortedGroupedSavings.forEach((e) => groupsSet.add(e.group));
     return Array.from(groupsSet).sort((a, b) => chartDateCompare(a, b));
-  }, [sortedGroupedExpenses, sortedGroupedIncome]);
+  }, [sortedGroupedExpenses, sortedGroupedIncome, sortedGroupedSavings]);
 
   return (
     <GenericPage
@@ -86,6 +96,15 @@ export function GroupedBarChart() {
               return Math.abs(incomeValue);
             }),
             color: "#00a100ff",
+          },
+          {
+            name: "Savings",
+            y: groups.map((group) => {
+              const savingsValue =
+                sortedGroupedSavings.find((e) => e.group === group)?.total ?? 0;
+              return Math.abs(savingsValue);
+            }),
+            color: "#ffd000ff",
           },
         ]}
       />

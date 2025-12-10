@@ -41,14 +41,47 @@ export const useFilteredIncome = () => {
   return filtered;
 };
 
+export const useFilteredSavings = () => {
+  const [range] = useDebouncedBrushRange();
+  const savings = useSavings();
+  const filtered = useMemo(() => {
+    if (!range) return savings;
+    return savings.filter((saving) => {
+      const expenseDate = parseDate(saving.date).getTime();
+      return expenseDate >= range[0] && expenseDate <= range[1];
+    });
+  }, [range, savings]);
+
+  return filtered;
+};
+
 export const useExpenses = () => {
   const { value } = useExpensesStore();
 
   const expenses = useMemo(
-    () => value?.filter((e) => !e.tags.includes(NonExpenseTags.Income)) ?? [],
+    () =>
+      value?.filter((e) => {
+        const isIncome = e.tags.includes(NonExpenseTags.Income);
+        const isSavings = e.tags.includes(NonExpenseTags.Savings);
+        return !isIncome && !isSavings;
+      }) ?? [],
     [value]
   );
   return expenses;
+};
+
+export const useSavings = () => {
+  const { value } = useExpensesStore();
+
+  const savings = useMemo(
+    () =>
+      value?.filter((e) => {
+        const isSavings = e.tags.includes(NonExpenseTags.Savings);
+        return isSavings;
+      }) ?? [],
+    [value]
+  );
+  return savings;
 };
 
 export const useIncome = () => {

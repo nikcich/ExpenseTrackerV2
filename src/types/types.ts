@@ -44,7 +44,6 @@ export enum ExpenseTag {
   Entertainment = "Entertainment",
   Health_Med = "Health/Med",
   Shopping = "Shopping",
-  Savings = "Savings",
   Debt = "Debt",
   Gifts = "Gifts",
   Misc = "Misc.",
@@ -59,6 +58,7 @@ export enum ExpenseTag {
 
 export enum NonExpenseTags {
   Income = "Income",
+  Savings = "Savings",
 }
 
 export type Tag = ExpenseTag | NonExpenseTags;

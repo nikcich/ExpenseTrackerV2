@@ -7,4 +7,5 @@ export enum Pages {
   Settings = "/settings",
   FileOpener = "/file-opener",
   RangeIncomeExpense = "/range-income-expense",
+  YTDChart = "/year-to-date-chart",
 }

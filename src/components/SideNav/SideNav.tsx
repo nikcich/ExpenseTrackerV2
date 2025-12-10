@@ -11,6 +11,7 @@ import { LuChartColumnStacked } from "react-icons/lu";
 import { FaSlidersH } from "react-icons/fa";
 import { PiFileCsvBold } from "react-icons/pi";
 import { RiBarChartHorizontalFill } from "react-icons/ri";
+import { FaChartLine } from "react-icons/fa6";
 
 const NavButton = ({ Icon, page }: { Icon: React.FC; page: string }) => {
   const navigate = useNavigate();
@@ -42,6 +43,7 @@ export function SideNav() {
       <NavButton Icon={FaTable} page={Pages.TableView} />
       <NavButton Icon={FaChartBar} page={Pages.BarChart} />
       <NavButton Icon={LuChartColumnStacked} page={Pages.StackedBarChart} />
+      <NavButton Icon={FaChartLine} page={Pages.YTDChart} />
     </div>
   );
 }
