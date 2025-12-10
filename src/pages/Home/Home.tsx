@@ -12,6 +12,7 @@ import {
 } from "@chakra-ui/react";
 import { useState } from "react";
 import logo from "../../assets/logo.png";
+import styles from "./Home.module.scss";
 
 export function Home() {
   const { value: expenses, setValue: setExpenses } = useExpensesStore();
@@ -30,7 +31,7 @@ export function Home() {
       }}
     >
       <Heading size="3xl">Expense Tracker</Heading>
-      <img src={logo} alt="Expense Tracker Logo" width="50%" />
+      <img src={logo} alt="Expense Tracker Logo" className={styles.img} />
       <Heading size="2xl">V2</Heading>
 
       <Separator style={{ width: "100%" }} />
