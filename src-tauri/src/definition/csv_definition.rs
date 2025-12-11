@@ -30,6 +30,7 @@ pub enum CsvColumnDataType {
     Float(&'static bool), // True if standard, False if inversed sign
     String,
     DateObject(&'static str), // Format string for parsing dates
+    OptionalString,
 }
 
 impl CsvColumnDataType {
@@ -203,6 +204,10 @@ impl CsvValidator for CsvDefinition {
                 .map(|s| s.trim().is_empty())
                 .unwrap_or(true)
             {
+                if (col_info.data_type == CsvColumnDataType::OptionalString) {
+                    continue;
+                }
+
                 return false;
             }
 
@@ -212,6 +217,7 @@ impl CsvValidator for CsvDefinition {
                 return false;
             }
         }
+
         return true;
     }
 
@@ -264,7 +270,7 @@ pub fn build_definitions() -> HashMap<CsvDefinitionKey, CsvDefinition> {
             "Expense Tracker V1 Migration Report",
             true,
             make_column_definitions(&[
-                (CsvColumnRole::Tag, 0, CsvColumnDataType::String),
+                (CsvColumnRole::Tag, 0, CsvColumnDataType::OptionalString),
                 (
                     CsvColumnRole::Date,
                     1,
@@ -365,6 +371,13 @@ pub fn attempt_to_cast(raw_data: &str, col_data_type: CsvColumnDataType) -> bool
             match NaiveDate::parse_from_str(raw_data, format) {
                 Ok(date) => date.and_hms_opt(0, 0, 0).is_some(),
                 Err(_) => false,
+            }
+        }
+        CsvColumnDataType::OptionalString => {
+            if raw_data.is_empty() {
+                return true;
+            } else {
+                return true;
             }
         }
     }

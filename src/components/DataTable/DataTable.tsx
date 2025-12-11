@@ -222,7 +222,7 @@ const CoreTable = memo(({ items }: { items: Expense[] }) => {
         <Table.Cell>{item.description}</Table.Cell>
         <Table.Cell>
           <span className={item.amount < 0 ? styles.income : styles.expense}>
-            ${item.amount}
+            ${item.amount.toFixed(2)}
           </span>
         </Table.Cell>
       </Table.Row>

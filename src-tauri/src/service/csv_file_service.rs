@@ -59,10 +59,6 @@ pub fn open_csv_file_and_find_definitions(
         }
 
         if all_valid && record_count > 0 {
-            println!(
-                "Pushed definition key {:?} with record count: {}",
-                csv_definition_key, record_count
-            );
             matched_definition_keys.push(csv_definition_key);
         }
     }
