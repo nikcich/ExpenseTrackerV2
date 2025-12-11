@@ -30,8 +30,6 @@ export function TagStackedBarChart() {
     }
   }, [filteredExpenses, mode]);
 
-  console.log(groupedExpenses);
-
   const traces = useMemo(
     () => parseStackedFormat(groupedExpenses),
     [groupedExpenses]

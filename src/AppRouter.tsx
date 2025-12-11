@@ -13,13 +13,27 @@ import { FileOpener } from "./pages/FileOpener/FileOpener";
 import { Overlays } from "./Overlays";
 import { RangeIncomeExpenseChart } from "./pages/RangeIncomeExpenseChart/RangeIncomeExpenseChart";
 import { YearToDateChart } from "./pages/YearToDateChart/YearToDateChart";
+import { AverageSpending } from "./pages/AverageSpending/AverageSpending";
+import { ErrorBoundary } from "react-error-boundary";
 
+function fallbackRender({ error }: { error: Error }) {
+  return (
+    <div role="alert">
+      <p>Something went wrong:</p>
+      <pre style={{ color: "red" }}>{error.message}</pre>
+    </div>
+  );
+}
 const RouteComponent = ({ element }: { element: JSX.Element }) => {
   return (
     <div className={styles.routeContainer}>
       <Overlays />
       <SideNav />
-      <div className={styles.content}>{element}</div>
+      <div className={styles.content}>
+        <ErrorBoundary FallbackComponent={fallbackRender}>
+          {element}
+        </ErrorBoundary>
+      </div>
     </div>
   );
 };
@@ -71,6 +85,11 @@ export function AppRouter() {
         <Route
           path={Pages.YTDChart}
           element={<RouteComponent element={<YearToDateChart />} />}
+        />
+
+        <Route
+          path={Pages.AverageSpending}
+          element={<RouteComponent element={<AverageSpending />} />}
         />
       </Routes>
     </BrowserRouter>

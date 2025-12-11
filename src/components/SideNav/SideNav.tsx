@@ -12,6 +12,7 @@ import { FaSlidersH } from "react-icons/fa";
 import { PiFileCsvBold } from "react-icons/pi";
 import { RiBarChartHorizontalFill } from "react-icons/ri";
 import { FaChartLine } from "react-icons/fa6";
+import { BsAlignMiddle } from "react-icons/bs";
 
 const NavButton = ({ Icon, page }: { Icon: React.FC; page: string }) => {
   const navigate = useNavigate();
@@ -35,12 +36,12 @@ export function SideNav() {
       <NavButton Icon={AiOutlineHome} page={Pages.Home} />
       <NavButton Icon={FaSlidersH} page={Pages.Settings} />
       <NavButton Icon={PiFileCsvBold} page={Pages.FileOpener} />
+      <NavButton Icon={FaTable} page={Pages.TableView} />
+      <NavButton Icon={BsAlignMiddle} page={Pages.AverageSpending} />
       <NavButton
         Icon={RiBarChartHorizontalFill}
         page={Pages.RangeIncomeExpense}
       />
-
-      <NavButton Icon={FaTable} page={Pages.TableView} />
       <NavButton Icon={FaChartBar} page={Pages.BarChart} />
       <NavButton Icon={LuChartColumnStacked} page={Pages.StackedBarChart} />
       <NavButton Icon={FaChartLine} page={Pages.YTDChart} />

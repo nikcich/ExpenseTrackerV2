@@ -8,4 +8,5 @@ export enum Pages {
   FileOpener = "/file-opener",
   RangeIncomeExpense = "/range-income-expense",
   YTDChart = "/year-to-date-chart",
+  AverageSpending = "/average-spending",
 }

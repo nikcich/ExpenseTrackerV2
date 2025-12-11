@@ -14,7 +14,7 @@ const fractionStart = 0.75;
 const fractionEnd = 1;
 
 export const BrushScrubber: React.FC<BrushScrubberProps> = ({
-  height = 50,
+  height = 100,
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const svgRef = useRef<SVGSVGElement>(null);
@@ -43,7 +43,7 @@ export const BrushScrubber: React.FC<BrushScrubberProps> = ({
     const svg = d3.select(svgRef.current);
     svg.selectAll("*").remove();
 
-    const margin = { top: 5, right: 10, bottom: 5, left: 10 };
+    const margin = { top: 5, right: 10, bottom: 45, left: 10 };
     const innerWidth = width - margin.left - margin.right;
     const innerHeight = height - margin.top - margin.bottom;
 
@@ -86,8 +86,9 @@ export const BrushScrubber: React.FC<BrushScrubberProps> = ({
       .selectAll("text")
       .data(months)
       .join("text")
-      .attr("x", (d) => xScale(d) + 28)
-      .attr("y", innerHeight) // position text slightly below chart line
+      .attr("transform", "rotate(-90)")
+      .attr("x", -(innerHeight + 20))
+      .attr("y", (d) => xScale(d) + 3) // position text slightly below chart line
       .attr("text-anchor", "middle")
       .style("font-size", "10px")
       .style("fill", "#666")
