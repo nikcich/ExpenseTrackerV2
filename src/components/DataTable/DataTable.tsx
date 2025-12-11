@@ -23,8 +23,8 @@ const TagCell = ({ tags }: { tags: Tag[] }) => {
             tag === NonExpenseTags.Income
               ? "green"
               : tag === NonExpenseTags.Savings
-              ? "yellow"
-              : "red"
+                ? "yellow"
+                : "red"
           }
         >
           <TagComp.Label>{tag}</TagComp.Label>
@@ -73,6 +73,8 @@ export const DataTable = ({ items }: { items: Expense[] }) => {
   const debouncedSearchString = useMemo(() => {
     return debounce(setSearchString, 300);
   }, [searchString]);
+
+  console.log(items.filter((e) => e.amount > 4200).map((e) => e.tags));
 
   return (
     <GenericPage

@@ -1,6 +1,6 @@
 import { useSettingsStore } from "@/store/SettingsStore";
 import { useDebouncedBrushRange, useExpensesStore } from "@/store/store";
-import { Expense, NonExpenseTags } from "@/types/types";
+import { ALL_EXPENSE_TAGS, Expense, NonExpenseTags } from "@/types/types";
 import { parseDate } from "@/utils/utils";
 import { useMemo } from "react";
 
@@ -19,7 +19,8 @@ export const useFilteredExpenses = () => {
       .filter(
         (expense) =>
           enabledTags.some((tag) => expense.tags.includes(tag)) ||
-          expense.tags.length === 0
+          expense.tags.length === 0 ||
+          expense.tags.some((tag) => !ALL_EXPENSE_TAGS.includes(tag)) // Custom tag
       );
   }, [range, expenses]);
 

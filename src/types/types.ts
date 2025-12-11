@@ -61,7 +61,7 @@ export enum NonExpenseTags {
   Savings = "Savings",
 }
 
-export type Tag = ExpenseTag | NonExpenseTags;
+export type Tag = ExpenseTag | NonExpenseTags | string;
 
 export const ALL_EXPENSE_TAGS: Tag[] = Object.values(ExpenseTag) as Tag[];
 

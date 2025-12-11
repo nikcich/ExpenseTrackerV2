@@ -93,7 +93,7 @@ export const ExpenseForm = ({
         options={ALL_TAGS_OPTIONS}
         value={ALL_TAGS_OPTIONS.filter((o) => tags.includes(o.value))}
         onChange={(v) => {
-          setTags(v.map((option) => option.value));
+          setTags(v);
         }}
         label="Tags"
         placeholder="Select Tags"

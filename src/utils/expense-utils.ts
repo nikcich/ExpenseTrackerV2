@@ -1,4 +1,4 @@
-import { Expense, NonExpenseTags } from "@/types/types";
+import { Expense } from "@/types/types";
 import { parseDate } from "./utils";
 import { format } from "date-fns";
 
