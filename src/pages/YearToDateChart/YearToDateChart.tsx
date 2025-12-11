@@ -14,7 +14,16 @@ const filterYearToDate = (data: Expense[]) => {
 const filterPreviousYear = (data: Expense[]) => {
   const now = new Date();
   const startOfYear = new Date(now.getFullYear(), 0, 1);
-  return data.filter((e) => new Date(e.date) < startOfYear);
+  const startOfPreviousYear = new Date(now.getFullYear() - 1, 0, 1);
+
+  return data.filter((e) => {
+    const d = new Date(e.date);
+    return d < startOfYear && d >= startOfPreviousYear;
+  });
+};
+
+const getMonthKey = (i: number) => {
+  return new Date(2025, i - 1, 1).toLocaleString("default", { month: "short" });
 };
 
 const groupAndSum = (data: Expense[]) => {
@@ -25,19 +34,21 @@ const groupAndSum = (data: Expense[]) => {
     .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
   for (let i = 1; i <= 12; i++) {
-    const monthKey = `${i}`;
+    // const monthKey = `${i}`;
+    const monthKey = getMonthKey(i);
     monthlyTotals[monthKey] = 0;
   }
 
   for (const expense of sortedData) {
     const date = new Date(expense.date);
-    const monthKey = `${date.getMonth() + 1}`;
+    const monthKey = getMonthKey(date.getMonth() + 1);
     monthlyTotals[monthKey] += expense.amount;
   }
 
   let runningTotal = 0;
   for (let i = 1; i <= 12; i++) {
-    const currentMonthKey = `${i}`;
+    const currentMonthKey = getMonthKey(i);
+
     runningTotal += monthlyTotals[currentMonthKey];
 
     groupedData.push({
@@ -49,6 +60,8 @@ const groupAndSum = (data: Expense[]) => {
   return groupedData;
 };
 
+const LAST_YEAR = new Date(new Date().getFullYear() - 1, 0, 1).getFullYear();
+const THIS_YEAR = new Date().getFullYear();
 const createChart = (
   name: string,
   color: string,
@@ -121,23 +134,38 @@ export function YearToDateChart() {
       <LineChart
         x={groups}
         barCharts={[
-          createChart("Expenses", "#bb0000ff", sortedGroupedExpenses, groups),
-          createChart("Income", "#00a100ff", sortedGroupedIncome, groups),
-          createChart("Savings", "#ffd000ff", sortedGroupedSavings, groups),
           createChart(
-            "Last Year Expenses",
+            `${THIS_YEAR} Expenses`,
+            "#bb0000ff",
+            sortedGroupedExpenses,
+            groups
+          ),
+          createChart(
+            `${THIS_YEAR} Income`,
+            "#00a100ff",
+            sortedGroupedIncome,
+            groups
+          ),
+          createChart(
+            `${THIS_YEAR} Savings`,
+            "#ffd000ff",
+            sortedGroupedSavings,
+            groups
+          ),
+          createChart(
+            `${LAST_YEAR} Expenses`,
             "#bb000079",
             lastYearSortedGroupedExpenses,
             groups
           ),
           createChart(
-            "Last Year Income",
+            `${LAST_YEAR} Income`,
             "#00a10071",
             lastYearSortedGroupedIncome,
             groups
           ),
           createChart(
-            "Last Year Savings",
+            `${LAST_YEAR} Savings`,
             "#ffd00067",
             lastYearSortedGroupedSavings,
             groups

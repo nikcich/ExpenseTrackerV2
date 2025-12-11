@@ -96,7 +96,7 @@ export function createTauriPoller<T>(
 
 export function createTauriApiHooks<
   T,
-  Args extends Record<string, any> | undefined = undefined
+  Args extends Record<string, any> | undefined = undefined,
 >(
   getCommand: string, // Tauri command to get value
   setCommand?: string, // Optional Tauri command to set value
@@ -149,7 +149,7 @@ export function createTauriApiHooks<
   // Non-debounced React hook
   function useTauriValue(): [
     T | undefined,
-    ((val: T | undefined) => Promise<void>)?
+    ((val: T | undefined) => Promise<void>)?,
   ] {
     const [value, setValueState] = useState<T | undefined>(
       value$.getValue() ?? defaultValue

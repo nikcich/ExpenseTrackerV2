@@ -6,17 +6,20 @@ export function groupBy<T>(
   items: T[],
   keyFn: (item: T) => string | string[]
 ): Record<string, T[]> {
-  return items.reduce((acc, item) => {
-    const keys = keyFn(item);
-    const keyList = Array.isArray(keys) ? keys : [keys];
+  return items.reduce(
+    (acc, item) => {
+      const keys = keyFn(item);
+      const keyList = Array.isArray(keys) ? keys : [keys];
 
-    for (const key of keyList) {
-      if (!acc[key]) acc[key] = [];
-      acc[key].push(item);
-    }
+      for (const key of keyList) {
+        if (!acc[key]) acc[key] = [];
+        acc[key].push(item);
+      }
 
-    return acc;
-  }, {} as Record<string, T[]>);
+      return acc;
+    },
+    {} as Record<string, T[]>
+  );
 }
 
 export function groupByMultiple<T>(
@@ -85,5 +88,10 @@ export const byDay = (e: Expense) => {
   const date = parseDate(e.date);
   return format(date, "MM/dd/yyyy");
 };
-export const byTag = (e: Expense) =>
-  e.tags.length > 0 ? e.tags : ["Untagged"];
+export const byTag = (e: Expense) => {
+  const emptyTag = e.tags.includes("") || e.tags.length === 0;
+  if (e.tags.includes("")) {
+    return ["Untagged"];
+  }
+  return !emptyTag ? e.tags : ["Untagged"];
+};
