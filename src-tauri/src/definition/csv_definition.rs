@@ -206,7 +206,8 @@ impl CsvValidator for CsvDefinition {
 pub enum CsvDefinitionKey {
     WellsFargo,
     CapitalOne,
-    Amex
+    Amex,
+    ExpenseTrackerV1
 }
 
 /// Helper function that builds a column map from a list of (role, index, datatype) pairs.
@@ -240,6 +241,27 @@ pub fn build_definitions() -> HashMap<CsvDefinitionKey, CsvDefinition> {
     let mut map: HashMap<CsvDefinitionKey, CsvDefinition> = HashMap::new();
 
     map.insert(
+        CsvDefinitionKey::ExpenseTrackerV1,
+        CsvDefinition::new(
+            "Expense Tracker V1 Migration Report",
+            true,
+            make_column_definitions(&[
+                (
+                    CsvColumnRole::Date,
+                    1,
+                    CsvColumnDataType::DateObject("%m/%d/%Y"),
+                ),
+                (CsvColumnRole::Description, 2, CsvColumnDataType::String),
+                (
+                    CsvColumnRole::Amount,
+                    3,
+                    CsvColumnDataType::Float(&STANDARD),
+                ),
+            ]),
+        ),
+    );
+
+    map.insert(
         CsvDefinitionKey::WellsFargo,
         CsvDefinition::new(
             "Wells Fargo Spending Report",
@@ -260,7 +282,7 @@ pub fn build_definitions() -> HashMap<CsvDefinitionKey, CsvDefinition> {
         ),
     );
 
-        map.insert(
+    map.insert(
         CsvDefinitionKey::Amex,
         CsvDefinition::new(
             "American Express Credit Spending Report",
@@ -280,6 +302,8 @@ pub fn build_definitions() -> HashMap<CsvDefinitionKey, CsvDefinition> {
             ]),
         ),
     );
+
+
 
     map.insert(
         CsvDefinitionKey::CapitalOne,

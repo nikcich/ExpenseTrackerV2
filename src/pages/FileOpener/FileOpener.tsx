@@ -5,6 +5,7 @@ import { open } from "@tauri-apps/plugin-dialog";
 import { useCallback, useState } from "react";
 import styles from "./FileOpener.module.scss";
 import { Alert } from "@chakra-ui/react";
+import { GenericPage } from "@/components/GenericPage/GenericPage";
 
 const useFileOpener = () => {
   const [loading, setLoading] = useState(false);
@@ -80,39 +81,41 @@ export function FileOpener() {
   } = useFileOpener();
 
   return (
-    <div className={styles.container}>
-      {result && (
-        <Alert.Root status={result.status >= 400 ? "error" : "success"}>
-          <Alert.Indicator />
-          <Alert.Content>
-            <Alert.Title>{`${result.header}, ${result.message}`}</Alert.Title>
-          </Alert.Content>
-        </Alert.Root>
-      )}
+    <GenericPage title="File Opener" hasRange={false}>
+      <div className={styles.container}>
+        {result && (
+          <Alert.Root status={result.status >= 400 ? "error" : "success"}>
+            <Alert.Indicator />
+            <Alert.Content>
+              <Alert.Title>{`${result.header}, ${result.message}`}</Alert.Title>
+            </Alert.Content>
+          </Alert.Root>
+        )}
 
-      {loading && (
-        <div className={styles.spinnerContainer}>
-          <Spinner />
-        </div>
-      )}
+        {loading && (
+          <div className={styles.spinnerContainer}>
+            <Spinner />
+          </div>
+        )}
 
-      <Button onClick={openFile} colorPalette={"blue"}>
-        Select File
-      </Button>
+        <Button onClick={openFile} colorPalette={"blue"}>
+          Select File
+        </Button>
 
-      {selectedFile && (
-        <FormatSelector
-          options={
-            Array.isArray(result?.message)
-              ? result.message
-              : [result?.message || ""]
-          }
-          selectedFormat={selectedFormat}
-          setSelectedFormat={setSelectedFormat}
-          finishParsingCsv={finishParsingCsv}
-        />
-      )}
-    </div>
+        {selectedFile && (
+          <FormatSelector
+            options={
+              Array.isArray(result?.message)
+                ? result.message
+                : [result?.message || ""]
+            }
+            selectedFormat={selectedFormat}
+            setSelectedFormat={setSelectedFormat}
+            finishParsingCsv={finishParsingCsv}
+          />
+        )}
+      </div>
+    </GenericPage>
   );
 }
 
