@@ -3,11 +3,16 @@ import styles from "./GenericPage.module.scss";
 import { JSX, useMemo } from "react";
 import { useDebouncedBrushRange } from "@/store/store";
 import { format } from "date-fns";
-import { useFilteredExpenses, useFilteredIncome } from "@/hooks/expenses";
+import {
+  useFilteredExpenses,
+  useFilteredIncome,
+  useFilteredSavings,
+} from "@/hooks/expenses";
 
 const useHasDisplayData = () => {
   const filteredExpenses = useFilteredExpenses();
   const filteredIncome = useFilteredIncome();
+  const filteredSavings = useFilteredSavings();
 
   const hasExpenses = useMemo(() => {
     return filteredExpenses.length > 0;
@@ -17,7 +22,11 @@ const useHasDisplayData = () => {
     return filteredIncome.length > 0;
   }, [filteredIncome]);
 
-  return hasExpenses || hasIncome;
+  const hasSavings = useMemo(() => {
+    return filteredSavings.length > 0;
+  }, [filteredSavings]);
+
+  return hasExpenses || hasIncome || hasSavings;
 };
 
 export const GenericPage = ({

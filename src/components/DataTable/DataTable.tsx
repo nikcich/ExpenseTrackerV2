@@ -74,8 +74,6 @@ export const DataTable = ({ items }: { items: Expense[] }) => {
     return debounce(setSearchString, 300);
   }, [searchString]);
 
-  console.log(items.filter((e) => e.amount > 4200).map((e) => e.tags));
-
   return (
     <GenericPage
       title={`Expenses (${items.length})`}

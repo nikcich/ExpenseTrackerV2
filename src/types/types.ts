@@ -11,6 +11,7 @@ export enum API {
   UpdateExpense = "update_expense",
   AddManualExpense = "add_expense_manual",
   RemoveExpense = "remove_expense",
+  UpdateBulkExpenses = "update_bulk_expenses",
 }
 
 export enum KnownStoreKeys {

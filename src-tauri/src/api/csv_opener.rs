@@ -154,6 +154,36 @@ pub fn remove_expense(
 }
 
 #[tauri::command]
+pub fn update_bulk_expenses(
+    expense_store_state: State<'_, ExpenseStore>,
+    hashes: Vec<String>,
+    expenses: Vec<Expense>,
+) -> Response {
+    match expense_store_state.update_bulk_expenses(hashes, expenses) {
+        Ok(updated) => {
+            if updated {
+                return Response::ok(
+                    String::from("Expenses updated successfully"),
+                    Option::<String>::None,
+                );
+            } else {
+                return Response::new(
+                    Status::NotFound,
+                    String::from("One or more expenses not found"),
+                    Option::<String>::None,
+                );
+            }
+        }
+        Err(e) => {
+            return Response::err(
+                format!("Failed to update expenses: {}", e),
+                Option::<String>::None,
+            );
+        }
+    }
+}
+
+#[tauri::command]
 pub fn update_expense(
     expense_store_state: State<'_, ExpenseStore>,
     hash: String,

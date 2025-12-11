@@ -185,8 +185,6 @@ function useCreatableCombobox(props: UseCreatableComboboxProps) {
       if (reason === "input-change" || reason === "item-select") {
         flushSync(() => filter(inputValue));
       }
-
-      console.log(inputValue, reason);
     },
     onOpenChange(details) {
       const { reason, open } = details;

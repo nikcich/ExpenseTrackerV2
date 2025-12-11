@@ -1,6 +1,6 @@
 import { closeAllOverlays, Overlay } from "@/store/OverlayStore";
 import { GenericModal } from "../GenericModal/GenericModal";
-import { Alert, Button, Text, VStack } from "@chakra-ui/react";
+import { Alert, Button, Spinner, Text, VStack } from "@chakra-ui/react";
 import { useCallback, useState } from "react";
 import { setSelection, useSelection } from "@/store/SelectionStore";
 import { useGetExpenseById } from "@/hooks/expenses";
@@ -20,28 +20,38 @@ export const TagModal = () => {
   const [result, setResult] = useState<
     Response<string> | Response<null> | null
   >(null);
+
+  const [loading, setLoading] = useState(false);
+
   const [tags, setTags] = useState<string[]>([]);
 
   const getExpenseById = useGetExpenseById();
 
   const handleSave = useCallback(
     async (tagsStr: string[]) => {
+      setLoading(true);
       const tags = tagsStr as Tag[];
 
-      for (const expenseId of selection) {
+      const hashes = selection.filter((expenseId) => {
         const expense = getExpenseById(expenseId);
-        if (!expense) continue;
-        const updatedExpense: Expense = {
+        return expense !== undefined;
+      });
+
+      const expensesToUpdate: Expense[] = hashes.map((expenseId) => {
+        const expense = getExpenseById(expenseId)!;
+
+        return {
           ...expense,
           tags,
         };
+      });
 
-        await invoke<Response<null>>(API.UpdateExpense, {
-          hash: updatedExpense.id,
-          expense: updatedExpense,
-        });
-      }
+      await invoke<Response<null>>(API.UpdateBulkExpenses, {
+        hashes,
+        expenses: expensesToUpdate,
+      });
 
+      setLoading(false);
       onClose();
     },
     [selection]
@@ -49,54 +59,59 @@ export const TagModal = () => {
 
   return (
     <GenericModal overlay={Overlay.TagModal}>
-      <div
-        style={{
-          height: "3.25rem",
-          marginBottom: "1.5rem",
-          display: result ? "flex" : "none",
-        }}
-      >
-        {result && (
-          <Alert.Root status={result.status >= 400 ? "error" : "success"}>
-            <Alert.Indicator />
-            <Alert.Content>
-              <Alert.Title>{`${result.header}`}</Alert.Title>
-            </Alert.Content>
-          </Alert.Root>
-        )}
-      </div>
-      <Text fontSize="lg" mb={4}>
-        Tag Selected Expenses ({selection.length})
-      </Text>
-      <VStack>
-        <MultiSelectInput
-          options={ALL_TAGS_OPTIONS}
-          value={ALL_TAGS_OPTIONS.filter((o) => tags.includes(o.value))}
-          onChange={(v) => {
-            setTags(v);
-          }}
-          label="Tags"
-          placeholder="Select Tags"
-        />
-      </VStack>
+      {loading && <Spinner />}
+      {!loading && (
+        <>
+          <div
+            style={{
+              height: "3.25rem",
+              marginBottom: "1.5rem",
+              display: result ? "flex" : "none",
+            }}
+          >
+            {result && (
+              <Alert.Root status={result.status >= 400 ? "error" : "success"}>
+                <Alert.Indicator />
+                <Alert.Content>
+                  <Alert.Title>{`${result.header}`}</Alert.Title>
+                </Alert.Content>
+              </Alert.Root>
+            )}
+          </div>
+          <Text fontSize="lg" mb={4}>
+            Tag Selected Expenses ({selection.length})
+          </Text>
+          <VStack>
+            <MultiSelectInput
+              options={ALL_TAGS_OPTIONS}
+              value={ALL_TAGS_OPTIONS.filter((o) => tags.includes(o.value))}
+              onChange={(v) => {
+                setTags(v);
+              }}
+              label="Tags"
+              placeholder="Select Tags"
+            />
+          </VStack>
 
-      <div
-        style={{
-          display: "flex",
-          flexDirection: "row",
-          justifyContent: "space-between",
-          gap: "8px",
-          marginTop: "16px",
-        }}
-      >
-        <Button variant="ghost" onClick={onClose}>
-          Cancel
-        </Button>
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "row",
+              justifyContent: "space-between",
+              gap: "8px",
+              marginTop: "16px",
+            }}
+          >
+            <Button variant="ghost" onClick={onClose}>
+              Cancel
+            </Button>
 
-        <Button colorPalette="green" onClick={() => handleSave(tags)}>
-          Save
-        </Button>
-      </div>
+            <Button colorPalette="green" onClick={() => handleSave(tags)}>
+              Save
+            </Button>
+          </div>
+        </>
+      )}
     </GenericModal>
   );
 };
