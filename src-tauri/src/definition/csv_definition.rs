@@ -3,10 +3,10 @@ use chrono::NaiveDate;
 use csv::StringRecord;
 use mockall::automock;
 use once_cell::sync::Lazy;
+use regex::Regex;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::error::Error as StdError;
-use regex::Regex;
 
 pub const STANDARD: bool = true;
 pub const INVERSED: bool = false;
@@ -22,6 +22,7 @@ pub enum CsvColumnRole {
     Date,
     Description,
     Amount,
+    Tag,
 }
 
 #[derive(Debug, Eq, PartialEq, Clone, Copy)]
@@ -149,7 +150,18 @@ impl CsvParser for CsvDefinition {
         }
 
         // Construct the Expense
-        let expense = Expense::new(description, amount, date);
+        let mut expense = Expense::new(description, amount, date);
+
+        let tag_info: Option<&CsvColumnInfo> = self.expected_columns.get(&CsvColumnRole::Tag);
+
+        if tag_info.is_some() {
+            // There is some tags, we need to extract the tag strings from the StringRecord
+            let tags_str: Option<&str> = record.get(tag_info.unwrap().index as usize);
+
+            if tags_str.is_some() {
+                expense.add_tag(tags_str.unwrap());
+            }
+        }
 
         return Ok(expense);
     }
@@ -213,7 +225,7 @@ pub enum CsvDefinitionKey {
     WellsFargo,
     CapitalOne,
     Amex,
-    ExpenseTrackerV1
+    ExpenseTrackerV1,
 }
 
 /// Helper function that builds a column map from a list of (role, index, datatype) pairs.
@@ -252,6 +264,7 @@ pub fn build_definitions() -> HashMap<CsvDefinitionKey, CsvDefinition> {
             "Expense Tracker V1 Migration Report",
             true,
             make_column_definitions(&[
+                (CsvColumnRole::Tag, 0, CsvColumnDataType::String),
                 (
                     CsvColumnRole::Date,
                     1,
@@ -308,8 +321,6 @@ pub fn build_definitions() -> HashMap<CsvDefinitionKey, CsvDefinition> {
             ]),
         ),
     );
-
-
 
     map.insert(
         CsvDefinitionKey::CapitalOne,

@@ -21,6 +21,10 @@ impl Expense {
         };
     }
 
+    pub fn add_tag(&mut self, tag: &str) {
+        self.tags.push(tag.to_string());
+    }
+
     pub fn set_id(&mut self, id: &str) {
         self.id = id.to_string();
     }
