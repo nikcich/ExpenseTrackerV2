@@ -52,8 +52,8 @@ export const GenericPage = ({
       const start = new Date(range[0]);
       const end = new Date(range[1]);
 
-      const formattedStart = format(start, "EEE MMM d");
-      const formattedEnd = format(end, "EEE MMM d");
+      const formattedStart = format(start, "EEE MMM d yyyy");
+      const formattedEnd = format(end, "EEE MMM d yyyy");
 
       return `${formattedStart} - ${formattedEnd}`;
     }

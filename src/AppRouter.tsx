@@ -18,9 +18,21 @@ import { ErrorBoundary } from "react-error-boundary";
 
 function fallbackRender({ error }: { error: Error }) {
   return (
-    <div role="alert">
+    <div
+      role="alert"
+      style={{
+        width: "100%",
+        height: "100%",
+        display: "flex",
+        flexDirection: "column",
+        justifyContent: "center",
+        alignItems: "center",
+        flexWrap: "wrap",
+        padding: "1rem",
+      }}
+    >
       <p>Something went wrong:</p>
-      <pre style={{ color: "red" }}>{error.message}</pre>
+      <pre style={{ color: "red", textWrap: "wrap" }}>{error.message}</pre>
     </div>
   );
 }

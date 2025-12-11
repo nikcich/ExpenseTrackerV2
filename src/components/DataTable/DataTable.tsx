@@ -1,5 +1,5 @@
-import { Button, Checkbox, Input, Table } from "@chakra-ui/react";
-import { memo, useCallback, useMemo, useState } from "react";
+import { Button, Input } from "@chakra-ui/react";
+import { memo, useCallback, useMemo, useRef, useState } from "react";
 import { API, Expense, NonExpenseTags, Response, Tag } from "@/types/types";
 import { BrushScrubber } from "../Brush/BrushScrubber";
 import { GenericPage } from "../GenericPage/GenericPage";
@@ -125,20 +125,37 @@ export const DataTable = ({ items }: { items: Expense[] }) => {
       }
       footer={<BrushScrubber />}
     >
-      <Input
-        type="search"
-        onChange={(e) => debouncedSearchString(e.target.value)}
-        placeholder="Search..."
+      <div
         style={{
-          width: "99%",
-          position: "sticky",
-          top: 0,
-          zIndex: 100,
-          background: "black",
+          width: "100%",
+          height: "100%",
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
         }}
-      />
+      >
+        <Input
+          type="search"
+          onChange={(e) => debouncedSearchString(e.target.value)}
+          placeholder="Search..."
+          style={{
+            width: "97%",
+            zIndex: 100,
+            background: "black",
+            minHeight: "40px",
+          }}
+        />
 
-      <CoreTable items={filteredItems} />
+        <div
+          style={{
+            width: "100%",
+            overflow: "hidden",
+            flexGrow: 1,
+          }}
+        >
+          <CoreTable items={filteredItems} />
+        </div>
+      </div>
     </GenericPage>
   );
 };
@@ -147,6 +164,7 @@ const CoreTable = memo(({ items }: { items: Expense[] }) => {
   const selection = useSelection();
   const [sortColumn, setSortColumn] = useState<SortKey>("date");
   const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
+
   const handleSort = (column: SortKey) => {
     if (sortColumn === column) {
       setSortDirection((prev) => (prev === "asc" ? "desc" : "asc"));
@@ -155,167 +173,169 @@ const CoreTable = memo(({ items }: { items: Expense[] }) => {
       setSortDirection("asc");
     }
   };
+
   const indeterminate = selection.length > 0 && selection.length < items.length;
 
   const sortedItems = useMemo(() => {
-    const sorted = [...items].sort((a, b) => {
+    return [...items].sort((a, b) => {
       const aVal = a[sortColumn];
       const bVal = b[sortColumn];
 
-      if (sortColumn === "tags" && Array.isArray(aVal) && Array.isArray(bVal)) {
+      if (sortColumn === "tags") {
         return sortDirection === "asc"
-          ? aVal.length - bVal.length
-          : bVal.length - aVal.length;
+          ? (aVal as any[]).length - (bVal as any[]).length
+          : (bVal as any[]).length - (aVal as any[]).length;
       }
 
-      if (
-        sortColumn === "date" &&
-        typeof aVal === "string" &&
-        typeof bVal === "string"
-      ) {
-        return compareDates(aVal, bVal, sortDirection);
+      if (sortColumn === "date") {
+        return compareDates(aVal as string, bVal as string, sortDirection);
       }
 
-      if (typeof aVal === "number" && typeof bVal === "number") {
-        return sortDirection === "asc" ? aVal - bVal : bVal - aVal;
+      if (typeof aVal === "number") {
+        return sortDirection === "asc"
+          ? (aVal as number) - (bVal as number)
+          : (bVal as number) - (aVal as number);
       }
+
       return sortDirection === "asc"
         ? String(aVal).localeCompare(String(bVal))
         : String(bVal).localeCompare(String(aVal));
     });
-    return sorted;
   }, [items, sortColumn, sortDirection]);
 
-  const rows = useMemo(() => {
-    return sortedItems.map((item) => (
-      <Table.Row
-        key={item.id}
-        data-selected={selection.includes(item.id) ? "" : undefined}
-        onDoubleClick={() => {
-          setSelection([item.id]);
-          enableOverlay(Overlay.EditModal);
-        }}
-      >
-        <Table.Cell>
-          <Checkbox.Root
-            size="sm"
-            mt="0.5"
-            aria-label="Select row"
-            checked={selection.includes(item.id)}
-            onCheckedChange={(changes) => {
-              setSelection((prev) =>
-                changes.checked
-                  ? [...prev, item.id]
-                  : selection.filter((name) => name !== item.id)
-              );
-            }}
-          >
-            <Checkbox.HiddenInput />
-            <Checkbox.Control />
-          </Checkbox.Root>
-        </Table.Cell>
-        <Table.Cell>
-          <TagCell tags={item.tags} />
-        </Table.Cell>
-
-        <Table.Cell>{format(new Date(item.date), "MM-dd-yyyy")}</Table.Cell>
-        <Table.Cell>{item.description}</Table.Cell>
-        <Table.Cell>
-          <span className={item.amount < 0 ? styles.income : styles.expense}>
-            ${item.amount.toFixed(2)}
-          </span>
-        </Table.Cell>
-      </Table.Row>
-    ));
-  }, [sortedItems, selection]);
-
   return (
-    <Table.Root variant={"line"} striped stickyHeader>
-      <Table.Header
-        style={{
-          position: "sticky",
-          top: "40px",
-          zIndex: 100,
-          background: "black",
-        }}
-      >
-        <Table.Row>
-          <Table.ColumnHeader w="6">
-            <Checkbox.Root
-              size="sm"
-              mt="0.5"
-              aria-label="Select all rows"
-              checked={indeterminate ? "indeterminate" : selection.length > 0}
-              onCheckedChange={(changes) => {
-                setSelection(
-                  changes.checked ? items.map((item) => item.id) : []
-                );
-              }}
+    <div
+      style={{ height: "100%", overflow: "auto" }}
+      className={styles.virtualizedTable}
+    >
+      <table>
+        <thead>
+          <tr>
+            <th
+              onClick={(e) => e.stopPropagation()}
+              className={styles.leftCenterContent}
             >
-              <Checkbox.HiddenInput />
-              <Checkbox.Control />
-            </Checkbox.Root>
-          </Table.ColumnHeader>
+              <input
+                type="checkbox"
+                checked={selection.length === items.length}
+                ref={(el) => {
+                  if (el) el.indeterminate = indeterminate;
+                }}
+                onChange={(e) =>
+                  setSelection(e.target.checked ? items.map((i) => i.id) : [])
+                }
+              />
+            </th>
 
-          <Table.ColumnHeader onClick={() => handleSort("tags")}>
-            <span className={styles.header}>
-              Tags
-              {sortColumn === "tags" &&
-                (sortDirection === "asc" ? (
-                  <FaChevronUp size={14} />
-                ) : (
-                  <FaChevronDown size={14} />
-                ))}
-            </span>
-          </Table.ColumnHeader>
+            <th
+              onClick={() => handleSort("tags")}
+              className={styles.leftCenterContent}
+            >
+              <span className={styles.header}>
+                Tags{" "}
+                {sortColumn === "tags" &&
+                  (sortDirection === "asc" ? (
+                    <FaChevronUp size={14} />
+                  ) : (
+                    <FaChevronDown size={14} />
+                  ))}
+              </span>
+            </th>
 
-          <Table.ColumnHeader
-            onClick={() => handleSort("date")}
-            cursor="pointer"
-          >
-            <span className={styles.header}>
-              Date
-              {sortColumn === "date" &&
-                (sortDirection === "asc" ? (
-                  <FaChevronUp size={14} />
-                ) : (
-                  <FaChevronDown size={14} />
-                ))}
-            </span>
-          </Table.ColumnHeader>
+            <th
+              onClick={() => handleSort("date")}
+              className={styles.leftCenterContent}
+            >
+              <span className={styles.header}>
+                Date{" "}
+                {sortColumn === "date" &&
+                  (sortDirection === "asc" ? (
+                    <FaChevronUp size={14} />
+                  ) : (
+                    <FaChevronDown size={14} />
+                  ))}
+              </span>
+            </th>
 
-          <Table.ColumnHeader
-            onClick={() => handleSort("description")}
-            cursor="pointer"
-          >
-            <span className={styles.header}>
-              Description
-              {sortColumn === "description" &&
-                (sortDirection === "asc" ? (
-                  <FaChevronUp size={14} />
-                ) : (
-                  <FaChevronDown size={14} />
-                ))}
-            </span>
-          </Table.ColumnHeader>
+            <th
+              onClick={() => handleSort("description")}
+              className={styles.leftCenterContent}
+            >
+              <span className={styles.header}>
+                Description{" "}
+                {sortColumn === "description" &&
+                  (sortDirection === "asc" ? (
+                    <FaChevronUp size={14} />
+                  ) : (
+                    <FaChevronDown size={14} />
+                  ))}
+              </span>
+            </th>
 
-          <Table.ColumnHeader
-            onClick={() => handleSort("amount")}
-            cursor="pointer"
-          >
-            <span className={styles.header}>
-              Amount
-              {sortColumn === "amount" &&
-                (sortDirection === "asc" ? (
-                  <FaChevronUp size={14} />
-                ) : (
-                  <FaChevronDown size={14} />
-                ))}
-            </span>
-          </Table.ColumnHeader>
-        </Table.Row>
-      </Table.Header>
-      <Table.Body>{rows}</Table.Body>
-    </Table.Root>
+            <th
+              onClick={() => handleSort("amount")}
+              className={styles.leftCenterContent}
+            >
+              <span className={styles.header}>
+                Amount{" "}
+                {sortColumn === "amount" &&
+                  (sortDirection === "asc" ? (
+                    <FaChevronUp size={14} />
+                  ) : (
+                    <FaChevronDown size={14} />
+                  ))}
+              </span>
+            </th>
+          </tr>
+        </thead>
+
+        <tbody>
+          {sortedItems.map((item) => {
+            return (
+              <tr
+                key={item.id}
+                data-selected={selection.includes(item.id) ? "" : undefined}
+                onDoubleClick={() => {
+                  setSelection([item.id]);
+                  enableOverlay(Overlay.EditModal);
+                }}
+              >
+                <td className={styles.leftCenterContent}>
+                  <input
+                    type="checkbox"
+                    checked={selection.includes(item.id)}
+                    onChange={(e) =>
+                      setSelection((prev) =>
+                        e.target.checked
+                          ? [...prev, item.id]
+                          : prev.filter((x) => x !== item.id)
+                      )
+                    }
+                  />
+                </td>
+
+                <td className={styles.leftCenterContent}>
+                  <TagCell tags={item.tags} />
+                </td>
+
+                <td className={styles.leftCenterContent}>
+                  {format(new Date(item.date), "MM-dd-yyyy")}
+                </td>
+
+                <td className={styles.leftCenterContent}>{item.description}</td>
+
+                <td className={styles.leftCenterContent}>
+                  <span
+                    className={item.amount < 0 ? styles.income : styles.expense}
+                  >
+                    ${item.amount.toFixed(2)}
+                  </span>
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
   );
 });

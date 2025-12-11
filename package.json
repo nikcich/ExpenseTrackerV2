@@ -12,6 +12,7 @@
   "dependencies": {
     "@chakra-ui/react": "^3.28.0",
     "@emotion/react": "^11.14.0",
+    "@tanstack/react-virtual": "^3.13.13",
     "@tauri-apps/api": "^2",
     "@tauri-apps/plugin-dialog": "^2.4.2",
     "@tauri-apps/plugin-opener": "^2.5.2",
