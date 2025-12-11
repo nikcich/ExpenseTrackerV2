@@ -6,6 +6,7 @@ use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::error::Error as StdError;
+use regex::Regex;
 
 pub const STANDARD: bool = true;
 pub const INVERSED: bool = false;
@@ -79,6 +80,11 @@ impl CsvDefinition {
     }
 }
 
+fn normalize(s: &str) -> String {
+    let re = Regex::new(r"\s+").unwrap();
+    re.replace_all(s.trim(), " ").to_string()
+}
+
 pub trait CsvParser {
     /// Parses a CSV record with a current definition
     ///
@@ -134,7 +140,7 @@ impl CsvParser for CsvDefinition {
         let date = NaiveDate::parse_from_str(date_str, date_format)?
             .and_hms_opt(0, 0, 0)
             .ok_or("Failed to create datetime")?;
-        let description: String = desc_str.to_string();
+        let description: String = normalize(&desc_str).to_string();
         let mut amount: f64 = amount_str.parse()?;
 
         if !amount_is_standard {

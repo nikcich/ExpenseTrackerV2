@@ -81,7 +81,7 @@ export function FileOpener() {
   } = useFileOpener();
 
   return (
-    <GenericPage title="File Opener" hasRange={false}>
+    <GenericPage title="File Opener" hasRange={false} needsData={false}>
       <div className={styles.container}>
         {result && (
           <Alert.Root status={result.status >= 400 ? "error" : "success"}>

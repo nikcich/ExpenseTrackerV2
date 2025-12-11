@@ -997,6 +997,7 @@ dependencies = [
  "lazy_static",
  "mockall",
  "once_cell",
+ "regex",
  "serde",
  "serde_json",
  "tauri",

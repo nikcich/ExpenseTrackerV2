@@ -26,12 +26,14 @@ export const GenericPage = ({
   children,
   footer,
   hasRange = true,
+  needsData = true,
 }: {
   actions?: JSX.Element;
   title: string;
   children: React.ReactNode;
   footer?: JSX.Element;
   hasRange?: boolean;
+  needsData?: boolean;
 }) => {
   const [range] = useDebouncedBrushRange();
   const hasDisplayData = useHasDisplayData();
@@ -50,6 +52,8 @@ export const GenericPage = ({
     return "";
   }, [range]);
 
+  const displayContent = hasDisplayData || !needsData;
+
   return (
     <div className={styles.container}>
       <div className={styles.header}>
@@ -61,8 +65,8 @@ export const GenericPage = ({
         <div className={styles.actions}>{actions}</div>
       </div>
       <div className={styles.children}>
-        {hasDisplayData && <>{children}</>}
-        {!hasDisplayData && (
+        {displayContent && <>{children}</>}
+        {!displayContent && (
           <div className={styles.noData}>No data to display</div>
         )}
       </div>
