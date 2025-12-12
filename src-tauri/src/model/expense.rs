@@ -10,6 +10,18 @@ pub struct Expense {
     date: NaiveDateTime,
 }
 
+impl Default for Expense {
+    fn default() -> Self {
+        return Expense {
+            id: String::default(),
+            description: String::default(),
+            amount: f64::default(),
+            tags: Vec::default(),
+            date: NaiveDateTime::default(),
+        };
+    }
+}
+
 impl Expense {
     pub fn new(description: String, amount: f64, date: NaiveDateTime) -> Self {
         return Expense {
@@ -18,16 +30,6 @@ impl Expense {
             amount,
             tags: Vec::new(),
             date,
-        };
-    }
-
-    pub fn default() -> Self {
-        return Expense {
-            id: "0".to_string(),
-            description: "".to_string(),
-            amount: 0.0 as f64,
-            tags: Vec::new(),
-            date: NaiveDateTime::default(),
         };
     }
 
