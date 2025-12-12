@@ -165,7 +165,7 @@ impl CsvParser for CsvDefinition {
             for (role, info) in self.optional_columns.iter() {
                 match role.handle(&mut expense, record, &info) {
                     // Ignore any errors
-                    Err(e) => continue,
+                    Err(_) => continue,
                     _ => {}
                 }
             }
