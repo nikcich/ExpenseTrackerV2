@@ -165,7 +165,7 @@ impl CsvParser for CsvDefinition {
             for (role, info) in self.optional_columns.iter() {
                 match role.handle(&mut expense, record, &info) {
                     // Ignore any errors
-                    Err(e) => continue,
+                    Err(_) => continue,
                     _ => {}
                 }
             }
@@ -244,22 +244,6 @@ pub enum CsvDefinitionKey {
 ///
 /// Returns:
 /// - `HashMap`: mapping column roles to their corresponding information.
-// pub fn make_column_definitions(
-//     columns: &[(CsvColumnRole, u8, CsvColumnDataType)],
-// ) -> HashMap<CsvColumnRole, CsvColumnInfo> {
-//     let mut map = HashMap::new();
-//     for (role, index, datatype) in columns {
-//         map.insert(
-//             *role,
-//             CsvColumnInfo {
-//                 index: *index,
-//                 data_type: *datatype,
-//             },
-//         );
-//     }
-//     return map;
-// }
-
 /// Builds a map of CSV definitions for different CSV files
 ///
 /// Returns:
