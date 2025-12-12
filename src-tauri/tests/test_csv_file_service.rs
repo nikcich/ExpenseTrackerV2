@@ -7,7 +7,7 @@ use std::io::Write;
 use tempfile::Builder;
 
 use tauri_app_lib::definition::csv_definition::{
-    attempt_to_cast, make_column_definitions, CsvColumnDataType, CsvColumnRole, CsvDefinition,
+    attempt_to_cast, CsvColumnDataType, CsvColumnInfo, CsvColumnRole, CsvDefinition,
     CsvDefinitionKey, CsvValidator, MockCsvValidator, INVERSED, STANDARD,
 };
 use tauri_app_lib::service::csv_file_service::{
@@ -24,19 +24,29 @@ fn setup_csv_definition_for_test() -> CsvDefinition {
     return CsvDefinition::new(
         "Test",
         true,
-        make_column_definitions(&[
+        &[
             (
                 CsvColumnRole::Date,
-                0,
-                CsvColumnDataType::DateObject("%Y-%m-%d"),
+                CsvColumnInfo {
+                    index: 0,
+                    data_type: CsvColumnDataType::DateObject("%Y-%m-%d"),
+                },
             ),
-            (CsvColumnRole::Description, 1, CsvColumnDataType::String),
+            (
+                CsvColumnRole::Description,
+                CsvColumnInfo {
+                    index: 1,
+                    data_type: CsvColumnDataType::String,
+                },
+            ),
             (
                 CsvColumnRole::Amount,
-                2,
-                CsvColumnDataType::Float(&STANDARD),
+                CsvColumnInfo {
+                    index: 2,
+                    data_type: CsvColumnDataType::Float(&STANDARD),
+                },
             ),
-        ]),
+        ],
     );
 }
 

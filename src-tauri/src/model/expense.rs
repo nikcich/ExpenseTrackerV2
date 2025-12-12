@@ -14,10 +14,20 @@ impl Expense {
     pub fn new(description: String, amount: f64, date: NaiveDateTime) -> Self {
         return Expense {
             id: "0".to_string(),
-            description: description,
-            amount: amount,
+            description,
+            amount,
             tags: Vec::new(),
-            date: date,
+            date,
+        };
+    }
+
+    pub fn default() -> Self {
+        return Expense {
+            id: "0".to_string(),
+            description: "".to_string(),
+            amount: 0.0 as f64,
+            tags: Vec::new(),
+            date: NaiveDateTime::default(),
         };
     }
 
@@ -27,6 +37,18 @@ impl Expense {
 
     pub fn set_id(&mut self, id: &str) {
         self.id = id.to_string();
+    }
+
+    pub fn set_date(&mut self, date: NaiveDateTime) {
+        self.date = date;
+    }
+
+    pub fn set_description(&mut self, description: &str) {
+        self.description = description.to_string();
+    }
+
+    pub fn set_amount(&mut self, amount: f64) {
+        self.amount = amount;
     }
 
     pub fn get_id(&self) -> &str {
