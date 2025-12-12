@@ -25,11 +25,11 @@ impl Default for Expense {
 impl Expense {
     pub fn new(description: String, amount: f64, date: NaiveDateTime) -> Self {
         return Expense {
-            id: "0".to_string(),
-            description,
-            amount,
-            tags: Vec::new(),
-            date,
+            id: String::from("0"),
+            description: description,
+            amount: amount,
+            tags: Vec::default(),
+            date: date,
         };
     }
 
