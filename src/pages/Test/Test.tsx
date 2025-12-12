@@ -102,6 +102,14 @@ export function Test() {
     h,
   }));
 
+  useEffect(() => {
+    const interval = setInterval(() => {
+      window.dispatchEvent(new Event("resize"));
+    }, 3000);
+
+    () => clearInterval(interval);
+  }, []);
+
   return (
     <GenericPage
       title="Multi-Chart Grid"
