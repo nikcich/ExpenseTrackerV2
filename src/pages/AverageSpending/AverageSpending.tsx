@@ -44,7 +44,13 @@ const averageSums = (
   }));
 };
 
-export function AverageSpending() {
+export const AverageSpendingCore = ({
+  legend = true,
+  legendDirection = "v",
+}: {
+  legend?: boolean;
+  legendDirection?: "v" | "h";
+}) => {
   const filteredExpenses = useFilteredExpenses();
   const filteredSavings = useFilteredSavings();
   const [range] = useDebouncedBrushRange();
@@ -65,8 +71,18 @@ export function AverageSpending() {
   );
 
   return (
+    <StackedBarChart
+      data={traces}
+      legend={legend}
+      legendDirection={legendDirection}
+    />
+  );
+};
+
+export function AverageSpending() {
+  return (
     <GenericPage title="Average Monthly Spending" footer={<BrushScrubber />}>
-      <StackedBarChart data={traces} />
+      <AverageSpendingCore />
     </GenericPage>
   );
 }

@@ -16,9 +16,16 @@ import {
   StackedBarChart,
 } from "@/components/charts/StackedBarChart";
 
-export function TagStackedBarChart() {
+export const TagStackedBarChartCore = ({
+  mode,
+  legend = true,
+  legendDirection = "v",
+}: {
+  mode: Mode;
+  legend?: boolean;
+  legendDirection?: "v" | "h";
+}) => {
   const filteredExpenses = useFilteredExpenses();
-  const [mode, setMode] = useState<Mode>(Mode.MONTHLY);
 
   const groupedExpenses = useMemo(() => {
     if (mode === Mode.MONTHLY) {
@@ -36,6 +43,18 @@ export function TagStackedBarChart() {
   );
 
   return (
+    <StackedBarChart
+      data={traces}
+      legend={legend}
+      legendDirection={legendDirection}
+    />
+  );
+};
+
+export function TagStackedBarChart() {
+  const [mode, setMode] = useState<Mode>(Mode.MONTHLY);
+
+  return (
     <GenericPage
       title="Expenses by Tag"
       footer={<BrushScrubber />}
@@ -51,7 +70,7 @@ export function TagStackedBarChart() {
         </>
       }
     >
-      <StackedBarChart data={traces} />
+      <TagStackedBarChartCore mode={mode} />
     </GenericPage>
   );
 }
