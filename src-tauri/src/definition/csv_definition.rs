@@ -38,31 +38,31 @@ impl CsvColumnRole {
                 let date_str = string_record
                     .get(column_info.index as usize)
                     .ok_or("Missing date column in CSV record")?;
-                let date = NaiveDate::parse_from_str(
-                    date_str,
-                    column_info
-                        .data_type
-                        .get_format_from_date()
-                        .ok_or("Date column must have DateObject format specified")?,
-                )?
-                .and_hms_opt(0, 0, 0)
-                .ok_or("Failed to create datetime")?;
-                expense.set_date(date);
-                return Ok(());
+                if let CsvColumnDataType::DateObject(format) = column_info.data_type {
+                    let normalized = normalize(date_str);
+                    let date = NaiveDate::parse_from_str(&normalized, format)?
+                        .and_hms_opt(0, 0, 0)
+                        .ok_or("Failed to create datetime")?;
+                    expense.set_date(date);
+                    return Ok(());
+                }
+                return Err("Date column must have DateObject format specified".into());
             }
             CsvColumnRole::Description => {
-                let description = string_record
+                let desc_str = string_record
                     .get(column_info.index as usize)
                     .ok_or("Missing description column in CSV record")?;
-                normalize(description);
-                expense.set_description(description);
+                let normalized = normalize(desc_str);
+                expense.set_description(&normalized);
                 return Ok(());
             }
             CsvColumnRole::Amount => {
                 let amount_str = string_record
                     .get(column_info.index as usize)
                     .ok_or("Missing amount column in CSV record")?;
-                let mut amount = amount_str.parse::<f64>().unwrap();
+
+                let normalized = normalize(amount_str);
+                let mut amount = normalized.as_str().parse::<f64>().unwrap();
 
                 // Check if the amount column is inverted
                 if let CsvColumnDataType::Float(inversed) = column_info.data_type {
@@ -76,9 +76,9 @@ impl CsvColumnRole {
 
             // OPTIONAL ROLES below no error is propagated
             CsvColumnRole::Tag => {
-                let tag = string_record.get(column_info.index as usize);
-                if tag.is_some() {
-                    expense.add_tag(tag.unwrap());
+                if let Some(tag) = string_record.get(column_info.index as usize) {
+                    let normalized = normalize(tag);
+                    expense.add_tag(&normalized); // pass reference to the owned String
                 }
                 return Ok(());
             }
@@ -91,16 +91,6 @@ pub enum CsvColumnDataType {
     Float(&'static bool), // True if standard, False if inversed sign
     String,
     DateObject(&'static str), // Format string for parsing dates
-}
-
-impl CsvColumnDataType {
-    pub fn get_format_from_date(&self) -> Option<&'static str> {
-        if let CsvColumnDataType::DateObject(s) = self {
-            return Some(s);
-        } else {
-            return None;
-        }
-    }
 }
 
 #[derive(Debug, Clone, Copy)]
