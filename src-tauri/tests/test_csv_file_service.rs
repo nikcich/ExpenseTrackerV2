@@ -4,6 +4,7 @@ use std::f32;
 use std::fs::File;
 use std::io::Error as IoError;
 use std::io::Write;
+use std::num::ParseFloatError;
 use tempfile::Builder;
 
 use tauri_app_lib::definition::csv_definition::{
@@ -281,10 +282,10 @@ fn test_parse_record_with_valid_data() {
 }
 
 #[test]
-fn test_parse_record_with_missing_required_field() {
+fn test_parse_record_with_missing_date() {
     // Setup
     let csv_definition = setup_csv_definition_for_test();
-    let string_record = StringRecord::from(vec!["", "Test Description", "123.45"]);
+    let string_record = StringRecord::from(vec!["", "Test Description", "123.45"]); // Missing date
 
     // Invoke
     let result = csv_definition.parse_record(&string_record);
@@ -292,7 +293,72 @@ fn test_parse_record_with_missing_required_field() {
     // Analysis
     assert!(
         result.is_err(),
-        "Expected parsing to fail due to missing required field"
+        "Expected parsing to fail due to missing date"
+    );
+    assert_eq!(
+        result.unwrap_err().to_string(),
+        "Date in CSV record is an empty string"
+    );
+}
+
+#[test]
+fn test_parse_record_with_missing_description() {
+    // Setup
+    let csv_definition = setup_csv_definition_for_test();
+    let string_record = StringRecord::from(vec!["2023-10-01", "", "123.45"]); // Missing description
+
+    // Invoke
+    let result = csv_definition.parse_record(&string_record);
+
+    // Analysis
+    assert!(
+        result.is_err(),
+        "Expected parsing to fail due to missing description"
+    );
+    assert_eq!(
+        result.unwrap_err().to_string(),
+        "Description in CSV record is an empty string"
+    );
+}
+
+#[test]
+fn test_parse_record_with_missing_amount() {
+    // Setup
+    let csv_definition = setup_csv_definition_for_test();
+    let string_record = StringRecord::from(vec!["2023-10-01", "Test Description", ""]); // Missing amount
+
+    // Invoke
+    let result = csv_definition.parse_record(&string_record);
+
+    // Analysis
+    assert!(
+        result.is_err(),
+        "Expected parsing to fail due to missing amount"
+    );
+    assert_eq!(
+        result.unwrap_err().to_string(),
+        "Amount in CSV record is an empty string"
+    );
+}
+
+#[test]
+fn test_parse_record_with_invalid_amount() {
+    // Setup
+    let csv_definition = setup_csv_definition_for_test();
+    let string_record = StringRecord::from(vec!["2023-10-01", "Test Description", "invalid"]); // Invalid amount
+
+    // Invoke
+    let result = csv_definition.parse_record(&string_record);
+
+    // Analysis
+    assert!(
+        result.is_err(),
+        "Expected parsing to fail due to invalid amount"
+    );
+    let err = result.unwrap_err();
+    assert!(
+        err.is::<ParseFloatError>(),
+        "Expected error to be ParseFloatError"
     );
 }
 

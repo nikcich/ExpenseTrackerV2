@@ -40,6 +40,11 @@ impl CsvColumnRole {
                     .ok_or("Missing date column in CSV record")?;
                 if let CsvColumnDataType::DateObject(format) = column_info.data_type {
                     let normalized = normalize(date_str);
+
+                    if normalized.is_empty() {
+                        return Err("Date in CSV record is an empty string".into());
+                    }
+
                     let date = NaiveDate::parse_from_str(&normalized, format)?
                         .and_hms_opt(0, 0, 0)
                         .ok_or("Failed to create datetime")?;
@@ -53,6 +58,11 @@ impl CsvColumnRole {
                     .get(column_info.index as usize)
                     .ok_or("Missing description column in CSV record")?;
                 let normalized = normalize(desc_str);
+
+                if normalized.is_empty() {
+                    return Err("Description in CSV record is an empty string".into());
+                }
+
                 expense.set_description(&normalized);
                 return Ok(());
             }
@@ -62,7 +72,12 @@ impl CsvColumnRole {
                     .ok_or("Missing amount column in CSV record")?;
 
                 let normalized = normalize(amount_str);
-                let mut amount = normalized.as_str().parse::<f64>().unwrap();
+
+                if normalized.is_empty() {
+                    return Err("Amount in CSV record is an empty string".into());
+                }
+
+                let mut amount = normalized.as_str().parse::<f64>()?;
 
                 // Check if the amount column is inverted
                 if let CsvColumnDataType::Float(is_standard) = column_info.data_type {
