@@ -26,6 +26,28 @@ pub enum CsvColumnRole {
 }
 
 impl CsvColumnRole {
+    /// This function is used for required roles where they must return a valid string and not empty string
+    fn get_required_and_normalize<'a>(
+        role_type: Self,
+        string_record: &'a StringRecord,
+        column_info: &CsvColumnInfo,
+    ) -> Result<&'a str, Box<dyn StdError>> {
+        let value = string_record
+            .get(column_info.index as usize)
+            .ok_or(format!(
+                "Missing column in CSV record for required role {:?}",
+                role_type
+            ))?;
+        let normalized = normalize(value);
+        if normalized.is_empty() {
+            return Err(format!(
+                "Column value is an empty string for required role {:?}",
+                role_type
+            )
+            .into());
+        }
+        return Ok(value);
+    }
     pub fn handle(
         self,
         expense: &mut Expense,
@@ -35,17 +57,11 @@ impl CsvColumnRole {
         match self {
             // REQUIRED roles below, error is propagated
             CsvColumnRole::Date => {
-                let date_str = string_record
-                    .get(column_info.index as usize)
-                    .ok_or("Missing date column in CSV record")?;
                 if let CsvColumnDataType::DateObject(format) = column_info.data_type {
-                    let normalized = normalize(date_str);
+                    let normalized_str_from_record =
+                        Self::get_required_and_normalize(self, string_record, column_info)?;
 
-                    if normalized.is_empty() {
-                        return Err("Date in CSV record is an empty string".into());
-                    }
-
-                    let date = NaiveDate::parse_from_str(&normalized, format)?
+                    let date = NaiveDate::parse_from_str(&normalized_str_from_record, format)?
                         .and_hms_opt(0, 0, 0)
                         .ok_or("Failed to create datetime")?;
                     expense.set_date(date);
@@ -54,30 +70,17 @@ impl CsvColumnRole {
                 return Err("Date column must have DateObject format specified".into());
             }
             CsvColumnRole::Description => {
-                let desc_str = string_record
-                    .get(column_info.index as usize)
-                    .ok_or("Missing description column in CSV record")?;
-                let normalized = normalize(desc_str);
+                let normalized_str_from_record =
+                    Self::get_required_and_normalize(self, string_record, column_info)?;
 
-                if normalized.is_empty() {
-                    return Err("Description in CSV record is an empty string".into());
-                }
-
-                expense.set_description(&normalized);
+                expense.set_description(&normalized_str_from_record);
                 return Ok(());
             }
             CsvColumnRole::Amount => {
-                let amount_str = string_record
-                    .get(column_info.index as usize)
-                    .ok_or("Missing amount column in CSV record")?;
+                let normalized_str_from_record =
+                    Self::get_required_and_normalize(self, string_record, column_info)?;
 
-                let normalized = normalize(amount_str);
-
-                if normalized.is_empty() {
-                    return Err("Amount in CSV record is an empty string".into());
-                }
-
-                let mut amount = normalized.as_str().parse::<f64>()?;
+                let mut amount = normalized_str_from_record.parse::<f64>()?;
 
                 // Check if the amount column is inverted
                 if let CsvColumnDataType::Float(is_standard) = column_info.data_type {
@@ -93,7 +96,10 @@ impl CsvColumnRole {
             CsvColumnRole::Tag => {
                 if let Some(tag) = string_record.get(column_info.index as usize) {
                     let normalized = normalize(tag);
-                    expense.add_tag(&normalized); // pass reference to the owned String
+                    if !normalized.is_empty() {
+                        // If the string isn't empty, add as a tag
+                        expense.add_tag(&normalized);
+                    }
                 }
                 return Ok(());
             }
@@ -129,8 +135,8 @@ impl CsvDefinition {
         required_columns: &[(CsvColumnRole, CsvColumnInfo)],
     ) -> Self {
         let mut map = HashMap::new();
-        for (role, col_info) in required_columns {
-            map.insert(*role, *col_info);
+        for &(role, col_info) in required_columns {
+            map.insert(role, col_info);
         }
         return Self {
             name,

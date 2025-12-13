@@ -297,7 +297,7 @@ fn test_parse_record_with_missing_date() {
     );
     assert_eq!(
         result.unwrap_err().to_string(),
-        "Date in CSV record is an empty string"
+        "Column value is an empty string for required role Date"
     );
 }
 
@@ -317,7 +317,7 @@ fn test_parse_record_with_missing_description() {
     );
     assert_eq!(
         result.unwrap_err().to_string(),
-        "Description in CSV record is an empty string"
+        "Column value is an empty string for required role Description"
     );
 }
 
@@ -337,7 +337,7 @@ fn test_parse_record_with_missing_amount() {
     );
     assert_eq!(
         result.unwrap_err().to_string(),
-        "Amount in CSV record is an empty string"
+        "Column value is an empty string for required role Amount"
     );
 }
 
