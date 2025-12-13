@@ -8,7 +8,7 @@ use tempfile::Builder;
 
 use tauri_app_lib::definition::csv_definition::{
     attempt_to_cast, CsvColumnDataType, CsvColumnInfo, CsvColumnRole, CsvDefinition,
-    CsvDefinitionKey, CsvValidator, MockCsvValidator, INVERSED, STANDARD,
+    CsvDefinitionKey, CsvParser, CsvValidator, MockCsvValidator, INVERSED, STANDARD,
 };
 use tauri_app_lib::service::csv_file_service::{
     open_csv_file_and_find_definitions, open_file_from_path,
@@ -258,6 +258,135 @@ fn test_validate_csv_record_true() {
 
     // Analysis
     assert_eq!(expected, result);
+}
+
+#[test]
+fn test_parse_record_with_valid_data() {
+    // Setup
+    let csv_definition = setup_csv_definition_for_test();
+    let string_record = StringRecord::from(vec!["2023-10-01", "Test Description", "123.45"]);
+    let expected_date = "2023-10-01 00:00:00";
+    let expected_description = "Test Description";
+    let expected_amount = 123.45;
+
+    // Invoke
+    let result = csv_definition.parse_record(&string_record);
+
+    // Analysis
+    assert!(result.is_ok(), "Expected parsing to succeed");
+    let expense = result.unwrap();
+    assert_eq!(expense.get_date().to_string(), expected_date);
+    assert_eq!(expense.get_description(), expected_description);
+    assert_eq!(expense.get_amount(), expected_amount);
+}
+
+#[test]
+fn test_parse_record_with_missing_required_field() {
+    // Setup
+    let csv_definition = setup_csv_definition_for_test();
+    let string_record = StringRecord::from(vec!["", "Test Description", "123.45"]);
+
+    // Invoke
+    let result = csv_definition.parse_record(&string_record);
+
+    // Analysis
+    assert!(
+        result.is_err(),
+        "Expected parsing to fail due to missing required field"
+    );
+}
+
+#[test]
+fn test_parse_record_with_optional_field() {
+    // Setup
+    let mut csv_definition = setup_csv_definition_for_test();
+    csv_definition = csv_definition.add_optional_column(
+        CsvColumnRole::Tag,
+        CsvColumnInfo {
+            index: 3,
+            data_type: CsvColumnDataType::String,
+        },
+    );
+    let string_record = StringRecord::from(vec![
+        "2023-10-01",
+        "Test Description",
+        "123.45",
+        "Optional Tag",
+    ]);
+    let expected_tag = "Optional Tag";
+
+    // Invoke
+    let result = csv_definition.parse_record(&string_record);
+
+    // Analysis
+    assert!(
+        result.is_ok(),
+        "Expected parsing to succeed with optional field"
+    );
+    let expense = result.unwrap();
+    assert!(expense.get_tags().len() == 1);
+    assert!(expense.get_tags().contains(&expected_tag.to_string()));
+}
+
+#[test]
+fn test_parse_record_with_invalid_date_format() {
+    // Setup
+    let csv_definition = setup_csv_definition_for_test();
+    let string_record = StringRecord::from(vec!["01-10-2023", "Test Description", "123.45"]);
+
+    // Invoke
+    let result = csv_definition.parse_record(&string_record);
+
+    // Analysis
+    assert!(
+        result.is_err(),
+        "Expected parsing to fail due to invalid date format"
+    );
+}
+
+#[test]
+fn test_parse_record_with_inversed_amount() {
+    // Setup
+    let csv_definition = CsvDefinition::new(
+        "Test Inversed Amount",
+        true,
+        &[
+            (
+                CsvColumnRole::Date,
+                CsvColumnInfo {
+                    index: 0,
+                    data_type: CsvColumnDataType::DateObject("%Y-%m-%d"),
+                },
+            ),
+            (
+                CsvColumnRole::Description,
+                CsvColumnInfo {
+                    index: 1,
+                    data_type: CsvColumnDataType::String,
+                },
+            ),
+            (
+                CsvColumnRole::Amount,
+                CsvColumnInfo {
+                    index: 2,
+                    data_type: CsvColumnDataType::Float(&INVERSED),
+                },
+            ),
+        ],
+    );
+    let string_record = StringRecord::from(vec!["2023-10-01", "Test Description", "123.45"]);
+    let expected_amount = -123.45;
+
+    // Invoke
+    let result = csv_definition.parse_record(&string_record);
+
+    // Analysis
+    assert!(
+        result.is_ok(),
+        "Expected parsing to succeed with inversed amount"
+    );
+    let expense = result.unwrap();
+    assert_eq!(expense.get_amount(), expected_amount);
 }
 
 #[test]

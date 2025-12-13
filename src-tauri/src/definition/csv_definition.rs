@@ -65,8 +65,8 @@ impl CsvColumnRole {
                 let mut amount = normalized.as_str().parse::<f64>().unwrap();
 
                 // Check if the amount column is inverted
-                if let CsvColumnDataType::Float(inversed) = column_info.data_type {
-                    if *inversed {
+                if let CsvColumnDataType::Float(is_standard) = column_info.data_type {
+                    if !*is_standard {
                         amount = -amount;
                     }
                 }

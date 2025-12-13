@@ -68,4 +68,8 @@ impl Expense {
     pub fn get_amount(&self) -> f64 {
         self.amount
     }
+
+    pub fn get_tags(&self) -> &Vec<String> {
+        &self.tags
+    }
 }
