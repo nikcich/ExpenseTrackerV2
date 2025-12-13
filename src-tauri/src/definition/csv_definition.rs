@@ -26,28 +26,75 @@ pub enum CsvColumnRole {
 }
 
 impl CsvColumnRole {
-    /// This function is used for required roles where they must return a valid string and not empty string
+    /// Generalized function to fetch and normalize a value from a `StringRecord`.
+    /// If `is_required` is true, it ensures the value is present and not empty.
+    fn get_and_normalize<'a>(
+        role_type: Self,
+        string_record: &'a StringRecord,
+        column_info: &CsvColumnInfo,
+        is_required: bool,
+    ) -> Result<Option<String>, Box<dyn StdError>> {
+        // Fetch the value from the StringRecord
+        let value = string_record.get(column_info.index as usize);
+
+        match value {
+            Some(val) => {
+                // Normalize the value
+                let normalized = normalize(val);
+
+                // If the column is required, ensure the normalized value is not empty
+                if is_required && normalized.is_empty() {
+                    return Err(format!(
+                        "Column value is an empty string for required role {:?}",
+                        role_type
+                    )
+                    .into());
+                }
+
+                // Return the normalized value wrapped in Some
+                Ok(Some(normalized))
+            }
+            None => {
+                // If the column is required, propagate an error
+                if is_required {
+                    Err(format!(
+                        "Missing column in CSV record for required role {:?}",
+                        role_type
+                    )
+                    .into())
+                } else {
+                    // For optional columns, return None
+                    Ok(None)
+                }
+            }
+        }
+    }
+
+    /// Fetches and normalizes a required value from a `StringRecord`.
+    /// Ensures the value is present and not empty.
     fn get_required_and_normalize<'a>(
         role_type: Self,
         string_record: &'a StringRecord,
         column_info: &CsvColumnInfo,
-    ) -> Result<&'a str, Box<dyn StdError>> {
-        let value = string_record
-            .get(column_info.index as usize)
-            .ok_or(format!(
-                "Missing column in CSV record for required role {:?}",
-                role_type
-            ))?;
-        let normalized = normalize(value);
-        if normalized.is_empty() {
-            return Err(format!(
-                "Column value is an empty string for required role {:?}",
-                role_type
-            )
-            .into());
-        }
-        return Ok(value);
+    ) -> Result<String, Box<dyn StdError>> {
+        Self::get_and_normalize(role_type, string_record, column_info, true)?
+            .ok_or_else(|| format!("Unexpected None for required role {:?}", role_type).into())
     }
+
+    /// Fetches and normalizes an optional value from a `StringRecord`.
+    /// Returns `None` if the value is not present or empty.
+    fn get_optional_and_normalize<'a>(
+        role_type: Self,
+        string_record: &'a StringRecord,
+        column_info: &CsvColumnInfo,
+    ) -> Option<String> {
+        match Self::get_and_normalize(role_type, string_record, column_info, false) {
+            Ok(normalized_option) => return normalized_option,
+            // Errors are ignored and treated as None
+            Err(_) => None,
+        }
+    }
+
     pub fn handle(
         self,
         expense: &mut Expense,
@@ -94,13 +141,14 @@ impl CsvColumnRole {
 
             // OPTIONAL ROLES below no error is propagated
             CsvColumnRole::Tag => {
-                if let Some(tag) = string_record.get(column_info.index as usize) {
-                    let normalized = normalize(tag);
+                if let Some(normalized) =
+                    Self::get_optional_and_normalize(self, string_record, column_info)
+                {
                     if !normalized.is_empty() {
-                        // If the string isn't empty, add as a tag
                         expense.add_tag(&normalized);
                     }
                 }
+
                 return Ok(());
             }
         }
