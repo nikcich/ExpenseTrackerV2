@@ -267,13 +267,15 @@ impl CsvValidator for CsvDefinition {
             }
 
             // Fetch the raw value
-            let raw_value = record.get(index).map(|s| s.trim());
+            let raw_value = record.get(index);
             if raw_value.is_none() {
                 return false;
             }
 
+            let normalized_raw_value = normalize(raw_value.unwrap());
+
             // If the raw value for that column is required but empty string, return false
-            if raw_value.unwrap().is_empty() && col_info.is_required {
+            if normalized_raw_value.is_empty() && col_info.is_required {
                 return false;
             }
 
