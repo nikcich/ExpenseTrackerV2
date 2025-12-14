@@ -75,7 +75,7 @@ impl CsvColumnRole {
         expense: &mut Expense,
         string_record: &StringRecord,
         current_column_info: &CsvColumnInfo,
-        csv_definition: &CsvDefinition,
+        meta_data_columns: &HashMap<CsvColumnRole, CsvColumnInfo>,
     ) -> Result<(), Box<dyn StdError>> {
         // Fetch and normalize the value
         let value = match Self::get_and_normalize(self, string_record, current_column_info)? {
@@ -95,16 +95,35 @@ impl CsvColumnRole {
                 expense.set_description(&description);
             }
             (CsvColumnRole::Amount, ParsedValue::Float(amount)) => {
-
                 // Special handling for optional amount
                 if !current_column_info.is_required {
-                    // Amount was optional, we may want to check the metadata for credit values
-                    if let Some(credit_column) = csv_definition.meta_data_columns.get(&CsvColumnRole::Credit) {
-                        if let Ok(ParsedValue::Float(credit)) = validate_and_parse(&value, &credit_column) {
+                    // Amount was optional, we may want to check the metadata for credit values to override the amount
+                    if let Some(credit_column_info) = meta_data_columns.get(&CsvColumnRole::Credit) {
+                        let mut mutated_credit_column = false;
+
+                        if amount == 0.0 && !credit_column_info.is_required {
+                            // The amount is zero (due to empty string or zero value) - at this point we are expecting credit to be present
+                            // Lets mutate the credit value column to be required for fetching in record
+                            credit_column_info.changed_required(true);
+                            mutated_credit_column = true;
+                        }
+
+                        // Attempt to fetch the required credit's value and normalize the value
+                        let credit_value = Self::get_and_normalize(self, string_record, credit_column_info)?;
+
+                        if let Ok(ParsedValue::Float(credit)) = validate_and_parse(&credit_value.unwrap(), &credit_column_info) {
                             expense.set_amount(amount + credit);
                             return Ok(());
                         }
+
+                        // Mutate the credit value column back to its original state
+                        if mutated_credit_column {
+                            credit_column_info.changed_required(false);
+                        }
+
+                        return Err("Something is wrong with the transaction when amount or credit when both are optional but credit is not a valid number".into());
                     }
+                    return Err("Amount is marked as optional but there is no overriding value provided".into())
                 }
 
                 expense.set_amount(amount);
@@ -117,8 +136,8 @@ impl CsvColumnRole {
             (CsvColumnRole::Currency, ParsedValue::String(currency)) => {
                 if currency == "$" {
                     // Fetch the second amount column definition
-                    let second_amount_column_definition = csv_definition
-                        .meta_data_columns
+                    let second_amount_column_definition =
+                        meta_data_columns
                         .get(&CsvColumnRole::Amount)
                         .ok_or("Currency is present in record but does not have second amount column definition to override with!")?;
 
@@ -161,6 +180,11 @@ pub struct CsvColumnInfo {
 }
 
 impl CsvColumnInfo {
+    pub fn changed_required(mut self, is_required: bool) -> Self {
+        self.is_required = is_required;
+        return self;
+    }
+
     pub fn optional(index: u8, data_type: CsvColumnDataType) -> Self {
         return Self {
             index: index,
@@ -237,7 +261,8 @@ impl CsvParser for CsvDefinition {
 
         // Parse columns in record
         for (role, column_info) in self.expected_columns.iter() {
-            let result_parsed = role.handle(&mut expense, record, column_info, self);
+            let result_parsed =
+                role.handle(&mut expense, record, column_info, &self.meta_data_columns);
 
             if column_info.is_required {
                 // Required, propagate any error
@@ -514,7 +539,7 @@ pub fn build_definitions() -> HashMap<CsvDefinitionKey, CsvDefinition> {
                 ),
                 (
                     CsvColumnRole::Currency,
-                    CsvColumnInfo::required(8, CsvColumnDataType::String),
+                    CsvColumnInfo::optional(8, CsvColumnDataType::String),
                 ),
             ],
         )

@@ -161,6 +161,12 @@ impl ExpenseStore {
         // Duplicate was found, return Ok(false), this is not an error but will
         // indicate that the expense was not added due to a duplicate entry
         if store_data.data.contains_key(&hash) {
+            println!(
+                "Duplicate expense found for Date: {}, Description: {}, Amount: {}",
+                expense.get_date(),
+                expense.get_description(),
+                expense.get_amount()
+            );
             return Ok(false);
         }
 
