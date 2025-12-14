@@ -100,7 +100,8 @@ impl CsvColumnRole {
                     if let Some(credit_column_info) = meta_data_columns.get(&CsvColumnRole::Credit) {
                         let mut credit_amount: Option<f64> = None;
 
-                        credit_column_info.clone().with_temporary_required_state(true, |credit_col| {
+                        // Credit column is normally optional, but since we're dealing with an optional amount, we need to require credit
+                        credit_column_info.clone().with_temporary_required_state(|credit_col| {
                             if let Ok(Some(credit_str)) = Self::get_and_normalize(CsvColumnRole::Credit, string_record, credit_col) {
                                 if let Ok(ParsedValue::Float(credit)) = cast_raw_value(&credit_str, credit_col) {
                                     credit_amount = Some(credit);
@@ -168,12 +169,12 @@ pub struct CsvColumnInfo {
 }
 
 impl CsvColumnInfo {
-    pub fn with_temporary_required_state<F>(&mut self, required: bool, f: F)
+    pub fn with_temporary_required_state<F>(&mut self, f: F)
     where
         F: FnOnce(&mut Self),
     {
         let original_state = self.is_required;
-        self.is_required = required;
+        self.is_required = true;
         f(self); // Execute the closure with the temporary state
         self.is_required = original_state; // Reset the state
     }
