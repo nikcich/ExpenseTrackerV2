@@ -73,61 +73,35 @@ impl CsvColumnRole {
         string_record: &StringRecord,
         column_info: &CsvColumnInfo,
     ) -> Result<(), Box<dyn StdError>> {
-        match self {
-            // REQUIRED roles below, error is propagated
-            CsvColumnRole::Date => {
-                if let CsvColumnDataType::DateObject(format) = column_info.data_type {
-                    if let Some(normalized) =
-                        Self::get_and_normalize(self, string_record, column_info)?
-                    {
-                        let date = NaiveDate::parse_from_str(&normalized, format)?
-                            .and_hms_opt(0, 0, 0)
-                            .ok_or("Failed to create datetime")?;
-                        expense.set_date(date);
-                    }
+        // Fetch and normalize the value
+        let value = match Self::get_and_normalize(self, string_record, column_info)? {
+            Some(val) => val,
+            None => return Ok(()), // Skip if the value is optional and not present
+        };
 
-                    return Ok(());
-                }
-                return Err("Date column must have DateObject format specified".into());
+        // Validate and parse the value
+        let parsed_value = validate_and_parse(&value, column_info.data_type)?;
+
+        // Process the parsed value based on the role
+        match (self, parsed_value) {
+            (CsvColumnRole::Date, ParsedValue::Date(date)) => {
+                expense.set_date(date);
             }
-            CsvColumnRole::Description => {
-                if let Some(normalized) = Self::get_and_normalize(self, string_record, column_info)?
-                {
-                    expense.set_description(&normalized);
-                }
-                return Ok(());
+            (CsvColumnRole::Description, ParsedValue::String(description)) => {
+                expense.set_description(&description);
             }
-            CsvColumnRole::Amount => {
-                if let Some(normalized) = Self::get_and_normalize(self, string_record, column_info)?
-                {
-                    let mut amount = normalized.parse::<f64>()?;
-
-                    // Check if the amount column is inverted
-                    if let CsvColumnDataType::Float(is_standard) = column_info.data_type {
-                        if !*is_standard {
-                            amount = -amount;
-                        }
-                    }
-
-                    expense.set_amount(amount);
-                }
-
-                return Ok(());
+            (CsvColumnRole::Amount, ParsedValue::Float(amount)) => {
+                expense.set_amount(amount);
             }
-
-            // OPTIONAL ROLES below no error is propagated
-            CsvColumnRole::Tag => {
-                if let Ok(Some(normalized)) =
-                    Self::get_and_normalize(self, string_record, column_info)
-                {
-                    if !normalized.is_empty() {
-                        expense.add_tag(&normalized);
-                    }
+            (CsvColumnRole::Tag, ParsedValue::String(tag)) => {
+                if !tag.is_empty() {
+                    expense.add_tag(&tag);
                 }
-
-                return Ok(());
             }
+            _ => return Err("Unexpected data type for column role".into()),
         }
+
+        return Ok(());
     }
 }
 
@@ -247,42 +221,39 @@ pub trait CsvValidator {
 
 impl CsvValidator for CsvDefinition {
     fn validate_against_record(&self, record: &StringRecord) -> bool {
-        // Iterate over expected columns
-        for (_role, col_info) in &self.expected_columns {
-            // If the column info is not required, then we can ignore it
-            if !col_info.is_required {
-                continue;
-            }
-
+        // Iterate over all expected columns
+        for (role, col_info) in &self.expected_columns {
             let index = col_info.index as usize;
 
             // Check if the record has a value at this index
             if index >= record.len() {
                 // Missing column
-                return false;
+                if col_info.is_required {
+                    return false;
+                } else {
+                    continue; // Skip optional columns
+                }
             }
 
-            // Check for empty cells
-            if record
-                .get(index)
-                .map(|s| s.trim().is_empty())
-                .unwrap_or(true)
-            {
-                return false;
+            // Fetch the raw value
+            let raw_value = record.get(index).map(|s| s.trim()).unwrap_or("");
+
+            // Skip empty optional columns
+            if raw_value.is_empty() && !col_info.is_required {
+                continue;
             }
 
-            // Check if castable
-            let raw_data: &str = record.get(index).map(|s| s.trim()).unwrap();
-            if !attempt_to_cast(raw_data, col_info.data_type) {
-                return false;
+            // Validate and parse the value
+            if let Err(_) = validate_and_parse(raw_value, col_info.data_type) {
+                return false; // Validation failed
             }
         }
 
-        return true;
+        true // All columns are valid
     }
 
     fn has_header(&self) -> bool {
-        return self.has_headers;
+        self.has_headers
     }
 }
 
@@ -403,6 +374,14 @@ pub fn build_definitions() -> HashMap<CsvDefinitionKey, CsvDefinition> {
     return map;
 }
 
+/// Enum to represent parsed values
+#[derive(Debug, PartialEq)]
+pub enum ParsedValue {
+    String(String),
+    Float(f64),
+    Date(chrono::NaiveDateTime),
+}
+
 /// Attempts to cast a raw string value to a data type.
 ///
 /// Parameters:
@@ -411,18 +390,27 @@ pub fn build_definitions() -> HashMap<CsvDefinitionKey, CsvDefinition> {
 ///
 /// Returns:
 /// - `bool`: True if the cast is successful, false otherwise.
-pub fn attempt_to_cast(raw_data: &str, col_data_type: CsvColumnDataType) -> bool {
-    match col_data_type {
-        CsvColumnDataType::String => return true, // Always valid for raw data that is already a string
-        CsvColumnDataType::Float(_) => match raw_data.parse::<f32>() {
-            Ok(value) => return value.is_finite(), // Reject infinity and NaN
-            Err(_) => return false,                // Reject parse failures
-        },
-        CsvColumnDataType::DateObject(format) => {
-            match NaiveDate::parse_from_str(raw_data, format) {
-                Ok(date) => date.and_hms_opt(0, 0, 0).is_some(),
-                Err(_) => false,
+pub fn validate_and_parse(
+    value: &str,
+    data_type: CsvColumnDataType,
+) -> Result<ParsedValue, Box<dyn StdError>> {
+    match data_type {
+        CsvColumnDataType::String => Ok(ParsedValue::String(value.to_string())),
+        CsvColumnDataType::Float(is_standard) => {
+            let mut parsed = value.parse::<f64>()?;
+            if parsed.is_infinite() {
+                return Err("Overflow: value is too large to be represented as f64".into());
             }
+            if !*is_standard {
+                parsed = -parsed;
+            }
+            Ok(ParsedValue::Float(parsed))
+        }
+        CsvColumnDataType::DateObject(format) => {
+            let date = NaiveDate::parse_from_str(value, format)?
+                .and_hms_opt(0, 0, 0)
+                .ok_or("Failed to create datetime")?;
+            Ok(ParsedValue::Date(date))
         }
     }
 }
