@@ -125,7 +125,7 @@ impl CsvColumnRole {
                     }
                 }
             }
-            _ => return Err("A role was received, but no handling was defined error".into()),
+            _ => return Err(format!("A role defined in expected columns was received, but there is no handling defined for it, occured at {}:{}", file!(), line!()).into()),
         }
 
         return Ok(());
