@@ -299,6 +299,107 @@ fn test_validate_csv_record_true() {
 }
 
 #[test]
+fn test_currency_role_with_second_amount() {
+    // Setup
+    let csv_definition = CsvDefinition::new(
+        "Currency Test",
+        true,
+        &[
+            (
+                CsvColumnRole::Amount,
+                CsvColumnInfo::new(0, CsvColumnDataType::Float(&STANDARD)),
+            ),
+            (
+                CsvColumnRole::Currency,
+                CsvColumnInfo::new(2, CsvColumnDataType::String),
+            ),
+        ],
+    )
+    .add_meta_data_column(
+        CsvColumnRole::Amount,
+        CsvColumnInfo::new(1, CsvColumnDataType::Float(&STANDARD)),
+    );
+
+    let string_record = StringRecord::from(vec!["100.0", "200.0", "$"]);
+    let expected_amount = 200.0;
+
+    // Invoke
+    let result = csv_definition.parse_record(&string_record);
+
+    // Analysis
+    assert!(result.is_ok(), "Expected parsing to succeed");
+    let expense = result.unwrap();
+    assert_eq!(expense.get_amount(), expected_amount);
+}
+
+#[test]
+fn test_currency_role_shekel_amount() {
+    // Setup
+    let csv_definition = CsvDefinition::new(
+        "Currency Test",
+        true,
+        &[
+            (
+                CsvColumnRole::Amount,
+                CsvColumnInfo::new(0, CsvColumnDataType::Float(&STANDARD)),
+            ),
+            (
+                CsvColumnRole::Currency,
+                CsvColumnInfo::new(2, CsvColumnDataType::String),
+            ),
+        ],
+    )
+    .add_meta_data_column(
+        CsvColumnRole::Amount,
+        CsvColumnInfo::new(1, CsvColumnDataType::Float(&STANDARD)),
+    );
+
+    let string_record = StringRecord::from(vec!["100.0", "200.0", "₪"]);
+    let expected_amount = 100.0;
+
+    // Invoke
+    let result = csv_definition.parse_record(&string_record);
+
+    // Analysis
+    assert!(
+        result.is_ok(),
+        "Expected parsing to succeed, leaving the currency as shekel"
+    );
+    let expense = result.unwrap();
+    assert_eq!(expense.get_amount(), expected_amount);
+}
+
+#[test]
+fn test_currency_role_without_second_amount() {
+    // Setup
+    let csv_definition = CsvDefinition::new(
+        "Currency Test",
+        true,
+        &[
+            (
+                CsvColumnRole::Amount,
+                CsvColumnInfo::new(0, CsvColumnDataType::Float(&STANDARD)),
+            ),
+            (
+                CsvColumnRole::Currency,
+                CsvColumnInfo::new(1, CsvColumnDataType::String),
+            ),
+        ],
+    );
+
+    let string_record = StringRecord::from(vec!["100.0", "$"]);
+
+    // Invoke
+    let result = csv_definition.parse_record(&string_record);
+
+    // Analysis
+    assert!(
+        result.is_err(),
+        "Expected parsing to fail, as no second amount is provided"
+    );
+}
+
+#[test]
 fn test_validate_csv_record_true_missing_optional() {
     // Setup
     let expected: bool = false;

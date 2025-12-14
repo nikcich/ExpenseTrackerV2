@@ -23,6 +23,7 @@ pub enum CsvColumnRole {
     Description,
     Amount,
     Tag,
+    Currency,
 }
 
 impl CsvColumnRole {
@@ -72,6 +73,7 @@ impl CsvColumnRole {
         expense: &mut Expense,
         string_record: &StringRecord,
         column_info: &CsvColumnInfo,
+        csv_definition: &CsvDefinition,
     ) -> Result<(), Box<dyn StdError>> {
         // Fetch and normalize the value
         let value = match Self::get_and_normalize(self, string_record, column_info)? {
@@ -98,7 +100,32 @@ impl CsvColumnRole {
                     expense.add_tag(&tag);
                 }
             }
-            _ => return Err("Unexpected data type for column role".into()),
+            (CsvColumnRole::Currency, ParsedValue::String(currency)) => {
+                if currency == "$" {
+                    // Fetch the second amount column definition
+                    let second_amount_column_definition = csv_definition
+                        .meta_data_colums
+                        .get(&CsvColumnRole::Amount)
+                        .ok_or("Currency is present in record but does not have second amount column definition to override with!")?;
+
+                    // Fetch and normalize the second amount value
+                    if let Some(second_amount_str) = CsvColumnRole::get_and_normalize(
+                        CsvColumnRole::Amount,
+                        string_record,
+                        second_amount_column_definition,
+                    )? {
+                        // Parse the second amount value
+                        if let Ok(ParsedValue::Float(second_amount)) = validate_and_parse(
+                            &second_amount_str,
+                            second_amount_column_definition.data_type,
+                        ) {
+                            // Override the original amount with the second amount
+                            expense.set_amount(second_amount);
+                        }
+                    }
+                }
+            }
+            _ => return Err("A role was received, but no handling was defined error".into()),
         }
 
         return Ok(());
@@ -133,7 +160,10 @@ impl CsvColumnInfo {
 pub struct CsvDefinition {
     name: &'static str,
     has_headers: bool,
+    // All roles in expected columns will be handled
     expected_columns: HashMap<CsvColumnRole, CsvColumnInfo>,
+    // Any roles in metadata will not be invoked (handler for it)
+    meta_data_colums: HashMap<CsvColumnRole, CsvColumnInfo>,
 }
 
 impl CsvDefinition {
@@ -145,9 +175,11 @@ impl CsvDefinition {
         let mut map = HashMap::new();
         for &(role, mut col_info) in expected_columns {
             match role {
-                CsvColumnRole::Amount | CsvColumnRole::Date | CsvColumnRole::Description => {
-                    col_info.is_required = true
-                }
+                // Any of the following roles will be treated as mandatory while parsing (cannot be empty string)
+                CsvColumnRole::Amount
+                | CsvColumnRole::Date
+                | CsvColumnRole::Description
+                | CsvColumnRole::Currency => col_info.is_required = true,
                 _ => {}
             }
 
@@ -157,7 +189,13 @@ impl CsvDefinition {
             name,
             has_headers,
             expected_columns: map,
+            meta_data_colums: HashMap::new(),
         };
+    }
+
+    pub fn add_meta_data_column(mut self, role: CsvColumnRole, column_info: CsvColumnInfo) -> Self {
+        self.meta_data_colums.insert(role, column_info);
+        return self;
     }
 
     pub fn get_name(&self) -> &str {
@@ -187,7 +225,7 @@ impl CsvParser for CsvDefinition {
 
         // Parse columns in record
         for (role, column_info) in self.expected_columns.iter() {
-            let result_parsed = role.handle(&mut expense, record, column_info);
+            let result_parsed = role.handle(&mut expense, record, column_info, self);
 
             if column_info.is_required {
                 // Required, propagate any error
