@@ -257,8 +257,8 @@ pub trait CsvValidator {
 
 impl CsvValidator for CsvDefinition {
     fn validate_against_record(&self, record: &StringRecord) -> bool {
-        // Iterate over all expected columns
-        for (_role, col_info) in &self.expected_columns {
+        // Helper function to validate a single column
+        fn validate_column_with_record(record: &StringRecord, col_info: &CsvColumnInfo) -> bool {
             let index = col_info.index as usize;
 
             // Check if the index is invalid (too large for a record)
@@ -283,38 +283,22 @@ impl CsvValidator for CsvDefinition {
             if let Err(_) = validate_and_parse(raw_value.unwrap(), col_info.data_type) {
                 return false; // Validation failed
             }
+
+            return true;
         }
 
-        if !self.meta_data_columns.is_empty() {
-            for (_role, col_info) in self.meta_data_columns.iter() {
-                // If its not required metadata (cannot be empty string or is a dependency from another) thenskip validation
-                if !col_info.is_required {
-                    continue;
-                }
+        // Validate expected columns
+        for (_role, col_info) in &self.expected_columns {
+            if !validate_column_with_record(record, col_info) {
+                return false;
+            }
+        }
 
-                let index = col_info.index as usize;
-
-                // Check if the index is invalid (too large for a record)
-                if index >= record.len() {
+        // Validate meta data columns
+        if !&self.meta_data_columns.is_empty() {
+            for (_role, col_info) in &self.meta_data_columns {
+                if col_info.is_required && !validate_column_with_record(record, col_info) {
                     return false;
-                }
-
-                // Fetch the raw value
-                let raw_value = record.get(index);
-                if raw_value.is_none() {
-                    return false;
-                }
-
-                let normalized_raw_value = normalize(raw_value.unwrap());
-
-                // If the raw value for that column is required but empty string, return false
-                if normalized_raw_value.is_empty() && col_info.is_required {
-                    return false;
-                }
-
-                // Lastly, validate by parsing the value (casting it)
-                if let Err(_) = validate_and_parse(raw_value.unwrap(), col_info.data_type) {
-                    return false; // Validation failed
                 }
             }
         }
@@ -323,7 +307,7 @@ impl CsvValidator for CsvDefinition {
     }
 
     fn has_header(&self) -> bool {
-        self.has_headers
+        return self.has_headers;
     }
 }
 
