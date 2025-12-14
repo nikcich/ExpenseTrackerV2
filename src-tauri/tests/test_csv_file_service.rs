@@ -29,20 +29,20 @@ fn setup_csv_definition_for_test() -> CsvDefinition {
         &[
             (
                 CsvColumnRole::Date,
-                CsvColumnInfo::new(0, CsvColumnDataType::DateObject("%Y-%m-%d")),
+                CsvColumnInfo::required(0, CsvColumnDataType::DateObject("%Y-%m-%d")),
             ),
             (
                 CsvColumnRole::Description,
-                CsvColumnInfo::new(1, CsvColumnDataType::String),
+                CsvColumnInfo::required(1, CsvColumnDataType::String),
             ),
             (
                 CsvColumnRole::Amount,
-                CsvColumnInfo::new(2, CsvColumnDataType::Float(&STANDARD)),
+                CsvColumnInfo::required(2, CsvColumnDataType::Float(&STANDARD)),
             ),
             // Optional Role for test
             (
                 CsvColumnRole::Tag,
-                CsvColumnInfo::new(3, CsvColumnDataType::String),
+                CsvColumnInfo::optional(3, CsvColumnDataType::String),
             ),
         ],
     );
@@ -307,17 +307,17 @@ fn test_currency_role_with_second_amount() {
         &[
             (
                 CsvColumnRole::Amount,
-                CsvColumnInfo::new(0, CsvColumnDataType::Float(&STANDARD)),
+                CsvColumnInfo::required(0, CsvColumnDataType::Float(&STANDARD)),
             ),
             (
                 CsvColumnRole::Currency,
-                CsvColumnInfo::new(2, CsvColumnDataType::String),
+                CsvColumnInfo::required(2, CsvColumnDataType::String),
             ),
         ],
     )
     .add_meta_data_column(
         CsvColumnRole::Amount,
-        CsvColumnInfo::new(1, CsvColumnDataType::Float(&STANDARD)),
+        CsvColumnInfo::required(1, CsvColumnDataType::Float(&STANDARD)),
     );
 
     let string_record = StringRecord::from(vec!["100.0", "200.0", "$"]);
@@ -341,17 +341,17 @@ fn test_currency_role_with_second_amount_empty() {
         &[
             (
                 CsvColumnRole::Amount,
-                CsvColumnInfo::new(0, CsvColumnDataType::Float(&STANDARD)),
+                CsvColumnInfo::required(0, CsvColumnDataType::Float(&STANDARD)),
             ),
             (
                 CsvColumnRole::Currency,
-                CsvColumnInfo::new(2, CsvColumnDataType::String),
+                CsvColumnInfo::required(2, CsvColumnDataType::String),
             ),
         ],
     )
     .add_meta_data_column(
         CsvColumnRole::Amount,
-        CsvColumnInfo::new(1, CsvColumnDataType::Float(&STANDARD)),
+        CsvColumnInfo::required(1, CsvColumnDataType::Float(&STANDARD)),
     );
 
     let string_record = StringRecord::from(vec!["100.0", "", "$"]);
@@ -362,11 +362,9 @@ fn test_currency_role_with_second_amount_empty() {
 
     // Analysis
     assert!(
-        result.is_ok(),
-        "Metadata is not explicitly required, the fallback will be using the first amount"
+        result.is_err(),
+        "Metadata is a required field and the data is empty"
     );
-    let expense = result.unwrap();
-    assert_eq!(expense.get_amount(), expected_amount);
 }
 
 #[test]
@@ -378,17 +376,17 @@ fn test_currency_role_shekel_amount() {
         &[
             (
                 CsvColumnRole::Amount,
-                CsvColumnInfo::new(0, CsvColumnDataType::Float(&STANDARD)),
+                CsvColumnInfo::required(0, CsvColumnDataType::Float(&STANDARD)),
             ),
             (
                 CsvColumnRole::Currency,
-                CsvColumnInfo::new(2, CsvColumnDataType::String),
+                CsvColumnInfo::required(2, CsvColumnDataType::String),
             ),
         ],
     )
     .add_meta_data_column(
         CsvColumnRole::Amount,
-        CsvColumnInfo::new(1, CsvColumnDataType::Float(&STANDARD)),
+        CsvColumnInfo::required(1, CsvColumnDataType::Float(&STANDARD)),
     );
 
     let string_record = StringRecord::from(vec!["100.0", "200.0", "₪"]);
@@ -415,11 +413,11 @@ fn test_currency_role_without_second_amount() {
         &[
             (
                 CsvColumnRole::Amount,
-                CsvColumnInfo::new(0, CsvColumnDataType::Float(&STANDARD)),
+                CsvColumnInfo::required(0, CsvColumnDataType::Float(&STANDARD)),
             ),
             (
                 CsvColumnRole::Currency,
-                CsvColumnInfo::new(1, CsvColumnDataType::String),
+                CsvColumnInfo::required(1, CsvColumnDataType::String),
             ),
         ],
     );
@@ -582,11 +580,7 @@ fn test_parse_record_with_optional_field() {
 fn test_get_and_normalize_required_present() {
     // Setup
     let string_record = StringRecord::from(vec!["2023-10-01", "Test Description", "123.45"]);
-    let column_info = CsvColumnInfo {
-        index: 1,
-        data_type: CsvColumnDataType::String,
-        is_required: true,
-    };
+    let column_info = CsvColumnInfo::required(1, CsvColumnDataType::String);
 
     // Invoke
     let result =
@@ -601,11 +595,7 @@ fn test_get_and_normalize_required_present() {
 fn test_get_and_normalize_required_missing() {
     // Setup
     let string_record = StringRecord::from(vec!["2023-10-01", "", "123.45"]); // Missing description
-    let column_info = CsvColumnInfo {
-        index: 1,
-        data_type: CsvColumnDataType::String,
-        is_required: true,
-    };
+    let column_info = CsvColumnInfo::required(1, CsvColumnDataType::String);
 
     // Invoke
     let result =
@@ -626,11 +616,7 @@ fn test_get_and_normalize_required_missing() {
 fn test_get_and_normalize_optional_present() {
     // Setup
     let string_record = StringRecord::from(vec!["2023-10-01", "Test Description", "123.45"]);
-    let column_info = CsvColumnInfo {
-        index: 1,
-        data_type: CsvColumnDataType::String,
-        is_required: false,
-    };
+    let column_info = CsvColumnInfo::optional(1, CsvColumnDataType::String);
 
     // Invoke
     let result =
@@ -654,7 +640,7 @@ fn test_get_and_normalize_optional_present() {
 fn test_get_and_normalize_optional_missing() {
     // Setup
     let string_record = StringRecord::from(vec!["2023-10-01", "", "123.45"]); // Missing description
-    let column_info = CsvColumnInfo::new(1, CsvColumnDataType::String);
+    let column_info = CsvColumnInfo::optional(1, CsvColumnDataType::String);
 
     // Invoke
     // Tag is an optional role, so it should still pass
@@ -680,11 +666,7 @@ fn test_get_and_normalize_whitespace_normalization() {
     // Setup
     let string_record =
         StringRecord::from(vec!["2023-10-01", "   Test   Description   ", "123.45"]);
-    let column_info = CsvColumnInfo {
-        index: 1,
-        data_type: CsvColumnDataType::String,
-        is_required: true,
-    };
+    let column_info = CsvColumnInfo::required(1, CsvColumnDataType::String);
 
     // Invoke
     let result =
@@ -727,15 +709,15 @@ fn test_parse_record_with_inversed_amount() {
         &[
             (
                 CsvColumnRole::Date,
-                CsvColumnInfo::new(0, CsvColumnDataType::DateObject("%Y-%m-%d")),
+                CsvColumnInfo::required(0, CsvColumnDataType::DateObject("%Y-%m-%d")),
             ),
             (
                 CsvColumnRole::Description,
-                CsvColumnInfo::new(1, CsvColumnDataType::String),
+                CsvColumnInfo::required(1, CsvColumnDataType::String),
             ),
             (
                 CsvColumnRole::Amount,
-                CsvColumnInfo::new(2, CsvColumnDataType::Float(&INVERSED)),
+                CsvColumnInfo::required(2, CsvColumnDataType::Float(&INVERSED)),
             ),
         ],
     );

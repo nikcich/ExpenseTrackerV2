@@ -141,17 +141,24 @@ pub enum CsvColumnDataType {
 
 #[derive(Debug, Clone, Copy)]
 pub struct CsvColumnInfo {
-    pub index: u8,
-    pub data_type: CsvColumnDataType,
-    pub is_required: bool,
+    index: u8,
+    data_type: CsvColumnDataType,
+    is_required: bool,
 }
 
 impl CsvColumnInfo {
-    pub fn new(index: u8, data_type: CsvColumnDataType) -> Self {
+    pub fn optional(index: u8, data_type: CsvColumnDataType) -> Self {
         return Self {
             index: index,
             data_type: data_type,
             is_required: false,
+        };
+    }
+    pub fn required(index: u8, data_type: CsvColumnDataType) -> Self {
+        return Self {
+            index: index,
+            data_type: data_type,
+            is_required: true,
         };
     }
 }
@@ -173,16 +180,7 @@ impl CsvDefinition {
         expected_columns: &[(CsvColumnRole, CsvColumnInfo)],
     ) -> Self {
         let mut map = HashMap::new();
-        for &(role, mut col_info) in expected_columns {
-            match role {
-                // Any of the following roles will be treated as mandatory while parsing (cannot be empty string)
-                CsvColumnRole::Amount
-                | CsvColumnRole::Date
-                | CsvColumnRole::Description
-                | CsvColumnRole::Currency => col_info.is_required = true,
-                _ => {}
-            }
-
+        for &(role, col_info) in expected_columns {
             map.insert(role, col_info);
         }
         return Self {
@@ -323,19 +321,19 @@ pub fn build_definitions() -> HashMap<CsvDefinitionKey, CsvDefinition> {
             &[
                 (
                     CsvColumnRole::Date,
-                    CsvColumnInfo::new(1, CsvColumnDataType::DateObject("%m/%d/%Y")),
+                    CsvColumnInfo::required(1, CsvColumnDataType::DateObject("%m/%d/%Y")),
                 ),
                 (
                     CsvColumnRole::Description,
-                    CsvColumnInfo::new(2, CsvColumnDataType::String),
+                    CsvColumnInfo::required(2, CsvColumnDataType::String),
                 ),
                 (
                     CsvColumnRole::Amount,
-                    CsvColumnInfo::new(3, CsvColumnDataType::Float(&STANDARD)),
+                    CsvColumnInfo::required(3, CsvColumnDataType::Float(&STANDARD)),
                 ),
                 (
                     CsvColumnRole::Tag,
-                    CsvColumnInfo::new(0, CsvColumnDataType::String),
+                    CsvColumnInfo::required(0, CsvColumnDataType::String),
                 ),
             ],
         ),
@@ -349,15 +347,15 @@ pub fn build_definitions() -> HashMap<CsvDefinitionKey, CsvDefinition> {
             &[
                 (
                     CsvColumnRole::Date,
-                    CsvColumnInfo::new(0, CsvColumnDataType::DateObject("%m/%d/%Y")),
+                    CsvColumnInfo::required(0, CsvColumnDataType::DateObject("%m/%d/%Y")),
                 ),
                 (
                     CsvColumnRole::Amount,
-                    CsvColumnInfo::new(1, CsvColumnDataType::Float(&INVERSED)),
+                    CsvColumnInfo::required(1, CsvColumnDataType::Float(&INVERSED)),
                 ),
                 (
                     CsvColumnRole::Description,
-                    CsvColumnInfo::new(4, CsvColumnDataType::String),
+                    CsvColumnInfo::required(4, CsvColumnDataType::String),
                 ),
             ],
         ),
@@ -371,15 +369,15 @@ pub fn build_definitions() -> HashMap<CsvDefinitionKey, CsvDefinition> {
             &[
                 (
                     CsvColumnRole::Date,
-                    CsvColumnInfo::new(0, CsvColumnDataType::DateObject("%m/%d/%Y")),
+                    CsvColumnInfo::required(0, CsvColumnDataType::DateObject("%m/%d/%Y")),
                 ),
                 (
                     CsvColumnRole::Description,
-                    CsvColumnInfo::new(1, CsvColumnDataType::String),
+                    CsvColumnInfo::required(1, CsvColumnDataType::String),
                 ),
                 (
                     CsvColumnRole::Amount,
-                    CsvColumnInfo::new(2, CsvColumnDataType::Float(&STANDARD)),
+                    CsvColumnInfo::required(2, CsvColumnDataType::Float(&STANDARD)),
                 ),
             ],
         ),
@@ -393,15 +391,15 @@ pub fn build_definitions() -> HashMap<CsvDefinitionKey, CsvDefinition> {
             &[
                 (
                     CsvColumnRole::Description,
-                    CsvColumnInfo::new(1, CsvColumnDataType::String),
+                    CsvColumnInfo::required(1, CsvColumnDataType::String),
                 ),
                 (
                     CsvColumnRole::Date,
-                    CsvColumnInfo::new(2, CsvColumnDataType::DateObject("%m/%d/%Y")),
+                    CsvColumnInfo::required(2, CsvColumnDataType::DateObject("%m/%d/%Y")),
                 ),
                 (
                     CsvColumnRole::Amount,
-                    CsvColumnInfo::new(4, CsvColumnDataType::Float(&STANDARD)),
+                    CsvColumnInfo::required(4, CsvColumnDataType::Float(&STANDARD)),
                 ),
             ],
         ),
