@@ -582,7 +582,7 @@ fn test_parse_record_with_optional_amount_and_credit() {
     )
     .add_meta_data_column(
         CsvColumnRole::CreditAmount,
-        CsvColumnInfo::optional_content(3, CsvColumnDataType::Float(&STANDARD)),
+        CsvColumnInfo::optional_content(3, CsvColumnDataType::Float(&INVERSED)),
     );
 
     let string_record = StringRecord::from(vec![

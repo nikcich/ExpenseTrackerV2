@@ -71,7 +71,7 @@ impl CsvColumnRole {
         }
     }
 
-    pub fn handle(
+    pub fn handle_parsed_str(
         self,
         expense: &mut Expense,
         string_record: &StringRecord,
@@ -99,12 +99,14 @@ impl CsvColumnRole {
                 // Special handling for optional amount in conjunction with credit column
                 if !current_column_info.is_required {
                     if let Some(credit_column_info) = meta_data_columns.get(&CsvColumnRole::CreditAmount) {
-                        if let Ok(Some(credit_str)) = Self::get_and_normalize(CsvColumnRole::CreditAmount, &string_record, credit_column_info) {
-                            if let Ok(ParsedValue::Float(credit)) = cast_raw_value(&credit_str, credit_column_info) {
-                                // Credit is treated as a negative amount
-                                total_amount = -credit;
+                        credit_column_info.clone().with_temporary_required_state(|credit_info| {
+                            if let Ok(Some(credit_str)) = Self::get_and_normalize(CsvColumnRole::CreditAmount, &string_record, credit_info) {
+                                if let Ok(ParsedValue::Float(credit)) = cast_raw_value(&credit_str, credit_info) {
+                                    // Credit is treated as a negative amount (no negative sign here because credit amount is inversed)
+                                    total_amount = credit;
+                                }
                             }
-                        }
+                        });
                     }
                 }
 
@@ -274,7 +276,7 @@ impl CsvParser for CsvDefinition {
         // Parse columns in record
         for (role, column_info) in self.expected_columns.iter() {
             let result_parsed =
-                role.handle(&mut expense, record, column_info, &self.meta_data_columns);
+                role.handle_parsed_str(&mut expense, record, column_info, &self.meta_data_columns);
 
             if column_info.is_required {
                 // Required, propagate any error
@@ -479,7 +481,9 @@ pub fn build_definitions() -> HashMap<CsvDefinitionKey, CsvDefinition> {
         )
         .add_meta_data_column(
             CsvColumnRole::CreditDebit,
-            CsvColumnInfo::required_content(3, CsvColumnDataType::String),
+            CsvColumnInfo::required_content(3, CsvColumnDataType::String)
+                .add_argument("Credit".to_string())
+                .add_argument("Debit".to_string()),
         ),
     );
 
