@@ -6,17 +6,10 @@ use serde::Serialize;
 pub enum Status {
     Ok = 200,
     Created = 201,
-    Accepted = 202,
     Found = 302,
-    BadRequest = 400,
-    Unauthorized = 401,
-    Forbidden = 403,
     NotFound = 404,
-    MethodNotAllowed = 405,
-    RequestTimeout = 408,
     Conflict = 409,
     Error = 500,
-    InsufficientStorage = 507,
 }
 
 impl Serialize for Status {
@@ -44,16 +37,6 @@ impl Response {
             header,
             message: serde_json::to_value(message)
                 .expect("serialization to serde_json::Value failed"),
-        }
-    }
-
-    // Explicit constructor specifically for serde_json::Value to avoid duplication of to_value
-    // Usually used for Stores or any form of data that already uses serde_json::Value
-    pub fn serde_value(status: Status, header: String, message: serde_json::Value) -> Self {
-        Response {
-            status,
-            header,
-            message,
         }
     }
 

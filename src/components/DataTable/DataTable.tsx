@@ -1,5 +1,5 @@
 import { Button, Input } from "@chakra-ui/react";
-import { memo, useCallback, useMemo, useRef, useState } from "react";
+import { memo, useCallback, useMemo, useState } from "react";
 import { API, Expense, NonExpenseTags, Response, Tag } from "@/types/types";
 import { BrushScrubber } from "../Brush/BrushScrubber";
 import { GenericPage } from "../GenericPage/GenericPage";
@@ -40,7 +40,7 @@ type SortDirection = "asc" | "desc";
 const compareDates = (
   date1: string,
   date2: string,
-  order: SortDirection
+  order: SortDirection,
 ): number => {
   const date1Obj = new Date(date1);
   const date2Obj = new Date(date2);
@@ -66,7 +66,7 @@ export const DataTable = ({ items }: { items: Expense[] }) => {
 
   const filteredItems = useMemo(() => {
     return items.filter((item) =>
-      item.description.toLowerCase().includes(searchString.toLowerCase())
+      item.description.toLowerCase().includes(searchString.toLowerCase()),
     );
   }, [items, searchString]);
 
@@ -308,7 +308,7 @@ const CoreTable = memo(({ items }: { items: Expense[] }) => {
                       setSelection((prev) =>
                         e.target.checked
                           ? [...prev, item.id]
-                          : prev.filter((x) => x !== item.id)
+                          : prev.filter((x) => x !== item.id),
                       )
                     }
                   />

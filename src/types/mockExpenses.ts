@@ -17,7 +17,7 @@ const ALL_TAGS: Tag[] = [
 const generateSampleData = (
   startDate: Date,
   endDate: Date,
-  totalExpenses: number
+  totalExpenses: number,
 ): StoreExpenseMap => {
   const sampleData: StoreExpenseMap = {};
 
@@ -52,6 +52,6 @@ const generateSampleData = (
 
 export const MOCK_EXPENSES: StoreExpenseMap = generateSampleData(
   new Date("2025-01-01"),
-  new Date("2025-12-31"),
-  10
+  new Date("2026-12-31"),
+  300,
 );
