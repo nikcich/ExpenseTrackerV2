@@ -225,9 +225,6 @@ fn test_validate_and_parse_float_zero() {
 
 #[test]
 fn test_validate_and_parse_float_empty_string_not_required() {
-    // Setup
-    let expected = ParsedValue::Float(0.0);
-
     // Invoke
     let result = cast_raw_value(
         "",
@@ -235,8 +232,15 @@ fn test_validate_and_parse_float_empty_string_not_required() {
     );
 
     // Analysis
-    assert!(result.is_ok(), "Expected validation to succeed");
-    assert_eq!(result.unwrap(), expected);
+    assert!(
+        result.is_ok(),
+        "Expected validation to be ok still since it is a NaN"
+    );
+    if let Ok(ParsedValue::Float(val)) = result {
+        assert!(val.is_nan());
+    } else {
+        panic!("Expected a NaN Float");
+    }
 }
 
 #[test]
@@ -584,8 +588,61 @@ fn test_parse_record_with_optional_amount_and_credit() {
     let string_record = StringRecord::from(vec![
         "2023-10-01",       // Date
         "Test Description", // Description
-        "0.0",              // Amount (optional, zero)
+        "0.0",              // Debit (Amount is optional)
         "123.45",           // Credit
+    ]);
+
+    let expected_amount = -123.45; // Credit is counted as negative expense
+
+    // Invoke
+    let result = csv_definition.parse_record(&string_record);
+
+    // Analysis
+    assert!(
+        result.is_ok(),
+        "Expected parsing to succeed with optional amount and credit column"
+    );
+    let expense = result.unwrap();
+    assert_eq!(
+        expense.get_amount(),
+        expected_amount,
+        "Expected amount to be overridden by credit value"
+    );
+}
+
+#[test]
+fn test_parse_record_with_credit_debit() {
+    // Setup
+    let csv_definition = CsvDefinition::new(
+        "Test Definition",
+        true,
+        vec![
+            (
+                CsvColumnRole::Date,
+                CsvColumnInfo::required_content(0, CsvColumnDataType::DateObject("%Y-%m-%d")),
+            ),
+            (
+                CsvColumnRole::Description,
+                CsvColumnInfo::required_content(1, CsvColumnDataType::String),
+            ),
+            (
+                CsvColumnRole::Amount,
+                CsvColumnInfo::required_content(2, CsvColumnDataType::Float(&STANDARD)),
+            ),
+        ],
+    )
+    .add_meta_data_column(
+        CsvColumnRole::CreditDebit,
+        CsvColumnInfo::required_content(3, CsvColumnDataType::String)
+            .add_argument("Credit".to_string())
+            .add_argument("Debit".to_string()),
+    );
+
+    let string_record = StringRecord::from(vec![
+        "2023-10-01",       // Date
+        "Test Description", // Description
+        "123.45",           // Amount
+        "Credit",           // CreditDebit
     ]);
 
     let expected_amount = -123.45; // Credit is counted as negative expense

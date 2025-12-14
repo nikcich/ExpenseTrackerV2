@@ -102,7 +102,7 @@ impl CsvColumnRole {
                         if let Ok(Some(credit_str)) = Self::get_and_normalize(CsvColumnRole::CreditAmount, &string_record, credit_column_info) {
                             if let Ok(ParsedValue::Float(credit)) = cast_raw_value(&credit_str, credit_column_info) {
                                 // Credit is treated as a negative amount
-                                total_amount += -credit;
+                                total_amount = -credit;
                             }
                         }
                     }
@@ -113,8 +113,10 @@ impl CsvColumnRole {
                     if let Some(credit_column_info) = meta_data_columns.get(&CsvColumnRole::CreditDebit) {
                         if let Some(credit_raw_str) = Self::get_and_normalize(CsvColumnRole::CreditDebit, &string_record, credit_column_info)? {
                             if let Ok(ParsedValue::String(credit_str)) = cast_raw_value(&credit_raw_str, credit_column_info) {
-                                if credit_str == credit_column_info.args[0] {
-                                    total_amount = -total_amount;
+                                if let Some(expected_str) = credit_column_info.args.get(0) {
+                                    if &credit_str == expected_str {
+                                        total_amount = -total_amount;
+                                    }
                                 }
                             }
                         }
@@ -122,8 +124,8 @@ impl CsvColumnRole {
                 }
 
                 // Guard amount cannot be zero after processing
-                if current_column_info.is_required && total_amount == 0.0 {
-                    return Err("Amount encountered as zero, something went horribly wrong".into());
+                if !current_column_info.is_required && total_amount.is_nan() {
+                    return Err("Amount encountered as NaN, something went horribly wrong".into());
                 }
 
                 expense.set_amount(total_amount);
@@ -191,8 +193,9 @@ impl CsvColumnInfo {
         self.is_required = original_state; // Reset the state
     }
 
-    pub fn add_argument(&mut self, arg: String) {
+    pub fn add_argument(mut self, arg: String) -> Self {
         self.args.push(arg);
+        return self;
     }
 
     pub fn optional_content(index: u8, data_type: CsvColumnDataType) -> Self {
@@ -593,7 +596,7 @@ pub fn cast_raw_value(
             if col_info.is_required {
                 parsed = value.parse::<f64>()?;
             } else {
-                parsed = value.parse::<f64>().unwrap_or(0.0);
+                parsed = value.parse::<f64>().unwrap_or(f64::NAN);
             }
 
             if parsed.is_infinite() {
