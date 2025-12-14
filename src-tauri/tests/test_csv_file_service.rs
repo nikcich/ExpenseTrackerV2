@@ -333,6 +333,43 @@ fn test_currency_role_with_second_amount() {
 }
 
 #[test]
+fn test_currency_role_with_second_amount_empty() {
+    // Setup
+    let csv_definition = CsvDefinition::new(
+        "Currency Test",
+        true,
+        &[
+            (
+                CsvColumnRole::Amount,
+                CsvColumnInfo::new(0, CsvColumnDataType::Float(&STANDARD)),
+            ),
+            (
+                CsvColumnRole::Currency,
+                CsvColumnInfo::new(2, CsvColumnDataType::String),
+            ),
+        ],
+    )
+    .add_meta_data_column(
+        CsvColumnRole::Amount,
+        CsvColumnInfo::new(1, CsvColumnDataType::Float(&STANDARD)),
+    );
+
+    let string_record = StringRecord::from(vec!["100.0", "", "$"]);
+    let expected_amount = 100.0;
+
+    // Invoke
+    let result = csv_definition.parse_record(&string_record);
+
+    // Analysis
+    assert!(
+        result.is_ok(),
+        "Metadata is not explicitly required, the fallback will be using the first amount"
+    );
+    let expense = result.unwrap();
+    assert_eq!(expense.get_amount(), expected_amount);
+}
+
+#[test]
 fn test_currency_role_shekel_amount() {
     // Setup
     let csv_definition = CsvDefinition::new(
