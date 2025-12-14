@@ -37,7 +37,8 @@ pub fn open_csv_from_path(file: String) -> Response {
             if find_matched_definitions.is_ok() {
                 match find_matched_definitions.unwrap() {
                     Some(list_of_keys) => {
-                        return Response::ok(
+                        return Response::new(
+                            Status::Found,
                             String::from("Matching definition found"),
                             &list_of_keys,
                         );
@@ -70,15 +71,16 @@ pub fn open_csv_from_path(file: String) -> Response {
 pub fn parse_csv_from_path(
     expense_store_state: State<'_, ExpenseStore>,
     path: String,
-    csvDefinitionKey: CsvDefinitionKey,
+    csv_definition_key: CsvDefinitionKey,
 ) -> Response {
     match parse_csv_file_with_selected_definition(
         expense_store_state.inner(),
         path,
-        csvDefinitionKey,
+        csv_definition_key,
     ) {
         Ok((added_count, duplicate_count)) => {
-            return Response::ok(
+            return Response::new(
+                Status::Created,
                 String::from("CSV parsed successfully"),
                 format!(
                     "Added {} entries, ignored {} duplicate entries",
@@ -103,7 +105,8 @@ pub fn add_expense_manual(
     match expense_store_state.add_expense(expense, true) {
         Ok(added) => {
             if added {
-                return Response::ok(
+                return Response::new(
+                    Status::Created,
                     String::from("Expense added successfully"),
                     Option::<String>::None,
                 );

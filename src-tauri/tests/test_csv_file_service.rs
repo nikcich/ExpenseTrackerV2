@@ -1,7 +1,6 @@
 use chrono::NaiveDate;
 use csv::StringRecord;
 use std::collections::HashMap;
-use std::f32;
 use std::fs::File;
 use std::io::Error as IoError;
 use std::io::Write;
@@ -355,7 +354,6 @@ fn test_currency_role_with_second_amount_empty() {
     );
 
     let string_record = StringRecord::from(vec!["100.0", "", "$"]);
-    let expected_amount = 100.0;
 
     // Invoke
     let result = csv_definition.parse_record(&string_record);

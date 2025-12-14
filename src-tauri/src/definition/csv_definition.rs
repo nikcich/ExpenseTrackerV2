@@ -5,7 +5,7 @@ use mockall::automock;
 use once_cell::sync::Lazy;
 use regex::Regex;
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
+use std::collections::{BTreeMap, HashMap};
 use std::error::Error as StdError;
 
 pub const STANDARD: bool = true;
@@ -17,7 +17,8 @@ pub static CSV_DEFINITIONS: Lazy<HashMap<CsvDefinitionKey, CsvDefinition>> =
 
 /// ENUM DEFINITIONS
 
-#[derive(Debug, Hash, Eq, PartialEq, Clone, Copy)]
+#[repr(u8)]
+#[derive(Debug, Hash, Eq, PartialEq, Clone, Copy, Ord, PartialOrd)]
 pub enum CsvColumnRole {
     Date,
     Description,
@@ -167,8 +168,8 @@ impl CsvColumnInfo {
 pub struct CsvDefinition {
     name: &'static str,
     has_headers: bool,
-    // All roles in expected columns will be handled
-    expected_columns: HashMap<CsvColumnRole, CsvColumnInfo>,
+    // All roles in expected columns will be handled in their order by priority
+    expected_columns: BTreeMap<CsvColumnRole, CsvColumnInfo>,
     // Any roles in metadata will not be invoked (handler for it)
     meta_data_columns: HashMap<CsvColumnRole, CsvColumnInfo>,
 }
@@ -179,7 +180,7 @@ impl CsvDefinition {
         has_headers: bool,
         expected_columns: &[(CsvColumnRole, CsvColumnInfo)],
     ) -> Self {
-        let mut map = HashMap::new();
+        let mut map = BTreeMap::new();
         for &(role, col_info) in expected_columns {
             map.insert(role, col_info);
         }
