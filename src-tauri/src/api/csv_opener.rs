@@ -125,10 +125,7 @@ pub fn add_expense_manual(
 }
 
 #[tauri::command]
-pub fn remove_expense(
-    expense_store_state: State<'_, ExpenseStore>,
-    hash: String,
-) -> Response {
+pub fn remove_expense(expense_store_state: State<'_, ExpenseStore>, hash: String) -> Response {
     match expense_store_state.remove_expense(&hash) {
         Ok(updated) => {
             if updated {
