@@ -94,7 +94,10 @@ fn test_validate_and_parse_string_true() {
     let expected = ParsedValue::String("Hello".to_string());
 
     // Invoke
-    let result = validate_and_parse("Hello", CsvColumnDataType::String);
+    let result = validate_and_parse(
+        "Hello",
+        &CsvColumnInfo::required(0, CsvColumnDataType::String),
+    );
 
     // Analysis
     assert!(result.is_ok(), "Expected validation to succeed");
@@ -107,7 +110,10 @@ fn test_validate_and_parse_float_ok_1() {
     let expected = ParsedValue::Float(1.0);
 
     // Invoke
-    let result = validate_and_parse("1.0", CsvColumnDataType::Float(&STANDARD));
+    let result = validate_and_parse(
+        "1.0",
+        &CsvColumnInfo::required(0, CsvColumnDataType::Float(&STANDARD)),
+    );
 
     // Analysis
     assert!(result.is_ok(), "Expected validation to succeed");
@@ -120,7 +126,10 @@ fn test_validate_and_parse_float_negative() {
     let expected = ParsedValue::Float(-123.45);
 
     // Invoke
-    let result = validate_and_parse("-123.45", CsvColumnDataType::Float(&STANDARD));
+    let result = validate_and_parse(
+        "-123.45",
+        &CsvColumnInfo::required(0, CsvColumnDataType::Float(&STANDARD)),
+    );
 
     // Analysis
     assert!(result.is_ok(), "Expected validation to succeed");
@@ -134,7 +143,10 @@ fn test_validate_and_parse_float_extremely_large() {
     let expected = ParsedValue::Float(1.7976931348623157e308);
 
     // Invoke
-    let result = validate_and_parse(large_number, CsvColumnDataType::Float(&STANDARD));
+    let result = validate_and_parse(
+        large_number,
+        &CsvColumnInfo::required(0, CsvColumnDataType::Float(&STANDARD)),
+    );
 
     // Analysis
     assert!(
@@ -151,7 +163,10 @@ fn test_validate_and_parse_float_extremely_small() {
     let expected = ParsedValue::Float(2.2250738585072014e-308);
 
     // Invoke
-    let result = validate_and_parse(small_number, CsvColumnDataType::Float(&STANDARD));
+    let result = validate_and_parse(
+        small_number,
+        &CsvColumnInfo::required(0, CsvColumnDataType::Float(&STANDARD)),
+    );
 
     // Analysis
     assert!(
@@ -167,7 +182,10 @@ fn test_validate_and_parse_float_overflow() {
     let overflow_number = "1.8e308"; // Larger than f64::MAX
 
     // Invoke
-    let result = validate_and_parse(overflow_number, CsvColumnDataType::Float(&STANDARD));
+    let result = validate_and_parse(
+        overflow_number,
+        &CsvColumnInfo::required(0, CsvColumnDataType::Float(&STANDARD)),
+    );
 
     // Analysis
     assert!(result.is_err(), "Expected validation to fail for overflow");
@@ -179,7 +197,10 @@ fn test_validate_and_parse_float_inversed() {
     let expected = ParsedValue::Float(-123.45);
 
     // Invoke
-    let result = validate_and_parse("123.45", CsvColumnDataType::Float(&INVERSED));
+    let result = validate_and_parse(
+        "123.45",
+        &CsvColumnInfo::required(0, CsvColumnDataType::Float(&INVERSED)),
+    );
 
     // Analysis
     assert!(result.is_ok(), "Expected validation to succeed");
@@ -192,11 +213,44 @@ fn test_validate_and_parse_float_zero() {
     let expected = ParsedValue::Float(0.0);
 
     // Invoke
-    let result = validate_and_parse("0.0", CsvColumnDataType::Float(&STANDARD));
+    let result = validate_and_parse(
+        "0.0",
+        &CsvColumnInfo::required(0, CsvColumnDataType::Float(&STANDARD)),
+    );
 
     // Analysis
     assert!(result.is_ok(), "Expected validation to succeed");
     assert_eq!(result.unwrap(), expected);
+}
+
+#[test]
+fn test_validate_and_parse_float_empty_string_not_required() {
+    // Setup
+    let expected = ParsedValue::Float(0.0);
+
+    // Invoke
+    let result = validate_and_parse(
+        "",
+        &CsvColumnInfo::optional(0, CsvColumnDataType::Float(&STANDARD)),
+    );
+
+    // Analysis
+    assert!(result.is_ok(), "Expected validation to succeed");
+    assert_eq!(result.unwrap(), expected);
+}
+
+#[test]
+fn test_validate_and_parse_float_empty_string_required() {
+    // Setup
+
+    // Invoke
+    let result = validate_and_parse(
+        "",
+        &CsvColumnInfo::required(0, CsvColumnDataType::Float(&STANDARD)),
+    );
+
+    // Analysis
+    assert!(result.is_err(), "Expected validation to fail");
 }
 
 #[test]
@@ -205,7 +259,10 @@ fn test_validate_and_parse_float_ok_2() {
     let expected = ParsedValue::Float(1000000.0);
 
     // Invoke
-    let result = validate_and_parse("1000000.0", CsvColumnDataType::Float(&STANDARD));
+    let result = validate_and_parse(
+        "1000000.0",
+        &CsvColumnInfo::required(0, CsvColumnDataType::Float(&STANDARD)),
+    );
 
     // Analysis
     assert!(result.is_ok(), "Expected validation to succeed");
@@ -215,7 +272,10 @@ fn test_validate_and_parse_float_ok_2() {
 #[test]
 fn test_validate_and_parse_float_not_a_number() {
     // Invoke
-    let result = validate_and_parse("Boo", CsvColumnDataType::Float(&STANDARD));
+    let result = validate_and_parse(
+        "Boo",
+        &CsvColumnInfo::required(0, CsvColumnDataType::Float(&STANDARD)),
+    );
 
     // Analysis
     assert!(
@@ -235,7 +295,10 @@ fn test_validate_and_parse_date_ok_format() {
     );
 
     // Invoke
-    let result = validate_and_parse("1999-11-05", CsvColumnDataType::DateObject("%Y-%m-%d"));
+    let result = validate_and_parse(
+        "1999-11-05",
+        &CsvColumnInfo::required(0, CsvColumnDataType::DateObject("%Y-%m-%d")),
+    );
 
     // Analysis
     assert!(result.is_ok(), "Expected validation to succeed");
@@ -245,7 +308,10 @@ fn test_validate_and_parse_date_ok_format() {
 #[test]
 fn test_validate_and_parse_date_invalid_format_2() {
     // Invoke
-    let result = validate_and_parse("1999/11/05", CsvColumnDataType::DateObject("%Y-%m-%d"));
+    let result = validate_and_parse(
+        "1999/11/05",
+        &CsvColumnInfo::required(0, CsvColumnDataType::DateObject("%Y-%m-%d")),
+    );
 
     // Analysis
     assert!(
@@ -257,7 +323,10 @@ fn test_validate_and_parse_date_invalid_format_2() {
 #[test]
 fn test_validate_and_parse_date_invalid() {
     // Invoke
-    let result = validate_and_parse("Boo", CsvColumnDataType::DateObject("%Y-%m-%d"));
+    let result = validate_and_parse(
+        "Boo",
+        &CsvColumnInfo::required(0, CsvColumnDataType::DateObject("%Y-%m-%d")),
+    );
 
     // Analysis
     assert!(

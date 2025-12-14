@@ -25,6 +25,7 @@ pub enum CsvColumnRole {
     Amount,
     Tag,
     Currency,
+    Credit,
 }
 
 impl CsvColumnRole {
@@ -73,17 +74,17 @@ impl CsvColumnRole {
         self,
         expense: &mut Expense,
         string_record: &StringRecord,
-        column_info: &CsvColumnInfo,
+        current_column_info: &CsvColumnInfo,
         csv_definition: &CsvDefinition,
     ) -> Result<(), Box<dyn StdError>> {
         // Fetch and normalize the value
-        let value = match Self::get_and_normalize(self, string_record, column_info)? {
+        let value = match Self::get_and_normalize(self, string_record, current_column_info)? {
             Some(val) => val,
             None => return Ok(()), // Skip if the value is optional and not present
         };
 
         // Validate and parse the value
-        let parsed_value = validate_and_parse(&value, column_info.data_type)?;
+        let parsed_value: ParsedValue = validate_and_parse(&value, &current_column_info)?;
 
         // Process the parsed value based on the role
         match (self, parsed_value) {
@@ -94,6 +95,18 @@ impl CsvColumnRole {
                 expense.set_description(&description);
             }
             (CsvColumnRole::Amount, ParsedValue::Float(amount)) => {
+
+                // Special handling for optional amount
+                if !current_column_info.is_required {
+                    // Amount was optional, we may want to check the metadata for credit values
+                    if let Some(credit_column) = csv_definition.meta_data_columns.get(&CsvColumnRole::Credit) {
+                        if let Ok(ParsedValue::Float(credit)) = validate_and_parse(&value, &credit_column) {
+                            expense.set_amount(amount + credit);
+                            return Ok(());
+                        }
+                    }
+                }
+
                 expense.set_amount(amount);
             }
             (CsvColumnRole::Tag, ParsedValue::String(tag)) => {
@@ -118,7 +131,7 @@ impl CsvColumnRole {
                         // Parse the second amount value
                         if let Ok(ParsedValue::Float(second_amount)) = validate_and_parse(
                             &second_amount_str,
-                            second_amount_column_definition.data_type,
+                            &second_amount_column_definition,
                         ) {
                             // Override the original amount with the second amount
                             expense.set_amount(second_amount);
@@ -281,7 +294,7 @@ impl CsvValidator for CsvDefinition {
             }
 
             // Lastly, validate by parsing the value (casting it)
-            if let Err(_) = validate_and_parse(raw_value.unwrap(), col_info.data_type) {
+            if let Err(_) = validate_and_parse(raw_value.unwrap(), &col_info) {
                 return false; // Validation failed
             }
 
@@ -318,6 +331,9 @@ pub enum CsvDefinitionKey {
     CapitalOne,
     Amex,
     ExpenseTrackerV1,
+    CapitalOneSavorOne,
+    BankLeumi,
+    Max,
 }
 
 /// Helper function that builds a column map from a list of (role, index, datatype) pairs.
@@ -426,6 +442,80 @@ pub fn build_definitions() -> HashMap<CsvDefinitionKey, CsvDefinition> {
         ),
     );
 
+    map.insert(
+        CsvDefinitionKey::CapitalOneSavorOne,
+        CsvDefinition::new(
+            "Capital One Savor One Spending Report",
+            true,
+            &[
+                (
+                    CsvColumnRole::Date,
+                    CsvColumnInfo::required(0, CsvColumnDataType::DateObject("%Y-%m-%d")),
+                ),
+                (
+                    CsvColumnRole::Description,
+                    CsvColumnInfo::required(3, CsvColumnDataType::String),
+                ),
+                (
+                    CsvColumnRole::Amount,
+                    CsvColumnInfo::optional(5, CsvColumnDataType::Float(&STANDARD)),
+                ),
+            ],
+        )
+        .add_meta_data_column(
+            CsvColumnRole::Credit,
+            CsvColumnInfo::optional(6, CsvColumnDataType::Float(&INVERSED)),
+        ),
+    );
+
+    map.insert(
+        CsvDefinitionKey::BankLeumi,
+        CsvDefinition::new(
+            "Bank Leumi Spending Report",
+            true,
+            &[
+                (
+                    CsvColumnRole::Description,
+                    CsvColumnInfo::required(1, CsvColumnDataType::String),
+                ),
+                (
+                    CsvColumnRole::Date,
+                    CsvColumnInfo::required(2, CsvColumnDataType::DateObject("%m/%d/%Y")),
+                ),
+                (
+                    CsvColumnRole::Amount,
+                    CsvColumnInfo::optional(3, CsvColumnDataType::Float(&STANDARD)),
+                ),
+            ],
+        )
+        .add_meta_data_column(
+            CsvColumnRole::Credit,
+            CsvColumnInfo::optional(4, CsvColumnDataType::Float(&INVERSED)),
+        ),
+    );
+
+    map.insert(
+        CsvDefinitionKey::Max,
+        CsvDefinition::new(
+            "Max Spending Report",
+            true,
+            &[
+                (
+                    CsvColumnRole::Description,
+                    CsvColumnInfo::required(1, CsvColumnDataType::String),
+                ),
+                (
+                    CsvColumnRole::Date,
+                    CsvColumnInfo::required(2, CsvColumnDataType::DateObject("%m/%d/%Y")),
+                ),
+                (
+                    CsvColumnRole::Amount,
+                    CsvColumnInfo::required(4, CsvColumnDataType::Float(&STANDARD)),
+                ),
+            ],
+        ),
+    );
+
     return map;
 }
 
@@ -447,12 +537,19 @@ pub enum ParsedValue {
 /// - `bool`: True if the cast is successful, false otherwise.
 pub fn validate_and_parse(
     value: &str,
-    data_type: CsvColumnDataType,
+    col_info: &CsvColumnInfo,
 ) -> Result<ParsedValue, Box<dyn StdError>> {
-    match data_type {
+    match col_info.data_type {
         CsvColumnDataType::String => Ok(ParsedValue::String(value.to_string())),
         CsvColumnDataType::Float(is_standard) => {
-            let mut parsed = value.parse::<f64>()?;
+            let mut parsed;
+
+            if col_info.is_required {
+                parsed = value.parse::<f64>()?;
+            } else {
+                parsed = value.parse::<f64>().unwrap_or(0.0);
+            }
+
             if parsed.is_infinite() {
                 return Err("Overflow: value is too large to be represented as f64".into());
             }
