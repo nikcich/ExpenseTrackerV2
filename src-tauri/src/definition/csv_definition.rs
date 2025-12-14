@@ -26,24 +26,24 @@ pub enum CsvColumnRole {
 }
 
 impl CsvColumnRole {
-    /// Generalized function to fetch and normalize a value from a `StringRecord`.
-    /// If `is_required` is true, it ensures the value is present and not empty.
-    fn get_and_normalize<'a>(
+    /// Fetches and normalizes a value from a `StringRecord`.
+    /// Uses `column_info.is_required` to determine whether missing or empty values are errors.
+    /// Returns `Ok(Some(normalized))` if present, `Ok(None)` if optional and missing/empty,
+    /// or `Err` if required and missing/empty.
+    pub fn get_and_normalize<'a>(
         role_type: Self,
         string_record: &'a StringRecord,
         column_info: &CsvColumnInfo,
-        is_required: bool,
     ) -> Result<Option<String>, Box<dyn StdError>> {
         // Fetch the value from the StringRecord
         let value = string_record.get(column_info.index as usize);
 
         match value {
             Some(val) => {
-                // Normalize the value
                 let normalized = normalize(val);
 
-                // If the column is required, ensure the normalized value is not empty
-                if is_required && normalized.is_empty() {
+                // Check for required column
+                if column_info.is_required && normalized.is_empty() {
                     return Err(format!(
                         "Column value is an empty string for required role {:?}",
                         role_type
@@ -51,47 +51,19 @@ impl CsvColumnRole {
                     .into());
                 }
 
-                // Return the normalized value wrapped in Some
                 Ok(Some(normalized))
             }
             None => {
-                // If the column is required, propagate an error
-                if is_required {
+                if column_info.is_required {
                     Err(format!(
                         "Missing column in CSV record for required role {:?}",
                         role_type
                     )
                     .into())
                 } else {
-                    // For optional columns, return None
                     Ok(None)
                 }
             }
-        }
-    }
-
-    /// Fetches and normalizes a required value from a `StringRecord`.
-    /// Ensures the value is present and not empty.
-    fn get_required_and_normalize<'a>(
-        role_type: Self,
-        string_record: &'a StringRecord,
-        column_info: &CsvColumnInfo,
-    ) -> Result<String, Box<dyn StdError>> {
-        Self::get_and_normalize(role_type, string_record, column_info, true)?
-            .ok_or_else(|| format!("Unexpected None for required role {:?}", role_type).into())
-    }
-
-    /// Fetches and normalizes an optional value from a `StringRecord`.
-    /// Returns `None` if the value is not present or empty.
-    fn get_optional_and_normalize<'a>(
-        role_type: Self,
-        string_record: &'a StringRecord,
-        column_info: &CsvColumnInfo,
-    ) -> Option<String> {
-        match Self::get_and_normalize(role_type, string_record, column_info, false) {
-            Ok(normalized_option) => return normalized_option,
-            // Errors are ignored and treated as None
-            Err(_) => None,
         }
     }
 
@@ -105,44 +77,48 @@ impl CsvColumnRole {
             // REQUIRED roles below, error is propagated
             CsvColumnRole::Date => {
                 if let CsvColumnDataType::DateObject(format) = column_info.data_type {
-                    let normalized_str_from_record =
-                        Self::get_required_and_normalize(self, string_record, column_info)?;
+                    if let Some(normalized) =
+                        Self::get_and_normalize(self, string_record, column_info)?
+                    {
+                        let date = NaiveDate::parse_from_str(&normalized, format)?
+                            .and_hms_opt(0, 0, 0)
+                            .ok_or("Failed to create datetime")?;
+                        expense.set_date(date);
+                    }
 
-                    let date = NaiveDate::parse_from_str(&normalized_str_from_record, format)?
-                        .and_hms_opt(0, 0, 0)
-                        .ok_or("Failed to create datetime")?;
-                    expense.set_date(date);
                     return Ok(());
                 }
                 return Err("Date column must have DateObject format specified".into());
             }
             CsvColumnRole::Description => {
-                let normalized_str_from_record =
-                    Self::get_required_and_normalize(self, string_record, column_info)?;
-
-                expense.set_description(&normalized_str_from_record);
+                if let Some(normalized) = Self::get_and_normalize(self, string_record, column_info)?
+                {
+                    expense.set_description(&normalized);
+                }
                 return Ok(());
             }
             CsvColumnRole::Amount => {
-                let normalized_str_from_record =
-                    Self::get_required_and_normalize(self, string_record, column_info)?;
+                if let Some(normalized) = Self::get_and_normalize(self, string_record, column_info)?
+                {
+                    let mut amount = normalized.parse::<f64>()?;
 
-                let mut amount = normalized_str_from_record.parse::<f64>()?;
-
-                // Check if the amount column is inverted
-                if let CsvColumnDataType::Float(is_standard) = column_info.data_type {
-                    if !*is_standard {
-                        amount = -amount;
+                    // Check if the amount column is inverted
+                    if let CsvColumnDataType::Float(is_standard) = column_info.data_type {
+                        if !*is_standard {
+                            amount = -amount;
+                        }
                     }
+
+                    expense.set_amount(amount);
                 }
-                expense.set_amount(amount);
+
                 return Ok(());
             }
 
             // OPTIONAL ROLES below no error is propagated
             CsvColumnRole::Tag => {
-                if let Some(normalized) =
-                    Self::get_optional_and_normalize(self, string_record, column_info)
+                if let Ok(Some(normalized)) =
+                    Self::get_and_normalize(self, string_record, column_info)
                 {
                     if !normalized.is_empty() {
                         expense.add_tag(&normalized);
@@ -166,37 +142,48 @@ pub enum CsvColumnDataType {
 pub struct CsvColumnInfo {
     pub index: u8,
     pub data_type: CsvColumnDataType,
+    pub is_required: bool,
+}
+
+impl CsvColumnInfo {
+    pub fn new(index: u8, data_type: CsvColumnDataType) -> Self {
+        return Self {
+            index: index,
+            data_type: data_type,
+            is_required: false,
+        };
+    }
 }
 
 #[derive(Debug, Clone)]
 pub struct CsvDefinition {
     name: &'static str,
     has_headers: bool,
-    required_columns: HashMap<CsvColumnRole, CsvColumnInfo>,
-    optional_columns: HashMap<CsvColumnRole, CsvColumnInfo>,
+    expected_columns: HashMap<CsvColumnRole, CsvColumnInfo>,
 }
 
 impl CsvDefinition {
     pub fn new(
         name: &'static str,
         has_headers: bool,
-        required_columns: &[(CsvColumnRole, CsvColumnInfo)],
+        expected_columns: &[(CsvColumnRole, CsvColumnInfo)],
     ) -> Self {
         let mut map = HashMap::new();
-        for &(role, col_info) in required_columns {
+        for &(role, mut col_info) in expected_columns {
+            match role {
+                CsvColumnRole::Amount | CsvColumnRole::Date | CsvColumnRole::Description => {
+                    col_info.is_required = true
+                }
+                _ => {}
+            }
+
             map.insert(role, col_info);
         }
         return Self {
             name,
             has_headers,
-            required_columns: map,
-            optional_columns: HashMap::new(),
+            expected_columns: map,
         };
-    }
-
-    pub fn add_optional_column(mut self, role: CsvColumnRole, info: CsvColumnInfo) -> Self {
-        self.optional_columns.insert(role, info);
-        return self;
     }
 
     pub fn get_name(&self) -> &str {
@@ -224,22 +211,18 @@ impl CsvParser for CsvDefinition {
     fn parse_record(&self, record: &StringRecord) -> Result<Expense, Box<dyn StdError>> {
         let mut expense = Expense::default();
 
-        // Parse REQUIRED columns in record
-        for (role, column_info) in self.required_columns.iter() {
-            role.handle(&mut expense, record, &column_info)?;
-        }
+        // Parse columns in record
+        for (role, column_info) in self.expected_columns.iter() {
+            let result_parsed = role.handle(&mut expense, record, column_info);
 
-        // Parse OPTIONAL columns in record
-        if !self.optional_columns.is_empty() {
-            for (role, info) in self.optional_columns.iter() {
-                match role.handle(&mut expense, record, &info) {
-                    // Ignore any errors
-                    Err(_) => continue,
-                    _ => {}
-                }
+            if column_info.is_required {
+                // Required, propagate any error
+                result_parsed?;
+            } else {
+                // Optional, ignore error
+                let _ = result_parsed;
             }
         }
-
         return Ok(expense);
     }
 }
@@ -265,7 +248,12 @@ pub trait CsvValidator {
 impl CsvValidator for CsvDefinition {
     fn validate_against_record(&self, record: &StringRecord) -> bool {
         // Iterate over expected columns
-        for (_role, col_info) in &self.required_columns {
+        for (_role, col_info) in &self.expected_columns {
+            // If the column info is not required, then we can ignore it
+            if !col_info.is_required {
+                continue;
+            }
+
             let index = col_info.index as usize;
 
             // Check if the record has a value at this index
@@ -328,33 +316,21 @@ pub fn build_definitions() -> HashMap<CsvDefinitionKey, CsvDefinition> {
             &[
                 (
                     CsvColumnRole::Date,
-                    CsvColumnInfo {
-                        index: 1,
-                        data_type: CsvColumnDataType::DateObject("%m/%d/%Y"),
-                    },
+                    CsvColumnInfo::new(1, CsvColumnDataType::DateObject("%m/%d/%Y")),
                 ),
                 (
                     CsvColumnRole::Description,
-                    CsvColumnInfo {
-                        index: 2,
-                        data_type: CsvColumnDataType::String,
-                    },
+                    CsvColumnInfo::new(2, CsvColumnDataType::String),
                 ),
                 (
                     CsvColumnRole::Amount,
-                    CsvColumnInfo {
-                        index: 3,
-                        data_type: CsvColumnDataType::Float(&STANDARD),
-                    },
+                    CsvColumnInfo::new(3, CsvColumnDataType::Float(&STANDARD)),
+                ),
+                (
+                    CsvColumnRole::Tag,
+                    CsvColumnInfo::new(0, CsvColumnDataType::String),
                 ),
             ],
-        )
-        .add_optional_column(
-            CsvColumnRole::Tag,
-            CsvColumnInfo {
-                index: 0,
-                data_type: CsvColumnDataType::String,
-            },
         ),
     );
 
@@ -366,24 +342,15 @@ pub fn build_definitions() -> HashMap<CsvDefinitionKey, CsvDefinition> {
             &[
                 (
                     CsvColumnRole::Date,
-                    CsvColumnInfo {
-                        index: 0,
-                        data_type: CsvColumnDataType::DateObject("%m/%d/%Y"),
-                    },
+                    CsvColumnInfo::new(0, CsvColumnDataType::DateObject("%m/%d/%Y")),
                 ),
                 (
                     CsvColumnRole::Amount,
-                    CsvColumnInfo {
-                        index: 1,
-                        data_type: CsvColumnDataType::Float(&INVERSED),
-                    },
+                    CsvColumnInfo::new(1, CsvColumnDataType::Float(&INVERSED)),
                 ),
                 (
                     CsvColumnRole::Description,
-                    CsvColumnInfo {
-                        index: 4,
-                        data_type: CsvColumnDataType::String,
-                    },
+                    CsvColumnInfo::new(4, CsvColumnDataType::String),
                 ),
             ],
         ),
@@ -397,24 +364,15 @@ pub fn build_definitions() -> HashMap<CsvDefinitionKey, CsvDefinition> {
             &[
                 (
                     CsvColumnRole::Date,
-                    CsvColumnInfo {
-                        index: 0,
-                        data_type: CsvColumnDataType::DateObject("%m/%d/%Y"),
-                    },
+                    CsvColumnInfo::new(0, CsvColumnDataType::DateObject("%m/%d/%Y")),
                 ),
                 (
                     CsvColumnRole::Description,
-                    CsvColumnInfo {
-                        index: 1,
-                        data_type: CsvColumnDataType::String,
-                    },
+                    CsvColumnInfo::new(1, CsvColumnDataType::String),
                 ),
                 (
                     CsvColumnRole::Amount,
-                    CsvColumnInfo {
-                        index: 2,
-                        data_type: CsvColumnDataType::Float(&STANDARD),
-                    },
+                    CsvColumnInfo::new(2, CsvColumnDataType::Float(&STANDARD)),
                 ),
             ],
         ),
@@ -428,24 +386,15 @@ pub fn build_definitions() -> HashMap<CsvDefinitionKey, CsvDefinition> {
             &[
                 (
                     CsvColumnRole::Description,
-                    CsvColumnInfo {
-                        index: 1,
-                        data_type: CsvColumnDataType::String,
-                    },
+                    CsvColumnInfo::new(1, CsvColumnDataType::String),
                 ),
                 (
                     CsvColumnRole::Date,
-                    CsvColumnInfo {
-                        index: 2,
-                        data_type: CsvColumnDataType::DateObject("%m/%d/%Y"),
-                    },
+                    CsvColumnInfo::new(2, CsvColumnDataType::DateObject("%m/%d/%Y")),
                 ),
                 (
                     CsvColumnRole::Amount,
-                    CsvColumnInfo {
-                        index: 4,
-                        data_type: CsvColumnDataType::Float(&STANDARD),
-                    },
+                    CsvColumnInfo::new(4, CsvColumnDataType::Float(&STANDARD)),
                 ),
             ],
         ),

@@ -28,24 +28,20 @@ fn setup_csv_definition_for_test() -> CsvDefinition {
         &[
             (
                 CsvColumnRole::Date,
-                CsvColumnInfo {
-                    index: 0,
-                    data_type: CsvColumnDataType::DateObject("%Y-%m-%d"),
-                },
+                CsvColumnInfo::new(0, CsvColumnDataType::DateObject("%Y-%m-%d")),
             ),
             (
                 CsvColumnRole::Description,
-                CsvColumnInfo {
-                    index: 1,
-                    data_type: CsvColumnDataType::String,
-                },
+                CsvColumnInfo::new(1, CsvColumnDataType::String),
             ),
             (
                 CsvColumnRole::Amount,
-                CsvColumnInfo {
-                    index: 2,
-                    data_type: CsvColumnDataType::Float(&STANDARD),
-                },
+                CsvColumnInfo::new(2, CsvColumnDataType::Float(&STANDARD)),
+            ),
+            // Optional Role for test
+            (
+                CsvColumnRole::Tag,
+                CsvColumnInfo::new(3, CsvColumnDataType::String),
             ),
         ],
     );
@@ -365,14 +361,7 @@ fn test_parse_record_with_invalid_amount() {
 #[test]
 fn test_parse_record_with_optional_field() {
     // Setup
-    let mut csv_definition = setup_csv_definition_for_test();
-    csv_definition = csv_definition.add_optional_column(
-        CsvColumnRole::Tag,
-        CsvColumnInfo {
-            index: 3,
-            data_type: CsvColumnDataType::String,
-        },
-    );
+    let csv_definition = setup_csv_definition_for_test();
     let string_record = StringRecord::from(vec![
         "2023-10-01",
         "Test Description",
@@ -392,6 +381,130 @@ fn test_parse_record_with_optional_field() {
     let expense = result.unwrap();
     assert!(expense.get_tags().len() == 1);
     assert!(expense.get_tags().contains(&expected_tag.to_string()));
+}
+
+#[test]
+fn test_get_and_normalize_required_present() {
+    // Setup
+    let string_record = StringRecord::from(vec!["2023-10-01", "Test Description", "123.45"]);
+    let column_info = CsvColumnInfo {
+        index: 1,
+        data_type: CsvColumnDataType::String,
+        is_required: true,
+    };
+
+    // Invoke
+    let result =
+        CsvColumnRole::get_and_normalize(CsvColumnRole::Description, &string_record, &column_info);
+
+    // Analysis
+    assert!(result.is_ok(), "Expected normalization to succeed");
+    assert_eq!(result.unwrap().unwrap(), "Test Description".to_string());
+}
+
+#[test]
+fn test_get_and_normalize_required_missing() {
+    // Setup
+    let string_record = StringRecord::from(vec!["2023-10-01", "", "123.45"]); // Missing description
+    let column_info = CsvColumnInfo {
+        index: 1,
+        data_type: CsvColumnDataType::String,
+        is_required: true,
+    };
+
+    // Invoke
+    let result =
+        CsvColumnRole::get_and_normalize(CsvColumnRole::Description, &string_record, &column_info);
+
+    // Analysis
+    assert!(
+        result.is_err(),
+        "Expected normalization to fail for missing required field"
+    );
+    assert_eq!(
+        result.unwrap_err().to_string(),
+        "Column value is an empty string for required role Description"
+    );
+}
+
+#[test]
+fn test_get_and_normalize_optional_present() {
+    // Setup
+    let string_record = StringRecord::from(vec!["2023-10-01", "Test Description", "123.45"]);
+    let column_info = CsvColumnInfo {
+        index: 1,
+        data_type: CsvColumnDataType::String,
+        is_required: false,
+    };
+
+    // Invoke
+    let result =
+        CsvColumnRole::get_and_normalize(CsvColumnRole::Description, &string_record, &column_info);
+
+    assert!(
+        result.is_ok(),
+        "The result should be an OK since it is optional"
+    );
+
+    let normalized = result.unwrap();
+
+    assert!(
+        normalized.is_some(),
+        "Expected normalization to succeed as Some"
+    );
+    assert_eq!(normalized.unwrap(), "Test Description".to_string());
+}
+
+#[test]
+fn test_get_and_normalize_optional_missing() {
+    // Setup
+    let string_record = StringRecord::from(vec!["2023-10-01", "", "123.45"]); // Missing description
+    let column_info = CsvColumnInfo::new(1, CsvColumnDataType::String);
+
+    // Invoke
+    // Tag is an optional role, so it should still pass
+    let result = CsvColumnRole::get_and_normalize(CsvColumnRole::Tag, &string_record, &column_info);
+
+    assert!(
+        result.is_ok(),
+        "The result should be an OK since it is optional"
+    );
+
+    let normalized = result.unwrap();
+
+    assert!(
+        normalized.is_some(),
+        "Expected normalization to succeed as Some"
+    );
+
+    assert_eq!(normalized.unwrap(), "".to_string());
+}
+
+#[test]
+fn test_get_and_normalize_whitespace_normalization() {
+    // Setup
+    let string_record =
+        StringRecord::from(vec!["2023-10-01", "   Test   Description   ", "123.45"]);
+    let column_info = CsvColumnInfo {
+        index: 1,
+        data_type: CsvColumnDataType::String,
+        is_required: true,
+    };
+
+    // Invoke
+    let result =
+        CsvColumnRole::get_and_normalize(CsvColumnRole::Description, &string_record, &column_info);
+
+    // Analysis
+    assert!(result.is_ok(), "Expected normalization to succeed");
+
+    let normalized = result.unwrap();
+
+    assert!(
+        normalized.is_some(),
+        "Expected normalization to succeed as Some"
+    );
+    assert_eq!(normalized.unwrap(), "Test Description".to_string());
 }
 
 #[test]
@@ -419,24 +532,15 @@ fn test_parse_record_with_inversed_amount() {
         &[
             (
                 CsvColumnRole::Date,
-                CsvColumnInfo {
-                    index: 0,
-                    data_type: CsvColumnDataType::DateObject("%Y-%m-%d"),
-                },
+                CsvColumnInfo::new(0, CsvColumnDataType::DateObject("%Y-%m-%d")),
             ),
             (
                 CsvColumnRole::Description,
-                CsvColumnInfo {
-                    index: 1,
-                    data_type: CsvColumnDataType::String,
-                },
+                CsvColumnInfo::new(1, CsvColumnDataType::String),
             ),
             (
                 CsvColumnRole::Amount,
-                CsvColumnInfo {
-                    index: 2,
-                    data_type: CsvColumnDataType::Float(&INVERSED),
-                },
+                CsvColumnInfo::new(2, CsvColumnDataType::Float(&INVERSED)),
             ),
         ],
     );
