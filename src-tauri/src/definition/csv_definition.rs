@@ -222,34 +222,32 @@ pub trait CsvValidator {
 impl CsvValidator for CsvDefinition {
     fn validate_against_record(&self, record: &StringRecord) -> bool {
         // Iterate over all expected columns
-        for (role, col_info) in &self.expected_columns {
+        for (_role, col_info) in &self.expected_columns {
             let index = col_info.index as usize;
 
-            // Check if the record has a value at this index
+            // Check if the index is invalid (too large for a record)
             if index >= record.len() {
-                // Missing column
-                if col_info.is_required {
-                    return false;
-                } else {
-                    continue; // Skip optional columns
-                }
+                return false;
             }
 
             // Fetch the raw value
-            let raw_value = record.get(index).map(|s| s.trim()).unwrap_or("");
-
-            // Skip empty optional columns
-            if raw_value.is_empty() && !col_info.is_required {
-                continue;
+            let raw_value = record.get(index).map(|s| s.trim());
+            if raw_value.is_none() {
+                return false;
             }
 
-            // Validate and parse the value
-            if let Err(_) = validate_and_parse(raw_value, col_info.data_type) {
+            // If the raw value for that column is required but empty string, return false
+            if raw_value.unwrap().is_empty() && col_info.is_required {
+                return false;
+            }
+
+            // Lastly, validate by parsing the value (casting it)
+            if let Err(_) = validate_and_parse(raw_value.unwrap(), col_info.data_type) {
                 return false; // Validation failed
             }
         }
 
-        true // All columns are valid
+        return true; // All columns are valid
     }
 
     fn has_header(&self) -> bool {

@@ -289,7 +289,23 @@ fn test_validate_csv_record_true() {
     let csv_definition_to_test: CsvDefinition = setup_csv_definition_for_test();
 
     let string_record_to_test: StringRecord =
-        StringRecord::from(vec!["1999-11-05", "Qball", "1.0"]);
+        StringRecord::from(vec!["1999-11-05", "Qball", "1.0", "Foo"]);
+
+    // Invoke
+    let result: bool = csv_definition_to_test.validate_against_record(&string_record_to_test);
+
+    // Analysis
+    assert_eq!(expected, result);
+}
+
+#[test]
+fn test_validate_csv_record_true_missing_optional() {
+    // Setup
+    let expected: bool = false;
+    let csv_definition_to_test: CsvDefinition = setup_csv_definition_for_test();
+
+    let string_record_to_test: StringRecord =
+        StringRecord::from(vec!["1999-11-05", "Qball", "Next Column Doesnt Have Tags"]);
 
     // Invoke
     let result: bool = csv_definition_to_test.validate_against_record(&string_record_to_test);
