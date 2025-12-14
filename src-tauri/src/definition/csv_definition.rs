@@ -475,12 +475,12 @@ pub fn build_definitions() -> HashMap<CsvDefinitionKey, CsvDefinition> {
             true,
             &[
                 (
-                    CsvColumnRole::Description,
-                    CsvColumnInfo::required(1, CsvColumnDataType::String),
+                    CsvColumnRole::Date,
+                    CsvColumnInfo::required(0, CsvColumnDataType::DateObject("%d/%m/%y")),
                 ),
                 (
-                    CsvColumnRole::Date,
-                    CsvColumnInfo::required(2, CsvColumnDataType::DateObject("%d/%m/%y")),
+                    CsvColumnRole::Description,
+                    CsvColumnInfo::required(1, CsvColumnDataType::String),
                 ),
                 (
                     CsvColumnRole::Amount,
@@ -501,20 +501,20 @@ pub fn build_definitions() -> HashMap<CsvDefinitionKey, CsvDefinition> {
             true,
             &[
                 (
+                    CsvColumnRole::Date,
+                    CsvColumnInfo::required(0, CsvColumnDataType::DateObject("%d-%m-%Y")),
+                ),
+                (
                     CsvColumnRole::Description,
                     CsvColumnInfo::required(1, CsvColumnDataType::String),
                 ),
                 (
-                    CsvColumnRole::Date,
-                    CsvColumnInfo::required(2, CsvColumnDataType::DateObject("%d-%m-%Y")),
-                ),
-                (
                     CsvColumnRole::Amount,
-                    CsvColumnInfo::required(4, CsvColumnDataType::Float(&STANDARD)),
+                    CsvColumnInfo::required(5, CsvColumnDataType::Float(&STANDARD)),
                 ),
                 (
                     CsvColumnRole::Currency,
-                    CsvColumnInfo::required(8, CsvColumnDataType::Float(&STANDARD)),
+                    CsvColumnInfo::required(8, CsvColumnDataType::String),
                 ),
             ],
         )
