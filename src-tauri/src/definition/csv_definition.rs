@@ -23,9 +23,10 @@ pub enum CsvColumnRole {
     Date,
     Description,
     Amount,
-    Tag,
-    Currency,
-    Credit,
+    Tag,          // A column that serves as the tag indicator
+    Currency,     // A column that serves as the currency indicator
+    CreditAmount, // A column that serves as the credit amount (stores the amount as a float)
+    CreditDebit, // A column that serves as the credit/debit indicator (string that says "Credit" or "Debit")
 }
 
 impl CsvColumnRole {
@@ -94,28 +95,38 @@ impl CsvColumnRole {
             (CsvColumnRole::Description, ParsedValue::String(description)) => {
                 expense.set_description(&description);
             }
-            (CsvColumnRole::Amount, ParsedValue::Float(mut amount)) => {
+            (CsvColumnRole::Amount, ParsedValue::Float(mut total_amount)) => {
                 // Special handling for optional amount in conjunction with credit column
-                if !current_column_info.is_required && amount == 0.0 {
-                    if let Some(credit_column_info) = meta_data_columns.get(&CsvColumnRole::Credit) {
-                        let mut credit_amount: Option<f64> = None;
-
-                        // Credit column is normally optional, but since we're dealing with an optional amount, we need to require credit
-                        credit_column_info.clone().with_temporary_required_state(|credit_col| {
-                            if let Ok(Some(credit_str)) = Self::get_and_normalize(CsvColumnRole::Credit, string_record, credit_col) {
-                                if let Ok(ParsedValue::Float(credit)) = cast_raw_value(&credit_str, credit_col) {
-                                    credit_amount = Some(credit);
-                                }
+                if !current_column_info.is_required {
+                    if let Some(credit_column_info) = meta_data_columns.get(&CsvColumnRole::CreditAmount) {
+                        if let Ok(Some(credit_str)) = Self::get_and_normalize(CsvColumnRole::CreditAmount, &string_record, credit_column_info) {
+                            if let Ok(ParsedValue::Float(credit)) = cast_raw_value(&credit_str, credit_column_info) {
+                                // Credit is treated as a negative amount
+                                total_amount += -credit;
                             }
-                        });
-
-                        if let Some(credit) = credit_amount {
-                            amount += credit;
                         }
                     }
                 }
 
-                expense.set_amount(amount);
+                // Handle required amount column with CreditDebit metadata column
+                if current_column_info.is_required {
+                    if let Some(credit_column_info) = meta_data_columns.get(&CsvColumnRole::CreditDebit) {
+                        if let Some(credit_raw_str) = Self::get_and_normalize(CsvColumnRole::CreditDebit, &string_record, credit_column_info)? {
+                            if let Ok(ParsedValue::String(credit_str)) = cast_raw_value(&credit_raw_str, credit_column_info) {
+                                if credit_str == credit_column_info.args[0] {
+                                    total_amount = -total_amount;
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // Guard amount cannot be zero after processing
+                if current_column_info.is_required && total_amount == 0.0 {
+                    return Err("Amount encountered as zero, something went horribly wrong".into());
+                }
+
+                expense.set_amount(total_amount);
             }
             (CsvColumnRole::Tag, ParsedValue::String(tag)) => {
                 if !tag.is_empty() {
@@ -161,11 +172,12 @@ pub enum CsvColumnDataType {
     DateObject(&'static str), // Format string for parsing dates
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone)]
 pub struct CsvColumnInfo {
     index: u8,
     data_type: CsvColumnDataType,
     is_required: bool,
+    args: Vec<String>,
 }
 
 impl CsvColumnInfo {
@@ -179,18 +191,24 @@ impl CsvColumnInfo {
         self.is_required = original_state; // Reset the state
     }
 
-    pub fn optional(index: u8, data_type: CsvColumnDataType) -> Self {
+    pub fn add_argument(&mut self, arg: String) {
+        self.args.push(arg);
+    }
+
+    pub fn optional_content(index: u8, data_type: CsvColumnDataType) -> Self {
         return Self {
             index: index,
             data_type: data_type,
             is_required: false,
+            args: Vec::new(),
         };
     }
-    pub fn required(index: u8, data_type: CsvColumnDataType) -> Self {
+    pub fn required_content(index: u8, data_type: CsvColumnDataType) -> Self {
         return Self {
             index: index,
             data_type: data_type,
             is_required: true,
+            args: Vec::new(),
         };
     }
 }
@@ -209,16 +227,13 @@ impl CsvDefinition {
     pub fn new(
         name: &'static str,
         has_headers: bool,
-        expected_columns: &[(CsvColumnRole, CsvColumnInfo)],
+        expected_columns: Vec<(CsvColumnRole, CsvColumnInfo)>,
     ) -> Self {
-        let mut map = BTreeMap::new();
-        for &(role, col_info) in expected_columns {
-            map.insert(role, col_info);
-        }
+        let expected_columns = expected_columns.iter().cloned().collect::<BTreeMap<_, _>>();
         return Self {
             name,
             has_headers,
-            expected_columns: map,
+            expected_columns: expected_columns,
             meta_data_columns: HashMap::new(),
         };
     }
@@ -374,22 +389,22 @@ pub fn build_definitions() -> HashMap<CsvDefinitionKey, CsvDefinition> {
         CsvDefinition::new(
             "Expense Tracker V1 Migration Report",
             true,
-            &[
+            vec![
                 (
                     CsvColumnRole::Date,
-                    CsvColumnInfo::required(1, CsvColumnDataType::DateObject("%m/%d/%Y")),
+                    CsvColumnInfo::required_content(1, CsvColumnDataType::DateObject("%m/%d/%Y")),
                 ),
                 (
                     CsvColumnRole::Description,
-                    CsvColumnInfo::required(2, CsvColumnDataType::String),
+                    CsvColumnInfo::required_content(2, CsvColumnDataType::String),
                 ),
                 (
                     CsvColumnRole::Amount,
-                    CsvColumnInfo::required(3, CsvColumnDataType::Float(&STANDARD)),
+                    CsvColumnInfo::required_content(3, CsvColumnDataType::Float(&STANDARD)),
                 ),
                 (
                     CsvColumnRole::Tag,
-                    CsvColumnInfo::optional(0, CsvColumnDataType::String),
+                    CsvColumnInfo::optional_content(0, CsvColumnDataType::String),
                 ),
             ],
         ),
@@ -400,18 +415,18 @@ pub fn build_definitions() -> HashMap<CsvDefinitionKey, CsvDefinition> {
         CsvDefinition::new(
             "Wells Fargo Spending Report",
             false,
-            &[
+            vec![
                 (
                     CsvColumnRole::Date,
-                    CsvColumnInfo::required(0, CsvColumnDataType::DateObject("%m/%d/%Y")),
+                    CsvColumnInfo::required_content(0, CsvColumnDataType::DateObject("%m/%d/%Y")),
                 ),
                 (
                     CsvColumnRole::Amount,
-                    CsvColumnInfo::required(1, CsvColumnDataType::Float(&INVERSED)),
+                    CsvColumnInfo::required_content(1, CsvColumnDataType::Float(&INVERSED)),
                 ),
                 (
                     CsvColumnRole::Description,
-                    CsvColumnInfo::required(4, CsvColumnDataType::String),
+                    CsvColumnInfo::required_content(4, CsvColumnDataType::String),
                 ),
             ],
         ),
@@ -422,18 +437,18 @@ pub fn build_definitions() -> HashMap<CsvDefinitionKey, CsvDefinition> {
         CsvDefinition::new(
             "American Express Credit Spending Report",
             true,
-            &[
+            vec![
                 (
                     CsvColumnRole::Date,
-                    CsvColumnInfo::required(0, CsvColumnDataType::DateObject("%m/%d/%Y")),
+                    CsvColumnInfo::required_content(0, CsvColumnDataType::DateObject("%m/%d/%Y")),
                 ),
                 (
                     CsvColumnRole::Description,
-                    CsvColumnInfo::required(1, CsvColumnDataType::String),
+                    CsvColumnInfo::required_content(1, CsvColumnDataType::String),
                 ),
                 (
                     CsvColumnRole::Amount,
-                    CsvColumnInfo::required(2, CsvColumnDataType::Float(&STANDARD)),
+                    CsvColumnInfo::required_content(2, CsvColumnDataType::Float(&STANDARD)),
                 ),
             ],
         ),
@@ -444,20 +459,24 @@ pub fn build_definitions() -> HashMap<CsvDefinitionKey, CsvDefinition> {
         CsvDefinition::new(
             "Capital One Spending Report",
             true,
-            &[
+            vec![
                 (
                     CsvColumnRole::Description,
-                    CsvColumnInfo::required(1, CsvColumnDataType::String),
+                    CsvColumnInfo::required_content(1, CsvColumnDataType::String),
                 ),
                 (
                     CsvColumnRole::Date,
-                    CsvColumnInfo::required(2, CsvColumnDataType::DateObject("%m/%d/%Y")),
+                    CsvColumnInfo::required_content(2, CsvColumnDataType::DateObject("%m/%d/%Y")),
                 ),
                 (
                     CsvColumnRole::Amount,
-                    CsvColumnInfo::required(4, CsvColumnDataType::Float(&STANDARD)),
+                    CsvColumnInfo::required_content(4, CsvColumnDataType::Float(&STANDARD)),
                 ),
             ],
+        )
+        .add_meta_data_column(
+            CsvColumnRole::CreditDebit,
+            CsvColumnInfo::required_content(3, CsvColumnDataType::String),
         ),
     );
 
@@ -466,24 +485,24 @@ pub fn build_definitions() -> HashMap<CsvDefinitionKey, CsvDefinition> {
         CsvDefinition::new(
             "Capital One Savor One Spending Report",
             true,
-            &[
+            vec![
                 (
                     CsvColumnRole::Date,
-                    CsvColumnInfo::required(0, CsvColumnDataType::DateObject("%Y-%m-%d")),
+                    CsvColumnInfo::required_content(0, CsvColumnDataType::DateObject("%Y-%m-%d")),
                 ),
                 (
                     CsvColumnRole::Description,
-                    CsvColumnInfo::required(3, CsvColumnDataType::String),
+                    CsvColumnInfo::required_content(3, CsvColumnDataType::String),
                 ),
                 (
                     CsvColumnRole::Amount,
-                    CsvColumnInfo::optional(5, CsvColumnDataType::Float(&STANDARD)),
+                    CsvColumnInfo::optional_content(5, CsvColumnDataType::Float(&STANDARD)),
                 ),
             ],
         )
         .add_meta_data_column(
-            CsvColumnRole::Credit,
-            CsvColumnInfo::optional(6, CsvColumnDataType::Float(&INVERSED)),
+            CsvColumnRole::CreditAmount,
+            CsvColumnInfo::optional_content(6, CsvColumnDataType::Float(&INVERSED)),
         ),
     );
 
@@ -492,24 +511,24 @@ pub fn build_definitions() -> HashMap<CsvDefinitionKey, CsvDefinition> {
         CsvDefinition::new(
             "Bank Leumi Spending Report",
             true,
-            &[
+            vec![
                 (
                     CsvColumnRole::Date,
-                    CsvColumnInfo::required(0, CsvColumnDataType::DateObject("%d/%m/%y")),
+                    CsvColumnInfo::required_content(0, CsvColumnDataType::DateObject("%d/%m/%y")),
                 ),
                 (
                     CsvColumnRole::Description,
-                    CsvColumnInfo::required(1, CsvColumnDataType::String),
+                    CsvColumnInfo::required_content(1, CsvColumnDataType::String),
                 ),
                 (
                     CsvColumnRole::Amount,
-                    CsvColumnInfo::optional(3, CsvColumnDataType::Float(&STANDARD)),
+                    CsvColumnInfo::optional_content(3, CsvColumnDataType::Float(&STANDARD)),
                 ),
             ],
         )
         .add_meta_data_column(
-            CsvColumnRole::Credit,
-            CsvColumnInfo::optional(4, CsvColumnDataType::Float(&INVERSED)),
+            CsvColumnRole::CreditAmount,
+            CsvColumnInfo::optional_content(4, CsvColumnDataType::Float(&INVERSED)),
         ),
     );
 
@@ -518,28 +537,28 @@ pub fn build_definitions() -> HashMap<CsvDefinitionKey, CsvDefinition> {
         CsvDefinition::new(
             "Max Spending Report",
             true,
-            &[
+            vec![
                 (
                     CsvColumnRole::Date,
-                    CsvColumnInfo::required(0, CsvColumnDataType::DateObject("%d-%m-%Y")),
+                    CsvColumnInfo::required_content(0, CsvColumnDataType::DateObject("%d-%m-%Y")),
                 ),
                 (
                     CsvColumnRole::Description,
-                    CsvColumnInfo::required(1, CsvColumnDataType::String),
+                    CsvColumnInfo::required_content(1, CsvColumnDataType::String),
                 ),
                 (
                     CsvColumnRole::Amount,
-                    CsvColumnInfo::required(5, CsvColumnDataType::Float(&STANDARD)),
+                    CsvColumnInfo::required_content(5, CsvColumnDataType::Float(&STANDARD)),
                 ),
                 (
                     CsvColumnRole::Currency,
-                    CsvColumnInfo::optional(8, CsvColumnDataType::String),
+                    CsvColumnInfo::optional_content(8, CsvColumnDataType::String),
                 ),
             ],
         )
         .add_meta_data_column(
             CsvColumnRole::Amount,
-            CsvColumnInfo::required(7, CsvColumnDataType::Float(&STANDARD)),
+            CsvColumnInfo::required_content(7, CsvColumnDataType::Float(&STANDARD)),
         ),
     );
 
