@@ -84,7 +84,7 @@ impl CsvColumnRole {
         };
 
         // Validate and parse the value
-        let parsed_value: ParsedValue = validate_and_parse(&value, &current_column_info)?;
+        let parsed_value: ParsedValue = cast_raw_value(&value, &current_column_info)?;
 
         // Process the parsed value based on the role
         match (self, parsed_value) {
@@ -94,36 +94,24 @@ impl CsvColumnRole {
             (CsvColumnRole::Description, ParsedValue::String(description)) => {
                 expense.set_description(&description);
             }
-            (CsvColumnRole::Amount, ParsedValue::Float(amount)) => {
-                // Special handling for optional amount
-                if !current_column_info.is_required {
-                    // Amount was optional, we may want to check the metadata for credit values to override the amount
+            (CsvColumnRole::Amount, ParsedValue::Float(mut amount)) => {
+                // Special handling for optional amount in conjunction with credit column
+                if !current_column_info.is_required && amount == 0.0 {
                     if let Some(credit_column_info) = meta_data_columns.get(&CsvColumnRole::Credit) {
-                        let mut mutated_credit_column = false;
+                        let mut credit_amount: Option<f64> = None;
 
-                        if amount == 0.0 && !credit_column_info.is_required {
-                            // The amount is zero (due to empty string or zero value) - at this point we are expecting credit to be present
-                            // Lets mutate the credit value column to be required for fetching in record
-                            credit_column_info.changed_required(true);
-                            mutated_credit_column = true;
+                        credit_column_info.clone().with_temporary_required_state(true, |credit_col| {
+                            if let Ok(Some(credit_str)) = Self::get_and_normalize(CsvColumnRole::Credit, string_record, credit_col) {
+                                if let Ok(ParsedValue::Float(credit)) = cast_raw_value(&credit_str, credit_col) {
+                                    credit_amount = Some(credit);
+                                }
+                            }
+                        });
+
+                        if let Some(credit) = credit_amount {
+                            amount += credit;
                         }
-
-                        // Attempt to fetch the required credit's value and normalize the value
-                        let credit_value = Self::get_and_normalize(self, string_record, credit_column_info)?;
-
-                        if let Ok(ParsedValue::Float(credit)) = validate_and_parse(&credit_value.unwrap(), &credit_column_info) {
-                            expense.set_amount(amount + credit);
-                            return Ok(());
-                        }
-
-                        // Mutate the credit value column back to its original state
-                        if mutated_credit_column {
-                            credit_column_info.changed_required(false);
-                        }
-
-                        return Err("Something is wrong with the transaction when amount or credit when both are optional but credit is not a valid number".into());
                     }
-                    return Err("Amount is marked as optional but there is no overriding value provided".into())
                 }
 
                 expense.set_amount(amount);
@@ -148,7 +136,7 @@ impl CsvColumnRole {
                         second_amount_column_definition,
                     )? {
                         // Parse the second amount value
-                        if let Ok(ParsedValue::Float(second_amount)) = validate_and_parse(
+                        if let Ok(ParsedValue::Float(second_amount)) = cast_raw_value(
                             &second_amount_str,
                             &second_amount_column_definition,
                         ) {
@@ -180,9 +168,14 @@ pub struct CsvColumnInfo {
 }
 
 impl CsvColumnInfo {
-    pub fn changed_required(mut self, is_required: bool) -> Self {
-        self.is_required = is_required;
-        return self;
+    pub fn with_temporary_required_state<F>(&mut self, required: bool, f: F)
+    where
+        F: FnOnce(&mut Self),
+    {
+        let original_state = self.is_required;
+        self.is_required = required;
+        f(self); // Execute the closure with the temporary state
+        self.is_required = original_state; // Reset the state
     }
 
     pub fn optional(index: u8, data_type: CsvColumnDataType) -> Self {
@@ -318,9 +311,9 @@ impl CsvValidator for CsvDefinition {
                 return false;
             }
 
-            // Lastly, validate by parsing the value (casting it)
-            if let Err(_) = validate_and_parse(raw_value.unwrap(), &col_info) {
-                return false; // Validation failed
+            // Lastly, validate by casting the raw value
+            if let Err(_) = cast_raw_value(raw_value.unwrap(), &col_info) {
+                return false; // Casting failed
             }
 
             return true;
@@ -568,7 +561,7 @@ pub enum ParsedValue {
 ///
 /// Returns:
 /// - `bool`: True if the cast is successful, false otherwise.
-pub fn validate_and_parse(
+pub fn cast_raw_value(
     value: &str,
     col_info: &CsvColumnInfo,
 ) -> Result<ParsedValue, Box<dyn StdError>> {

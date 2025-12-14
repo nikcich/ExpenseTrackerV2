@@ -8,7 +8,7 @@ use std::num::ParseFloatError;
 use tempfile::Builder;
 
 use tauri_app_lib::definition::csv_definition::{
-    validate_and_parse, CsvColumnDataType, CsvColumnInfo, CsvColumnRole, CsvDefinition,
+    cast_raw_value, CsvColumnDataType, CsvColumnInfo, CsvColumnRole, CsvDefinition,
     CsvDefinitionKey, CsvParser, CsvValidator, MockCsvValidator, ParsedValue, INVERSED, STANDARD,
 };
 use tauri_app_lib::service::csv_file_service::{
@@ -94,7 +94,7 @@ fn test_validate_and_parse_string_true() {
     let expected = ParsedValue::String("Hello".to_string());
 
     // Invoke
-    let result = validate_and_parse(
+    let result = cast_raw_value(
         "Hello",
         &CsvColumnInfo::required(0, CsvColumnDataType::String),
     );
@@ -110,7 +110,7 @@ fn test_validate_and_parse_float_ok_1() {
     let expected = ParsedValue::Float(1.0);
 
     // Invoke
-    let result = validate_and_parse(
+    let result = cast_raw_value(
         "1.0",
         &CsvColumnInfo::required(0, CsvColumnDataType::Float(&STANDARD)),
     );
@@ -126,7 +126,7 @@ fn test_validate_and_parse_float_negative() {
     let expected = ParsedValue::Float(-123.45);
 
     // Invoke
-    let result = validate_and_parse(
+    let result = cast_raw_value(
         "-123.45",
         &CsvColumnInfo::required(0, CsvColumnDataType::Float(&STANDARD)),
     );
@@ -143,7 +143,7 @@ fn test_validate_and_parse_float_extremely_large() {
     let expected = ParsedValue::Float(1.7976931348623157e308);
 
     // Invoke
-    let result = validate_and_parse(
+    let result = cast_raw_value(
         large_number,
         &CsvColumnInfo::required(0, CsvColumnDataType::Float(&STANDARD)),
     );
@@ -163,7 +163,7 @@ fn test_validate_and_parse_float_extremely_small() {
     let expected = ParsedValue::Float(2.2250738585072014e-308);
 
     // Invoke
-    let result = validate_and_parse(
+    let result = cast_raw_value(
         small_number,
         &CsvColumnInfo::required(0, CsvColumnDataType::Float(&STANDARD)),
     );
@@ -182,7 +182,7 @@ fn test_validate_and_parse_float_overflow() {
     let overflow_number = "1.8e308"; // Larger than f64::MAX
 
     // Invoke
-    let result = validate_and_parse(
+    let result = cast_raw_value(
         overflow_number,
         &CsvColumnInfo::required(0, CsvColumnDataType::Float(&STANDARD)),
     );
@@ -197,7 +197,7 @@ fn test_validate_and_parse_float_inversed() {
     let expected = ParsedValue::Float(-123.45);
 
     // Invoke
-    let result = validate_and_parse(
+    let result = cast_raw_value(
         "123.45",
         &CsvColumnInfo::required(0, CsvColumnDataType::Float(&INVERSED)),
     );
@@ -213,7 +213,7 @@ fn test_validate_and_parse_float_zero() {
     let expected = ParsedValue::Float(0.0);
 
     // Invoke
-    let result = validate_and_parse(
+    let result = cast_raw_value(
         "0.0",
         &CsvColumnInfo::required(0, CsvColumnDataType::Float(&STANDARD)),
     );
@@ -229,7 +229,7 @@ fn test_validate_and_parse_float_empty_string_not_required() {
     let expected = ParsedValue::Float(0.0);
 
     // Invoke
-    let result = validate_and_parse(
+    let result = cast_raw_value(
         "",
         &CsvColumnInfo::optional(0, CsvColumnDataType::Float(&STANDARD)),
     );
@@ -244,7 +244,7 @@ fn test_validate_and_parse_float_empty_string_required() {
     // Setup
 
     // Invoke
-    let result = validate_and_parse(
+    let result = cast_raw_value(
         "",
         &CsvColumnInfo::required(0, CsvColumnDataType::Float(&STANDARD)),
     );
@@ -259,7 +259,7 @@ fn test_validate_and_parse_float_ok_2() {
     let expected = ParsedValue::Float(1000000.0);
 
     // Invoke
-    let result = validate_and_parse(
+    let result = cast_raw_value(
         "1000000.0",
         &CsvColumnInfo::required(0, CsvColumnDataType::Float(&STANDARD)),
     );
@@ -272,7 +272,7 @@ fn test_validate_and_parse_float_ok_2() {
 #[test]
 fn test_validate_and_parse_float_not_a_number() {
     // Invoke
-    let result = validate_and_parse(
+    let result = cast_raw_value(
         "Boo",
         &CsvColumnInfo::required(0, CsvColumnDataType::Float(&STANDARD)),
     );
@@ -295,7 +295,7 @@ fn test_validate_and_parse_date_ok_format() {
     );
 
     // Invoke
-    let result = validate_and_parse(
+    let result = cast_raw_value(
         "1999-11-05",
         &CsvColumnInfo::required(0, CsvColumnDataType::DateObject("%Y-%m-%d")),
     );
@@ -308,7 +308,7 @@ fn test_validate_and_parse_date_ok_format() {
 #[test]
 fn test_validate_and_parse_date_invalid_format_2() {
     // Invoke
-    let result = validate_and_parse(
+    let result = cast_raw_value(
         "1999/11/05",
         &CsvColumnInfo::required(0, CsvColumnDataType::DateObject("%Y-%m-%d")),
     );
@@ -323,7 +323,7 @@ fn test_validate_and_parse_date_invalid_format_2() {
 #[test]
 fn test_validate_and_parse_date_invalid() {
     // Invoke
-    let result = validate_and_parse(
+    let result = cast_raw_value(
         "Boo",
         &CsvColumnInfo::required(0, CsvColumnDataType::DateObject("%Y-%m-%d")),
     );
@@ -554,6 +554,54 @@ fn test_validate_meta_data_columns_required_or_missing() {
     // Validate the records
     assert!(!definition.validate_against_record(&valid_record));
     assert!(definition.validate_against_record(&invalid_record));
+}
+#[test]
+fn test_parse_record_with_optional_amount_and_credit() {
+    // Setup
+    let csv_definition = CsvDefinition::new(
+        "Test Definition",
+        true,
+        &[
+            (
+                CsvColumnRole::Date,
+                CsvColumnInfo::required(0, CsvColumnDataType::DateObject("%Y-%m-%d")),
+            ),
+            (
+                CsvColumnRole::Description,
+                CsvColumnInfo::required(1, CsvColumnDataType::String),
+            ),
+            (
+                CsvColumnRole::Amount,
+                CsvColumnInfo::optional(2, CsvColumnDataType::Float(&STANDARD)),
+            ),
+        ],
+    )
+    .add_meta_data_column(
+        CsvColumnRole::Credit,
+        CsvColumnInfo::optional(3, CsvColumnDataType::Float(&STANDARD)),
+    );
+
+    let string_record = StringRecord::from(vec![
+        "2023-10-01",       // Date
+        "Test Description", // Description
+        "0.0",              // Amount (optional, zero)
+        "123.45",           // Credit
+    ]);
+
+    // Invoke
+    let result = csv_definition.parse_record(&string_record);
+
+    // Analysis
+    assert!(
+        result.is_ok(),
+        "Expected parsing to succeed with optional amount and credit column"
+    );
+    let expense = result.unwrap();
+    assert_eq!(
+        expense.get_amount(),
+        123.45,
+        "Expected amount to be overridden by credit value"
+    );
 }
 
 #[test]
