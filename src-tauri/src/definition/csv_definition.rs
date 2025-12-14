@@ -104,7 +104,7 @@ impl CsvColumnRole {
                 if currency == "$" {
                     // Fetch the second amount column definition
                     let second_amount_column_definition = csv_definition
-                        .meta_data_colums
+                        .meta_data_columns
                         .get(&CsvColumnRole::Amount)
                         .ok_or("Currency is present in record but does not have second amount column definition to override with!")?;
 
@@ -170,7 +170,7 @@ pub struct CsvDefinition {
     // All roles in expected columns will be handled
     expected_columns: HashMap<CsvColumnRole, CsvColumnInfo>,
     // Any roles in metadata will not be invoked (handler for it)
-    meta_data_colums: HashMap<CsvColumnRole, CsvColumnInfo>,
+    meta_data_columns: HashMap<CsvColumnRole, CsvColumnInfo>,
 }
 
 impl CsvDefinition {
@@ -187,12 +187,12 @@ impl CsvDefinition {
             name,
             has_headers,
             expected_columns: map,
-            meta_data_colums: HashMap::new(),
+            meta_data_columns: HashMap::new(),
         };
     }
 
     pub fn add_meta_data_column(mut self, role: CsvColumnRole, column_info: CsvColumnInfo) -> Self {
-        self.meta_data_colums.insert(role, column_info);
+        self.meta_data_columns.insert(role, column_info);
         return self;
     }
 
@@ -282,6 +282,40 @@ impl CsvValidator for CsvDefinition {
             // Lastly, validate by parsing the value (casting it)
             if let Err(_) = validate_and_parse(raw_value.unwrap(), col_info.data_type) {
                 return false; // Validation failed
+            }
+        }
+
+        if !self.meta_data_columns.is_empty() {
+            for (_role, col_info) in self.meta_data_columns.iter() {
+                // If its not required metadata (cannot be empty string or is a dependency from another) thenskip validation
+                if !col_info.is_required {
+                    continue;
+                }
+
+                let index = col_info.index as usize;
+
+                // Check if the index is invalid (too large for a record)
+                if index >= record.len() {
+                    return false;
+                }
+
+                // Fetch the raw value
+                let raw_value = record.get(index);
+                if raw_value.is_none() {
+                    return false;
+                }
+
+                let normalized_raw_value = normalize(raw_value.unwrap());
+
+                // If the raw value for that column is required but empty string, return false
+                if normalized_raw_value.is_empty() && col_info.is_required {
+                    return false;
+                }
+
+                // Lastly, validate by parsing the value (casting it)
+                if let Err(_) = validate_and_parse(raw_value.unwrap(), col_info.data_type) {
+                    return false; // Validation failed
+                }
             }
         }
 

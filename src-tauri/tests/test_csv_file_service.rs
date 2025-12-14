@@ -451,6 +451,45 @@ fn test_validate_csv_record_true_missing_optional() {
 }
 
 #[test]
+fn test_validate_meta_data_columns_required_or_missing() {
+    // Setup a CsvDefinition with meta data columns
+    let mut definition = CsvDefinition::new(
+        "Test Definition",
+        true,
+        &[
+            (
+                CsvColumnRole::Date,
+                CsvColumnInfo::required(0, CsvColumnDataType::DateObject("%Y-%m-%d")),
+            ),
+            (
+                CsvColumnRole::Description,
+                CsvColumnInfo::required(1, CsvColumnDataType::String),
+            ),
+        ],
+    );
+
+    definition = definition.add_meta_data_column(
+        CsvColumnRole::Tag,
+        CsvColumnInfo::optional(2, CsvColumnDataType::String),
+    );
+
+    definition = definition.add_meta_data_column(
+        CsvColumnRole::Currency,
+        CsvColumnInfo::required(3, CsvColumnDataType::String),
+    );
+
+    // Create a valid record (required metadata at the end)
+    let valid_record = StringRecord::from(vec!["2023-10-01", "Test Description", "Test Tag", ""]);
+
+    // Create an invalid record (empty string in 3rd element)
+    let invalid_record = StringRecord::from(vec!["2023-10-01", "Test Description", "", "Test Tag"]);
+
+    // Validate the records
+    assert!(!definition.validate_against_record(&valid_record));
+    assert!(definition.validate_against_record(&invalid_record));
+}
+
+#[test]
 fn test_parse_record_with_valid_data() {
     // Setup
     let csv_definition = setup_csv_definition_for_test();
