@@ -151,31 +151,37 @@ impl CsvColumnRole {
                 }
             }
             (CsvColumnRole::Currency, ParsedValue::String(currency)) => {
-                if currency == "$" {
-                    // Fetch the second amount column definition
-                    let second_amount_column_definition =
-                        meta_data_columns
-                        .get(&CsvColumnRole::Amount)
-                        .ok_or("Currency is present in record but does not have second amount column definition to override with!")?;
 
-                    // Fetch and normalize the second amount value
-                    if let Some(second_amount_str) = CsvColumnRole::get_and_normalize(
-                        CsvColumnRole::Amount,
-                        string_record,
-                        second_amount_column_definition,
-                    )? {
-                        // Parse the second amount value
-                        if let Ok(ParsedValue::Float(second_amount)) = cast_raw_value(
-                            &second_amount_str,
-                            &second_amount_column_definition,
-                        ) {
-                            // Override the original amount with the second amount
-                            expense.set_amount(second_amount);
+                if let Some(currency_sign) = current_column_info.args_to_check.get(&Arg::CurrencyQuery) {
+                    if let ArgValue::String(target_currency) = currency_sign {
+                        if &currency == target_currency {
+                            // Fetch the second amount column definition
+                            let second_amount_column_definition =
+                                meta_data_columns
+                                .get(&CsvColumnRole::Amount)
+                                .ok_or("Currency is present in record but does not have second amount column definition to override with!")?;
+
+                            // Fetch and normalize the second amount value
+                            if let Some(second_amount_str) = CsvColumnRole::get_and_normalize(
+                                CsvColumnRole::Amount,
+                                string_record,
+                                second_amount_column_definition,
+                            )? {
+                                // Parse the second amount value
+                                if let Ok(ParsedValue::Float(second_amount)) = cast_raw_value(
+                                    &second_amount_str,
+                                    &second_amount_column_definition,
+                                ) {
+                                    // Override the original amount with the second amount
+                                    expense.set_amount(second_amount);
+                                }
+                            }
                         }
-                    } else {
-                        // There's no dollar amount, so convert shekel amount to dollars
-                        let shekel_amount = expense.get_amount();
-                        expense.set_amount(shekel_amount / SHEKEL_TO_DOLLAR_DIVISION);
+                        else {
+                            // There's no dollar amount, so convert shekel amount to dollars
+                            let shekel_amount = expense.get_amount();
+                            expense.set_amount(shekel_amount / SHEKEL_TO_DOLLAR_DIVISION);
+                        }
                     }
                 }
             }
@@ -220,6 +226,7 @@ pub enum ArgValue {
 #[derive(Hash, Eq, PartialEq, Debug, Clone)]
 pub enum Arg {
     AmountDefaultCurrency,
+    CurrencyQuery,
     CreditDebitQuery,
 }
 
@@ -599,7 +606,8 @@ pub fn build_definitions() -> HashMap<CsvDefinitionKey, CsvDefinition> {
                 ),
                 (
                     CsvColumnRole::Currency,
-                    CsvColumnInfo::optional_content(8, CsvColumnDataType::String),
+                    CsvColumnInfo::optional_content(8, CsvColumnDataType::String)
+                        .look_for_argument(Arg::CurrencyQuery, ArgValue::String("$".to_string())),
                 ),
             ],
         )

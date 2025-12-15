@@ -5,6 +5,7 @@ use std::fs::File;
 use std::io::Error as IoError;
 use std::io::Write;
 use std::num::ParseFloatError;
+use tauri_app_lib::definition::csv_definition::SHEKEL_TO_DOLLAR_DIVISION;
 use tempfile::Builder;
 
 use tauri_app_lib::definition::csv_definition::{
@@ -383,7 +384,8 @@ fn test_currency_role_with_second_amount() {
             ),
             (
                 CsvColumnRole::Currency,
-                CsvColumnInfo::required_content(2, CsvColumnDataType::String),
+                CsvColumnInfo::required_content(2, CsvColumnDataType::String)
+                    .look_for_argument(Arg::CurrencyQuery, ArgValue::String("$".to_string())),
             ),
         ],
     )
@@ -417,7 +419,8 @@ fn test_currency_role_with_second_amount_empty() {
             ),
             (
                 CsvColumnRole::Currency,
-                CsvColumnInfo::required_content(2, CsvColumnDataType::String),
+                CsvColumnInfo::required_content(2, CsvColumnDataType::String)
+                    .look_for_argument(Arg::CurrencyQuery, ArgValue::String("$".to_string())),
             ),
         ],
     )
@@ -451,7 +454,8 @@ fn test_currency_role_shekel_amount() {
             ),
             (
                 CsvColumnRole::Currency,
-                CsvColumnInfo::required_content(2, CsvColumnDataType::String),
+                CsvColumnInfo::required_content(2, CsvColumnDataType::String)
+                    .look_for_argument(Arg::CurrencyQuery, ArgValue::String("$".to_string())),
             ),
         ],
     )
@@ -461,7 +465,7 @@ fn test_currency_role_shekel_amount() {
     );
 
     let string_record = StringRecord::from(vec!["100.0", "200.0", "₪"]);
-    let expected_amount = 100.0;
+    let expected_amount = 100.0 / SHEKEL_TO_DOLLAR_DIVISION;
 
     // Invoke
     let result = csv_definition.parse_record(&string_record);
@@ -488,7 +492,8 @@ fn test_currency_role_without_second_amount() {
             ),
             (
                 CsvColumnRole::Currency,
-                CsvColumnInfo::required_content(1, CsvColumnDataType::String),
+                CsvColumnInfo::required_content(1, CsvColumnDataType::String)
+                    .look_for_argument(Arg::CurrencyQuery, ArgValue::String("$".to_string())),
             ),
         ],
     );
