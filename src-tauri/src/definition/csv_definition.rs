@@ -183,6 +183,8 @@ impl CsvColumnRole {
                             expense.set_amount(shekel_amount / SHEKEL_TO_DOLLAR_DIVISION);
                         }
                     }
+                } else {
+                    return Err(format!("An argument is needed for the currency query!").into());
                 }
             }
             _ => return Err(format!("A role defined in expected columns was received, but there is no handling defined for it, occured at {}:{}", file!(), line!()).into()),

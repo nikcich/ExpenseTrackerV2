@@ -511,6 +511,36 @@ fn test_currency_role_without_second_amount() {
 }
 
 #[test]
+fn test_currency_role_without_argument_fail() {
+    // Setup
+    let csv_definition = CsvDefinition::new(
+        "Currency Test",
+        true,
+        vec![
+            (
+                CsvColumnRole::Amount,
+                CsvColumnInfo::required_content(0, CsvColumnDataType::Float(&STANDARD)),
+            ),
+            (
+                CsvColumnRole::Currency,
+                CsvColumnInfo::required_content(1, CsvColumnDataType::String),
+            ),
+        ],
+    );
+
+    let string_record = StringRecord::from(vec!["100.0", "$"]);
+
+    // Invoke
+    let result = csv_definition.parse_record(&string_record);
+
+    // Analysis
+    assert!(
+        result.is_err(),
+        "Expected parsing to fail, as an argument is missing"
+    );
+}
+
+#[test]
 fn test_validate_csv_record_true_missing_optional() {
     // Setup
     let expected: bool = false;
