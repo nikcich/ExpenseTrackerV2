@@ -10,6 +10,7 @@ use std::error::Error as StdError;
 
 pub const STANDARD: bool = true;
 pub const INVERSED: bool = false;
+pub const SHEKEL_TO_DOLLAR_DIVISION: f64 = 3.5;
 
 ///GLOBAL DEFINITIONS
 pub static CSV_DEFINITIONS: Lazy<HashMap<CsvDefinitionKey, CsvDefinition>> =
@@ -22,7 +23,170 @@ pub enum CsvColumnRole {
     Date,
     Description,
     Amount,
+<<<<<<< Updated upstream
     Tag,
+=======
+    Tag,          // A column that serves as the tag indicator
+    Currency,     // A column that serves as the currency indicator
+    CreditAmount, // A column that serves as the credit amount (stores the amount as a float)
+    CreditDebit, // A column that serves as the credit/debit indicator (string that says "Credit" or "Debit")
+}
+
+impl CsvColumnRole {
+    /// Fetches and normalizes a value from a `StringRecord`.
+    /// Uses `column_info.is_required` to determine whether missing or empty values are errors.
+    /// Returns `Ok(Some(normalized))` if present, `Ok(None)` if optional and missing/empty,
+    /// or `Err` if required and missing/empty.
+    pub fn get_and_normalize<'a>(
+        role_type: Self,
+        string_record: &'a StringRecord,
+        column_info: &CsvColumnInfo,
+    ) -> Result<Option<String>, Box<dyn StdError>> {
+        // Fetch the value from the StringRecord
+        let value = string_record.get(column_info.index as usize);
+
+        match value {
+            Some(val) => {
+                let normalized = normalize(val);
+
+                // Check for required column
+                if column_info.is_required && normalized.is_empty() {
+                    return Err(format!(
+                        "Column value is an empty string for required role {:?}",
+                        role_type
+                    )
+                    .into());
+                }
+
+                Ok(Some(normalized))
+            }
+            None => {
+                if column_info.is_required {
+                    Err(format!(
+                        "Missing column in CSV record for required role {:?}",
+                        role_type
+                    )
+                    .into())
+                } else {
+                    Ok(None)
+                }
+            }
+        }
+    }
+
+    pub fn handle_parsed_str(
+        self,
+        expense: &mut Expense,
+        string_record: &StringRecord,
+        current_column_info: &CsvColumnInfo,
+        meta_data_columns: &HashMap<CsvColumnRole, CsvColumnInfo>,
+    ) -> Result<(), Box<dyn StdError>> {
+        // Fetch and normalize the value
+        let value = match Self::get_and_normalize(self, &string_record, &current_column_info)? {
+            Some(val) => val,
+            None => return Ok(()), // Skip if the value is optional and not present
+        };
+
+        // Validate and parse the value
+        let parsed_value: ParsedValue = cast_raw_value(&value, &current_column_info)?;
+
+        // Process the parsed value based on the role
+        match (self, parsed_value) {
+            (CsvColumnRole::Date, ParsedValue::Date(date)) => {
+                expense.set_date(date);
+            }
+            (CsvColumnRole::Description, ParsedValue::String(description)) => {
+                expense.set_description(&description);
+            }
+            (CsvColumnRole::Amount, ParsedValue::Float(mut total_amount)) => {
+                // Special handling for optional amount in conjunction with credit column
+                if !current_column_info.is_required {
+                    if let Some(credit_column_info) = meta_data_columns.get(&CsvColumnRole::CreditAmount) {
+                        credit_column_info.clone().with_temporary_required_state(|credit_info| {
+                            if let Ok(Some(credit_str)) = Self::get_and_normalize(CsvColumnRole::CreditAmount, &string_record, &credit_info) {
+                                if let Ok(ParsedValue::Float(credit)) = cast_raw_value(&credit_str, &credit_info) {
+                                    // Credit is treated as a negative amount (no negative sign here because credit amount is inversed)
+                                    total_amount = credit;
+                                }
+                            }
+                        });
+                    }
+                }
+
+                // Handle required amount column with CreditDebit metadata column
+                if current_column_info.is_required {
+                    if let Some(credit_column_info) = meta_data_columns.get(&CsvColumnRole::CreditDebit) {
+                        if let Some(credit_raw_str) = Self::get_and_normalize(CsvColumnRole::CreditDebit, &string_record, credit_column_info)? {
+                            if let Ok(ParsedValue::String(credit_str)) = cast_raw_value(&credit_raw_str, credit_column_info) {
+                            if let Some(query) = credit_column_info.args_to_check.get(&Arg::CreditDebitQuery) {
+                                    if let ArgValue::String(query_str) = query {
+                                        if &credit_str == query_str{
+                                            total_amount = -total_amount;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // Guard amount cannot be zero after processing
+                if !current_column_info.is_required && total_amount.is_nan() {
+                    return Err("Amount encountered as NaN, something went horribly wrong".into());
+                }
+
+                // If the amount is in Shekel, divide it by the exchange rate.
+                // This will be overwritten by Currency column by priority order iteration.
+                if let Some(currency) = current_column_info.args_to_check.get(&Arg::AmountDefaultCurrency) {
+                    if let ArgValue::Currency(currency_enum) = currency {
+                        if currency_enum == &Currency::Shekel {
+                            expense.set_amount(total_amount / SHEKEL_TO_DOLLAR_DIVISION);
+                        }
+                    }
+                }
+
+                expense.set_amount(total_amount);
+            }
+            (CsvColumnRole::Tag, ParsedValue::String(tag)) => {
+                if !tag.is_empty() {
+                    expense.add_tag(&tag);
+                }
+            }
+            (CsvColumnRole::Currency, ParsedValue::String(currency)) => {
+                if currency == "$" {
+                    // Fetch the second amount column definition
+                    let second_amount_column_definition =
+                        meta_data_columns
+                        .get(&CsvColumnRole::Amount)
+                        .ok_or("Currency is present in record but does not have second amount column definition to override with!")?;
+
+                    // Fetch and normalize the second amount value
+                    if let Some(second_amount_str) = CsvColumnRole::get_and_normalize(
+                        CsvColumnRole::Amount,
+                        string_record,
+                        second_amount_column_definition,
+                    )? {
+                        // Parse the second amount value
+                        if let Ok(ParsedValue::Float(second_amount)) = cast_raw_value(
+                            &second_amount_str,
+                            &second_amount_column_definition,
+                        ) {
+                            // Override the original amount with the second amount
+                            expense.set_amount(second_amount);
+                        }
+                    } else {
+                        // There's no dollar amount, so convert shekel amount to dollars
+                        let shekel_amount = expense.get_amount();
+                        expense.set_amount(shekel_amount / SHEKEL_TO_DOLLAR_DIVISION);
+                    }
+                }
+            }
+            _ => return Err(format!("A role defined in expected columns was received, but there is no handling defined for it, occured at {}:{}", file!(), line!()).into()),
+        }
+
+        return Ok(());
+    }
+>>>>>>> Stashed changes
 }
 
 #[derive(Debug, Eq, PartialEq, Clone, Copy)]
@@ -55,6 +219,67 @@ impl CsvColumnDataType {
 pub struct CsvColumnInfo {
     index: u8,
     data_type: CsvColumnDataType,
+<<<<<<< Updated upstream
+=======
+    is_required: bool,
+    args_to_check: HashMap<Arg, ArgValue>,
+}
+
+#[repr(u8)]
+#[derive(Debug, PartialEq, Eq, Clone, Hash)]
+pub enum Currency {
+    Dollar,
+    Shekel,
+}
+
+#[repr(u8)]
+#[derive(Debug, PartialEq, Eq, Clone, Hash)]
+pub enum ArgValue {
+    String(String),
+    Currency(Currency),
+    Bool(bool),
+}
+
+#[repr(u8)]
+#[derive(Hash, Eq, PartialEq, Debug, Clone)]
+pub enum Arg {
+    AmountDefaultCurrency,
+    CreditDebitQuery,
+}
+
+impl CsvColumnInfo {
+    pub fn with_temporary_required_state<F>(&mut self, f: F)
+    where
+        F: FnOnce(&mut Self),
+    {
+        let original_state = self.is_required;
+        self.is_required = true;
+        f(self); // Execute the closure with the temporary state
+        self.is_required = original_state; // Reset the state
+    }
+
+    pub fn look_for_argument(mut self, arg: Arg, arg_value: ArgValue) -> Self {
+        self.args_to_check.insert(arg, arg_value);
+        return self;
+    }
+
+    pub fn optional_content(index: u8, data_type: CsvColumnDataType) -> Self {
+        return Self {
+            index: index,
+            data_type: data_type,
+            is_required: false,
+            args_to_check: HashMap::new(),
+        };
+    }
+    pub fn required_content(index: u8, data_type: CsvColumnDataType) -> Self {
+        return Self {
+            index: index,
+            data_type: data_type,
+            is_required: true,
+            args_to_check: HashMap::new(),
+        };
+    }
+>>>>>>> Stashed changes
 }
 
 #[derive(Debug, Clone)]
@@ -345,7 +570,100 @@ pub fn build_definitions() -> HashMap<CsvDefinitionKey, CsvDefinition> {
                     4,
                     CsvColumnDataType::Float(&STANDARD),
                 ),
+<<<<<<< Updated upstream
             ]),
+=======
+            ],
+        )
+        .add_meta_data_column(
+            CsvColumnRole::CreditDebit,
+            CsvColumnInfo::required_content(3, CsvColumnDataType::String).look_for_argument(
+                Arg::CreditDebitQuery,
+                ArgValue::String("Credit".to_string()),
+            ),
+        ),
+    );
+
+    map.insert(
+        CsvDefinitionKey::CapitalOneSavorOne,
+        CsvDefinition::new(
+            "Capital One Savor One Spending Report",
+            true,
+            vec![
+                (
+                    CsvColumnRole::Date,
+                    CsvColumnInfo::required_content(0, CsvColumnDataType::DateObject("%Y-%m-%d")),
+                ),
+                (
+                    CsvColumnRole::Description,
+                    CsvColumnInfo::required_content(3, CsvColumnDataType::String),
+                ),
+                (
+                    CsvColumnRole::Amount,
+                    CsvColumnInfo::optional_content(5, CsvColumnDataType::Float(&STANDARD)),
+                ),
+            ],
+        )
+        .add_meta_data_column(
+            CsvColumnRole::CreditAmount,
+            CsvColumnInfo::optional_content(6, CsvColumnDataType::Float(&INVERSED)),
+        ),
+    );
+
+    map.insert(
+        CsvDefinitionKey::BankLeumi,
+        CsvDefinition::new(
+            "Bank Leumi Spending Report",
+            true,
+            vec![
+                (
+                    CsvColumnRole::Date,
+                    CsvColumnInfo::required_content(0, CsvColumnDataType::DateObject("%d/%m/%y")),
+                ),
+                (
+                    CsvColumnRole::Description,
+                    CsvColumnInfo::required_content(1, CsvColumnDataType::String),
+                ),
+                (
+                    CsvColumnRole::Amount,
+                    CsvColumnInfo::optional_content(3, CsvColumnDataType::Float(&STANDARD)),
+                ),
+            ],
+        )
+        .add_meta_data_column(
+            CsvColumnRole::CreditAmount,
+            CsvColumnInfo::optional_content(4, CsvColumnDataType::Float(&INVERSED)),
+        ),
+    );
+
+    map.insert(
+        CsvDefinitionKey::Max,
+        CsvDefinition::new(
+            "Max Spending Report",
+            true,
+            vec![
+                (
+                    CsvColumnRole::Date,
+                    CsvColumnInfo::required_content(0, CsvColumnDataType::DateObject("%d-%m-%Y")),
+                ),
+                (
+                    CsvColumnRole::Description,
+                    CsvColumnInfo::required_content(1, CsvColumnDataType::String),
+                ),
+                (
+                    CsvColumnRole::Amount,
+                    CsvColumnInfo::required_content(5, CsvColumnDataType::Float(&STANDARD)),
+                ),
+                (
+                    CsvColumnRole::Currency,
+                    CsvColumnInfo::optional_content(8, CsvColumnDataType::String),
+                ),
+            ],
+        )
+        .add_meta_data_column(
+            CsvColumnRole::Amount,
+            CsvColumnInfo::required_content(7, CsvColumnDataType::Float(&STANDARD)),
+>>>>>>> Stashed changes
         ),
     );
 
