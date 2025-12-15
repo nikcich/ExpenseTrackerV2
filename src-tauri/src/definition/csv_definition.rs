@@ -5,7 +5,7 @@ use mockall::automock;
 use once_cell::sync::Lazy;
 use regex::Regex;
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
+use std::collections::{BTreeMap, HashMap};
 use std::error::Error as StdError;
 
 pub const STANDARD: bool = true;
@@ -18,14 +18,12 @@ pub static CSV_DEFINITIONS: Lazy<HashMap<CsvDefinitionKey, CsvDefinition>> =
 
 /// ENUM DEFINITIONS
 
-#[derive(Debug, Hash, Eq, PartialEq, Clone, Copy)]
+#[repr(u8)]
+#[derive(Debug, Hash, Eq, PartialEq, Clone, Copy, Ord, PartialOrd)]
 pub enum CsvColumnRole {
     Date,
     Description,
     Amount,
-<<<<<<< Updated upstream
-    Tag,
-=======
     Tag,          // A column that serves as the tag indicator
     Currency,     // A column that serves as the currency indicator
     CreditAmount, // A column that serves as the credit amount (stores the amount as a float)
@@ -186,7 +184,6 @@ impl CsvColumnRole {
 
         return Ok(());
     }
->>>>>>> Stashed changes
 }
 
 #[derive(Debug, Eq, PartialEq, Clone, Copy)]
@@ -194,33 +191,12 @@ pub enum CsvColumnDataType {
     Float(&'static bool), // True if standard, False if inversed sign
     String,
     DateObject(&'static str), // Format string for parsing dates
-    OptionalString,
 }
 
-impl CsvColumnDataType {
-    pub fn is_standard(&self) -> Option<&bool> {
-        if let CsvColumnDataType::Float(b) = self {
-            return Some(&b);
-        } else {
-            return None;
-        }
-    }
-
-    pub fn get_format_from_date(&self) -> Option<&'static str> {
-        if let CsvColumnDataType::DateObject(s) = self {
-            return Some(s);
-        } else {
-            return None;
-        }
-    }
-}
-
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone)]
 pub struct CsvColumnInfo {
     index: u8,
     data_type: CsvColumnDataType,
-<<<<<<< Updated upstream
-=======
     is_required: bool,
     args_to_check: HashMap<Arg, ArgValue>,
 }
@@ -279,27 +255,36 @@ impl CsvColumnInfo {
             args_to_check: HashMap::new(),
         };
     }
->>>>>>> Stashed changes
 }
 
 #[derive(Debug, Clone)]
 pub struct CsvDefinition {
     name: &'static str,
     has_headers: bool,
-    expected_columns: HashMap<CsvColumnRole, CsvColumnInfo>,
+    // All roles in expected columns will be handled in their order by priority
+    expected_columns: BTreeMap<CsvColumnRole, CsvColumnInfo>,
+    // Any roles in metadata will not be invoked (handler for it)
+    meta_data_columns: HashMap<CsvColumnRole, CsvColumnInfo>,
 }
 
 impl CsvDefinition {
     pub fn new(
         name: &'static str,
         has_headers: bool,
-        expected_columns: HashMap<CsvColumnRole, CsvColumnInfo>,
+        expected_columns: Vec<(CsvColumnRole, CsvColumnInfo)>,
     ) -> Self {
+        let expected_columns = expected_columns.iter().cloned().collect::<BTreeMap<_, _>>();
         return Self {
             name,
             has_headers,
-            expected_columns,
+            expected_columns: expected_columns,
+            meta_data_columns: HashMap::new(),
         };
+    }
+
+    pub fn add_meta_data_column(mut self, role: CsvColumnRole, column_info: CsvColumnInfo) -> Self {
+        self.meta_data_columns.insert(role, column_info);
+        return self;
     }
 
     pub fn get_name(&self) -> &str {
@@ -325,70 +310,21 @@ pub trait CsvParser {
 
 impl CsvParser for CsvDefinition {
     fn parse_record(&self, record: &StringRecord) -> Result<Expense, Box<dyn StdError>> {
-        // Get all of the column infos to parse with
-        let date_info: &CsvColumnInfo = self
-            .expected_columns
-            .get(&CsvColumnRole::Date)
-            .ok_or("Missing date column definition in CSV definition")?;
+        let mut expense = Expense::default();
 
-        let desc_info: &CsvColumnInfo = self
-            .expected_columns
-            .get(&CsvColumnRole::Description)
-            .ok_or("Missing description column definition in CSV definition")?;
+        // Parse columns in record
+        for (role, column_info) in self.expected_columns.iter() {
+            let result_parsed =
+                role.handle_parsed_str(&mut expense, record, column_info, &self.meta_data_columns);
 
-        let amount_info: &CsvColumnInfo = self
-            .expected_columns
-            .get(&CsvColumnRole::Amount)
-            .ok_or("Missing amount column definition in CSV definition")?;
-
-        // Extract all of the str from record
-        let date_str: &str = record
-            .get(date_info.index as usize)
-            .ok_or(format!("Missing date at column {}", date_info.index))?;
-        let desc_str: &str = record
-            .get(desc_info.index as usize)
-            .ok_or(format!("Missing description at column {}", desc_info.index))?;
-        let amount_str: &str = record
-            .get(amount_info.index as usize)
-            .ok_or(format!("Missing amount at column {}", amount_info.index))?;
-
-        // Use the date format from the column definition
-        let date_format = date_info
-            .data_type
-            .get_format_from_date()
-            .ok_or("Date column must have DateObject format specified")?;
-
-        let amount_is_standard = amount_info
-            .data_type
-            .is_standard()
-            .ok_or("Amount column must have Float type with inversion flag specified")?;
-
-        // Parse as NaiveDate, then convert to NaiveDateTime at midnight
-        let date = NaiveDate::parse_from_str(date_str, date_format)?
-            .and_hms_opt(0, 0, 0)
-            .ok_or("Failed to create datetime")?;
-        let description: String = normalize(&desc_str).to_string();
-        let mut amount: f64 = amount_str.parse()?;
-
-        if !amount_is_standard {
-            // The amount is not standard, so we need to invert it
-            amount = -amount;
-        }
-
-        // Construct the Expense
-        let mut expense = Expense::new(description, amount, date);
-
-        let tag_info: Option<&CsvColumnInfo> = self.expected_columns.get(&CsvColumnRole::Tag);
-
-        if tag_info.is_some() {
-            // There is some tags, we need to extract the tag strings from the StringRecord
-            let tags_str: Option<&str> = record.get(tag_info.unwrap().index as usize);
-
-            if tags_str.is_some() {
-                expense.add_tag(tags_str.unwrap());
+            if column_info.is_required {
+                // Required, propagate any error
+                result_parsed?;
+            } else {
+                // Optional, ignore error
+                let _ = result_parsed;
             }
         }
-
         return Ok(expense);
     }
 }
@@ -413,37 +349,53 @@ pub trait CsvValidator {
 
 impl CsvValidator for CsvDefinition {
     fn validate_against_record(&self, record: &StringRecord) -> bool {
-        // Iterate over expected columns
-        for (_role, col_info) in &self.expected_columns {
+        // Helper function to validate a single column
+        fn validate_column_with_record(record: &StringRecord, col_info: &CsvColumnInfo) -> bool {
             let index = col_info.index as usize;
 
-            // Check if the record has a value at this index
+            // Check if the index is invalid (too large for a record)
             if index >= record.len() {
-                // Missing column
                 return false;
             }
 
-            // Check for empty cells
-            if record
-                .get(index)
-                .map(|s| s.trim().is_empty())
-                .unwrap_or(true)
-            {
-                if (col_info.data_type == CsvColumnDataType::OptionalString) {
-                    continue;
-                }
-
+            // Fetch the raw value
+            let raw_value = record.get(index);
+            if raw_value.is_none() {
                 return false;
             }
 
-            // Check if castable
-            let raw_data: &str = record.get(index).map(|s| s.trim()).unwrap();
-            if !attempt_to_cast(raw_data, col_info.data_type) {
+            let normalized_raw_value = normalize(raw_value.unwrap());
+
+            // If the raw value for that column is required but empty string, return false
+            if normalized_raw_value.is_empty() && col_info.is_required {
+                return false;
+            }
+
+            // Lastly, validate by casting the raw value
+            if let Err(_) = cast_raw_value(raw_value.unwrap(), &col_info) {
+                return false; // Casting failed
+            }
+
+            return true;
+        }
+
+        // Validate expected columns
+        for (_role, col_info) in &self.expected_columns {
+            if !validate_column_with_record(record, col_info) {
                 return false;
             }
         }
 
-        return true;
+        // Validate meta data columns
+        if !&self.meta_data_columns.is_empty() {
+            for (_role, col_info) in &self.meta_data_columns {
+                if col_info.is_required && !validate_column_with_record(record, col_info) {
+                    return false;
+                }
+            }
+        }
+
+        return true; // All columns are valid
     }
 
     fn has_header(&self) -> bool {
@@ -457,6 +409,9 @@ pub enum CsvDefinitionKey {
     CapitalOne,
     Amex,
     ExpenseTrackerV1,
+    CapitalOneSavorOne,
+    BankLeumi,
+    Max,
 }
 
 /// Helper function that builds a column map from a list of (role, index, datatype) pairs.
@@ -466,22 +421,6 @@ pub enum CsvDefinitionKey {
 ///
 /// Returns:
 /// - `HashMap`: mapping column roles to their corresponding information.
-pub fn make_column_definitions(
-    columns: &[(CsvColumnRole, u8, CsvColumnDataType)],
-) -> HashMap<CsvColumnRole, CsvColumnInfo> {
-    let mut map = HashMap::new();
-    for (role, index, datatype) in columns {
-        map.insert(
-            *role,
-            CsvColumnInfo {
-                index: *index,
-                data_type: *datatype,
-            },
-        );
-    }
-    return map;
-}
-
 /// Builds a map of CSV definitions for different CSV files
 ///
 /// Returns:
@@ -494,20 +433,24 @@ pub fn build_definitions() -> HashMap<CsvDefinitionKey, CsvDefinition> {
         CsvDefinition::new(
             "Expense Tracker V1 Migration Report",
             true,
-            make_column_definitions(&[
-                (CsvColumnRole::Tag, 0, CsvColumnDataType::OptionalString),
+            vec![
                 (
                     CsvColumnRole::Date,
-                    1,
-                    CsvColumnDataType::DateObject("%m/%d/%Y"),
+                    CsvColumnInfo::required_content(1, CsvColumnDataType::DateObject("%m/%d/%Y")),
                 ),
-                (CsvColumnRole::Description, 2, CsvColumnDataType::String),
+                (
+                    CsvColumnRole::Description,
+                    CsvColumnInfo::required_content(2, CsvColumnDataType::String),
+                ),
                 (
                     CsvColumnRole::Amount,
-                    3,
-                    CsvColumnDataType::Float(&STANDARD),
+                    CsvColumnInfo::required_content(3, CsvColumnDataType::Float(&STANDARD)),
                 ),
-            ]),
+                (
+                    CsvColumnRole::Tag,
+                    CsvColumnInfo::optional_content(0, CsvColumnDataType::String),
+                ),
+            ],
         ),
     );
 
@@ -516,19 +459,20 @@ pub fn build_definitions() -> HashMap<CsvDefinitionKey, CsvDefinition> {
         CsvDefinition::new(
             "Wells Fargo Spending Report",
             false,
-            make_column_definitions(&[
+            vec![
                 (
                     CsvColumnRole::Date,
-                    0,
-                    CsvColumnDataType::DateObject("%m/%d/%Y"),
+                    CsvColumnInfo::required_content(0, CsvColumnDataType::DateObject("%m/%d/%Y")),
                 ),
                 (
                     CsvColumnRole::Amount,
-                    1,
-                    CsvColumnDataType::Float(&INVERSED),
+                    CsvColumnInfo::required_content(1, CsvColumnDataType::Float(&INVERSED)),
                 ),
-                (CsvColumnRole::Description, 4, CsvColumnDataType::String),
-            ]),
+                (
+                    CsvColumnRole::Description,
+                    CsvColumnInfo::required_content(4, CsvColumnDataType::String),
+                ),
+            ],
         ),
     );
 
@@ -537,19 +481,20 @@ pub fn build_definitions() -> HashMap<CsvDefinitionKey, CsvDefinition> {
         CsvDefinition::new(
             "American Express Credit Spending Report",
             true,
-            make_column_definitions(&[
+            vec![
                 (
                     CsvColumnRole::Date,
-                    0,
-                    CsvColumnDataType::DateObject("%m/%d/%Y"),
+                    CsvColumnInfo::required_content(0, CsvColumnDataType::DateObject("%m/%d/%Y")),
                 ),
-                (CsvColumnRole::Description, 1, CsvColumnDataType::String),
+                (
+                    CsvColumnRole::Description,
+                    CsvColumnInfo::required_content(1, CsvColumnDataType::String),
+                ),
                 (
                     CsvColumnRole::Amount,
-                    2,
-                    CsvColumnDataType::Float(&STANDARD),
+                    CsvColumnInfo::required_content(2, CsvColumnDataType::Float(&STANDARD)),
                 ),
-            ]),
+            ],
         ),
     );
 
@@ -558,21 +503,19 @@ pub fn build_definitions() -> HashMap<CsvDefinitionKey, CsvDefinition> {
         CsvDefinition::new(
             "Capital One Spending Report",
             true,
-            make_column_definitions(&[
-                (CsvColumnRole::Description, 1, CsvColumnDataType::String),
+            vec![
+                (
+                    CsvColumnRole::Description,
+                    CsvColumnInfo::required_content(1, CsvColumnDataType::String),
+                ),
                 (
                     CsvColumnRole::Date,
-                    2,
-                    CsvColumnDataType::DateObject("%m/%d/%Y"),
+                    CsvColumnInfo::required_content(2, CsvColumnDataType::DateObject("%m/%d/%Y")),
                 ),
                 (
                     CsvColumnRole::Amount,
-                    4,
-                    CsvColumnDataType::Float(&STANDARD),
+                    CsvColumnInfo::required_content(4, CsvColumnDataType::Float(&STANDARD)),
                 ),
-<<<<<<< Updated upstream
-            ]),
-=======
             ],
         )
         .add_meta_data_column(
@@ -663,11 +606,18 @@ pub fn build_definitions() -> HashMap<CsvDefinitionKey, CsvDefinition> {
         .add_meta_data_column(
             CsvColumnRole::Amount,
             CsvColumnInfo::required_content(7, CsvColumnDataType::Float(&STANDARD)),
->>>>>>> Stashed changes
         ),
     );
 
     return map;
+}
+
+/// Enum to represent parsed values
+#[derive(Debug, PartialEq)]
+pub enum ParsedValue {
+    String(String),
+    Float(f64),
+    Date(chrono::NaiveDateTime),
 }
 
 /// Attempts to cast a raw string value to a data type.
@@ -678,25 +628,34 @@ pub fn build_definitions() -> HashMap<CsvDefinitionKey, CsvDefinition> {
 ///
 /// Returns:
 /// - `bool`: True if the cast is successful, false otherwise.
-pub fn attempt_to_cast(raw_data: &str, col_data_type: CsvColumnDataType) -> bool {
-    match col_data_type {
-        CsvColumnDataType::String => return true, // Always valid for raw data that is already a string
-        CsvColumnDataType::Float(_) => match raw_data.parse::<f32>() {
-            Ok(value) => return value.is_finite(), // Reject infinity and NaN
-            Err(_) => return false,                // Reject parse failures
-        },
-        CsvColumnDataType::DateObject(format) => {
-            match NaiveDate::parse_from_str(raw_data, format) {
-                Ok(date) => date.and_hms_opt(0, 0, 0).is_some(),
-                Err(_) => false,
-            }
-        }
-        CsvColumnDataType::OptionalString => {
-            if raw_data.is_empty() {
-                return true;
+pub fn cast_raw_value(
+    value: &str,
+    col_info: &CsvColumnInfo,
+) -> Result<ParsedValue, Box<dyn StdError>> {
+    match col_info.data_type {
+        CsvColumnDataType::String => Ok(ParsedValue::String(value.to_string())),
+        CsvColumnDataType::Float(is_standard) => {
+            let mut parsed;
+
+            if col_info.is_required {
+                parsed = value.parse::<f64>()?;
             } else {
-                return true;
+                parsed = value.parse::<f64>().unwrap_or(f64::NAN);
             }
+
+            if parsed.is_infinite() {
+                return Err("Overflow: value is too large to be represented as f64".into());
+            }
+            if !*is_standard {
+                parsed = -parsed;
+            }
+            Ok(ParsedValue::Float(parsed))
+        }
+        CsvColumnDataType::DateObject(format) => {
+            let date = NaiveDate::parse_from_str(value, format)?
+                .and_hms_opt(0, 0, 0)
+                .ok_or("Failed to create datetime")?;
+            Ok(ParsedValue::Date(date))
         }
     }
 }

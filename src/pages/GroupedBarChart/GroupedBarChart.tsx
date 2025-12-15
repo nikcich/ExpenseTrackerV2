@@ -32,12 +32,18 @@ const getGroupedAndSortedData = (mode: Mode, data: Expense[]) => {
   return groupedData.sort((a, b) => chartDateCompare(a.group, b.group));
 };
 
-export function GroupedBarChart() {
+export const GroupedBarChartCore = ({
+  mode,
+  legend,
+  legendDirection,
+}: {
+  mode: Mode;
+  legend?: boolean;
+  legendDirection?: "v" | "h";
+}) => {
   const filteredExpenses = useFilteredExpenses();
   const filteredIncome = useFilteredIncome();
   const filteredSavings = useFilteredSavings();
-
-  const [mode, setMode] = useState<Mode>(Mode.MONTHLY);
 
   const sortedGroupedExpenses = useMemo(() => {
     return getGroupedAndSortedData(mode, filteredExpenses);
@@ -60,23 +66,11 @@ export function GroupedBarChart() {
   }, [sortedGroupedExpenses, sortedGroupedIncome, sortedGroupedSavings]);
 
   return (
-    <GenericPage
-      title="Date Grouped Expenses"
-      footer={<BrushScrubber />}
-      actions={
-        <>
-          <SegmentGroup.Root
-            value={mode}
-            onValueChange={(e) => setMode(e.value as Mode)}
-          >
-            <SegmentGroup.Indicator />
-            <SegmentGroup.Items items={Object.values(Mode)} />
-          </SegmentGroup.Root>
-        </>
-      }
-    >
+    <>
       <BarChart
         x={groups}
+        legend={legend}
+        legendDirection={legendDirection}
         barCharts={[
           {
             name: "Expenses",
@@ -108,6 +102,30 @@ export function GroupedBarChart() {
           },
         ]}
       />
+    </>
+  );
+};
+
+export function GroupedBarChart() {
+  const [mode, setMode] = useState<Mode>(Mode.MONTHLY);
+
+  return (
+    <GenericPage
+      title="Date Grouped Expenses"
+      footer={<BrushScrubber />}
+      actions={
+        <>
+          <SegmentGroup.Root
+            value={mode}
+            onValueChange={(e) => setMode(e.value as Mode)}
+          >
+            <SegmentGroup.Indicator />
+            <SegmentGroup.Items items={Object.values(Mode)} />
+          </SegmentGroup.Root>
+        </>
+      }
+    >
+      <GroupedBarChartCore mode={mode} />
     </GenericPage>
   );
 }

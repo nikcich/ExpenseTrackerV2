@@ -7,6 +7,8 @@ interface BarChartProps<T extends Datum> {
   x: T[];
   barCharts: BarChartItem[];
   horizontal?: boolean;
+  legend?: boolean;
+  legendDirection?: "v" | "h";
 }
 
 interface BarChartItem {
@@ -19,6 +21,8 @@ export const BarChart = <T extends Datum>({
   x,
   barCharts,
   horizontal = false,
+  legend = true,
+  legendDirection = "v",
 }: BarChartProps<T>) => {
   return (
     <div className={styles.container}>
@@ -34,13 +38,20 @@ export const BarChart = <T extends Datum>({
           }))}
           layout={{
             autosize: true,
-            margin: { t: 40, r: 20, l: horizontal ? 70 : 40, b: 40 },
+            margin: {
+              t: 40,
+              r: 20,
+              l: horizontal ? (legend ? 70 : 20) : 40,
+              b: horizontal ? 25 : legend ? 40 : 80,
+            },
             paper_bgcolor: "transparent",
             plot_bgcolor: "transparent",
             font: {
               color: "#ffffff",
             },
             dragmode: false,
+            showlegend: legend,
+            legend: { orientation: legendDirection },
           }}
           config={{
             displayModeBar: false,
@@ -48,7 +59,7 @@ export const BarChart = <T extends Datum>({
             staticPlot: false,
           }}
           style={{ width: "100%", height: "100%" }}
-          useResizeHandler
+          useResizeHandler={true}
         />
       </div>
     </div>

@@ -79,7 +79,13 @@ const createChart = (
   };
 };
 
-export function YearToDateChart() {
+export const YearToDateChartCore = ({
+  legend = true,
+  legendDirection = "v",
+}: {
+  legend?: boolean;
+  legendDirection?: "v" | "h";
+}) => {
   const rawExpenses = useExpenses();
   const rawIncome = useIncome();
   const rawSavings = useSavings();
@@ -130,48 +136,56 @@ export function YearToDateChart() {
   }, [rawExpenses, rawIncome, rawSavings]);
 
   return (
+    <LineChart
+      legend={legend}
+      legendDirection={legendDirection}
+      x={groups}
+      barCharts={[
+        createChart(
+          `${THIS_YEAR} Expenses`,
+          "#bb0000ff",
+          sortedGroupedExpenses,
+          groups
+        ),
+        createChart(
+          `${THIS_YEAR} Income`,
+          "#00a100ff",
+          sortedGroupedIncome,
+          groups
+        ),
+        createChart(
+          `${THIS_YEAR} Savings`,
+          "#ffd000ff",
+          sortedGroupedSavings,
+          groups
+        ),
+        createChart(
+          `${LAST_YEAR} Expenses`,
+          "#bb000079",
+          lastYearSortedGroupedExpenses,
+          groups
+        ),
+        createChart(
+          `${LAST_YEAR} Income`,
+          "#00a10071",
+          lastYearSortedGroupedIncome,
+          groups
+        ),
+        createChart(
+          `${LAST_YEAR} Savings`,
+          "#ffd00067",
+          lastYearSortedGroupedSavings,
+          groups
+        ),
+      ]}
+    />
+  );
+};
+
+export function YearToDateChart() {
+  return (
     <GenericPage title="Year To Date" hasRange={false}>
-      <LineChart
-        x={groups}
-        barCharts={[
-          createChart(
-            `${THIS_YEAR} Expenses`,
-            "#bb0000ff",
-            sortedGroupedExpenses,
-            groups
-          ),
-          createChart(
-            `${THIS_YEAR} Income`,
-            "#00a100ff",
-            sortedGroupedIncome,
-            groups
-          ),
-          createChart(
-            `${THIS_YEAR} Savings`,
-            "#ffd000ff",
-            sortedGroupedSavings,
-            groups
-          ),
-          createChart(
-            `${LAST_YEAR} Expenses`,
-            "#bb000079",
-            lastYearSortedGroupedExpenses,
-            groups
-          ),
-          createChart(
-            `${LAST_YEAR} Income`,
-            "#00a10071",
-            lastYearSortedGroupedIncome,
-            groups
-          ),
-          createChart(
-            `${LAST_YEAR} Savings`,
-            "#ffd00067",
-            lastYearSortedGroupedSavings,
-            groups
-          ),
-        ]}
-      />
+      <YearToDateChartCore />
     </GenericPage>
   );
 }

@@ -1,19 +1,15 @@
+use chrono::NaiveDate;
 use csv::StringRecord;
 use std::collections::HashMap;
-use std::f32;
 use std::fs::File;
 use std::io::Error as IoError;
 use std::io::Write;
+use std::num::ParseFloatError;
 use tempfile::Builder;
 
 use tauri_app_lib::definition::csv_definition::{
-<<<<<<< Updated upstream
-    attempt_to_cast, make_column_definitions, CsvColumnDataType, CsvColumnRole, CsvDefinition,
-    CsvDefinitionKey, CsvValidator, MockCsvValidator, INVERSED, STANDARD,
-=======
     cast_raw_value, Arg, ArgValue, CsvColumnDataType, CsvColumnInfo, CsvColumnRole, CsvDefinition,
     CsvDefinitionKey, CsvParser, CsvValidator, MockCsvValidator, ParsedValue, INVERSED, STANDARD,
->>>>>>> Stashed changes
 };
 use tauri_app_lib::service::csv_file_service::{
     open_csv_file_and_find_definitions, open_file_from_path,
@@ -29,19 +25,25 @@ fn setup_csv_definition_for_test() -> CsvDefinition {
     return CsvDefinition::new(
         "Test",
         true,
-        make_column_definitions(&[
+        vec![
             (
                 CsvColumnRole::Date,
-                0,
-                CsvColumnDataType::DateObject("%Y-%m-%d"),
+                CsvColumnInfo::required_content(0, CsvColumnDataType::DateObject("%Y-%m-%d")),
             ),
-            (CsvColumnRole::Description, 1, CsvColumnDataType::String),
+            (
+                CsvColumnRole::Description,
+                CsvColumnInfo::required_content(1, CsvColumnDataType::String),
+            ),
             (
                 CsvColumnRole::Amount,
-                2,
-                CsvColumnDataType::Float(&STANDARD),
+                CsvColumnInfo::required_content(2, CsvColumnDataType::Float(&STANDARD)),
             ),
-        ]),
+            // Optional Role for test
+            (
+                CsvColumnRole::Tag,
+                CsvColumnInfo::optional_content(3, CsvColumnDataType::String),
+            ),
+        ],
     );
 }
 
@@ -87,141 +89,254 @@ fn setup_mocked_file() -> NamedTempFile {
 }
 
 #[test]
-fn test_attempt_to_cast_string_true() {
+fn test_validate_and_parse_string_true() {
     // Setup
-    let expected: bool = true;
+    let expected = ParsedValue::String("Hello".to_string());
 
     // Invoke
-    let result: bool = attempt_to_cast("Hello", CsvColumnDataType::String);
-
-    // Analysis
-    assert_eq!(expected, result);
-}
-
-#[test]
-fn test_attempt_to_cast_float_ok_1() {
-    // Setup
-    let expected: bool = true;
-
-    // Invoke
-    let result: bool = attempt_to_cast("1.0", CsvColumnDataType::Float(&STANDARD));
-
-    // Analysis
-    assert_eq!(expected, result);
-}
-
-#[test]
-fn test_attempt_to_cast_float_ok_2() {
-    // Setup
-    let expected: bool = true;
-
-    // Invoke
-    let result: bool = attempt_to_cast("1000000.0", CsvColumnDataType::Float(&STANDARD));
-
-    // Analysis
-    assert_eq!(expected, result);
-}
-
-#[test]
-fn test_attempt_to_cast_float_ok_max() {
-    // Setup
-    let expected: bool = true;
-
-    // Invoke
-    let result: bool = attempt_to_cast(
-        f32::MAX.to_string().as_str(),
-        CsvColumnDataType::Float(&STANDARD),
+    let result = cast_raw_value(
+        "Hello",
+        &CsvColumnInfo::required_content(0, CsvColumnDataType::String),
     );
 
     // Analysis
-    assert_eq!(expected, result);
+    assert!(result.is_ok(), "Expected validation to succeed");
+    assert_eq!(result.unwrap(), expected);
 }
 
 #[test]
-fn test_attempt_to_cast_float_ok_min() {
+fn test_validate_and_parse_float_ok_1() {
     // Setup
-    let expected: bool = true;
+    let expected = ParsedValue::Float(1.0);
 
     // Invoke
-    let result: bool = attempt_to_cast(
-        f32::MIN.to_string().as_str(),
-        CsvColumnDataType::Float(&STANDARD),
+    let result = cast_raw_value(
+        "1.0",
+        &CsvColumnInfo::required_content(0, CsvColumnDataType::Float(&STANDARD)),
     );
 
     // Analysis
-    assert_eq!(expected, result);
+    assert!(result.is_ok(), "Expected validation to succeed");
+    assert_eq!(result.unwrap(), expected);
 }
 
 #[test]
-fn test_attempt_to_cast_float_overflow() {
+fn test_validate_and_parse_float_negative() {
     // Setup
-    let expected: bool = false;
-    let overflow_1: f32 = f32::INFINITY;
-    let overflow_2: f32 = f32::MAX + f32::MAX;
-
-    assert_eq!(overflow_1, overflow_2); // Max + some large value should end up as INFINITY
+    let expected = ParsedValue::Float(-123.45);
 
     // Invoke
-    let result_1: bool = attempt_to_cast(
-        overflow_1.to_string().as_str(),
-        CsvColumnDataType::Float(&STANDARD),
-    );
-    let result_2: bool = attempt_to_cast(
-        overflow_2.to_string().as_str(),
-        CsvColumnDataType::Float(&STANDARD),
+    let result = cast_raw_value(
+        "-123.45",
+        &CsvColumnInfo::required_content(0, CsvColumnDataType::Float(&STANDARD)),
     );
 
     // Analysis
-    assert_eq!(expected, result_1);
-    assert_eq!(expected, result_2);
+    assert!(result.is_ok(), "Expected validation to succeed");
+    assert_eq!(result.unwrap(), expected);
 }
 
 #[test]
-fn test_attempt_to_cast_float_not_a_number() {
+fn test_validate_and_parse_float_extremely_large() {
     // Setup
-    let expected: bool = false;
+    let large_number = "1.7976931348623157e308"; // Close to f64::MAX
+    let expected = ParsedValue::Float(1.7976931348623157e308);
 
     // Invoke
-    let result: bool = attempt_to_cast("Boo", CsvColumnDataType::Float(&STANDARD));
+    let result = cast_raw_value(
+        large_number,
+        &CsvColumnInfo::required_content(0, CsvColumnDataType::Float(&STANDARD)),
+    );
 
     // Analysis
-    assert_eq!(expected, result);
+    assert!(
+        result.is_ok(),
+        "Expected validation to succeed for extremely large number"
+    );
+    assert_eq!(result.unwrap(), expected);
 }
 
 #[test]
-fn test_attempt_to_cast_date_ok_format() {
+fn test_validate_and_parse_float_extremely_small() {
     // Setup
-    let expected: bool = true;
+    let small_number = "2.2250738585072014e-308"; // Close to f64::MIN_POSITIVE
+    let expected = ParsedValue::Float(2.2250738585072014e-308);
 
     // Invoke
-    let result: bool = attempt_to_cast("1999-11-05", CsvColumnDataType::DateObject("%Y-%m-%d"));
+    let result = cast_raw_value(
+        small_number,
+        &CsvColumnInfo::required_content(0, CsvColumnDataType::Float(&STANDARD)),
+    );
 
     // Analysis
-    assert_eq!(expected, result);
+    assert!(
+        result.is_ok(),
+        "Expected validation to succeed for extremely small number"
+    );
+    assert_eq!(result.unwrap(), expected);
 }
 
 #[test]
-fn test_attempt_to_cast_date_invalid_format_2() {
+fn test_validate_and_parse_float_overflow() {
     // Setup
-    let expected: bool = false;
+    let overflow_number = "1.8e308"; // Larger than f64::MAX
 
     // Invoke
-    let result: bool = attempt_to_cast("1999/11/05", CsvColumnDataType::DateObject("%Y-%m-%d"));
+    let result = cast_raw_value(
+        overflow_number,
+        &CsvColumnInfo::required_content(0, CsvColumnDataType::Float(&STANDARD)),
+    );
 
     // Analysis
-    assert_eq!(expected, result);
+    assert!(result.is_err(), "Expected validation to fail for overflow");
 }
 
 #[test]
-fn test_attempt_to_cast_date_invalid() {
+fn test_validate_and_parse_float_inversed() {
     // Setup
-    let expected: bool = false;
+    let expected = ParsedValue::Float(-123.45);
 
     // Invoke
-    let result: bool = attempt_to_cast("Boo", CsvColumnDataType::DateObject("%Y-%m-%d"));
+    let result = cast_raw_value(
+        "123.45",
+        &CsvColumnInfo::required_content(0, CsvColumnDataType::Float(&INVERSED)),
+    );
 
     // Analysis
-    assert_eq!(expected, result);
+    assert!(result.is_ok(), "Expected validation to succeed");
+    assert_eq!(result.unwrap(), expected);
+}
+
+#[test]
+fn test_validate_and_parse_float_zero() {
+    // Setup
+    let expected = ParsedValue::Float(0.0);
+
+    // Invoke
+    let result = cast_raw_value(
+        "0.0",
+        &CsvColumnInfo::required_content(0, CsvColumnDataType::Float(&STANDARD)),
+    );
+
+    // Analysis
+    assert!(result.is_ok(), "Expected validation to succeed");
+    assert_eq!(result.unwrap(), expected);
+}
+
+#[test]
+fn test_validate_and_parse_float_empty_string_not_required() {
+    // Invoke
+    let result = cast_raw_value(
+        "",
+        &CsvColumnInfo::optional_content(0, CsvColumnDataType::Float(&STANDARD)),
+    );
+
+    // Analysis
+    assert!(
+        result.is_ok(),
+        "Expected validation to be ok still since it is a NaN"
+    );
+    if let Ok(ParsedValue::Float(val)) = result {
+        assert!(val.is_nan());
+    } else {
+        panic!("Expected a NaN Float");
+    }
+}
+
+#[test]
+fn test_validate_and_parse_float_empty_string_required() {
+    // Setup
+
+    // Invoke
+    let result = cast_raw_value(
+        "",
+        &CsvColumnInfo::required_content(0, CsvColumnDataType::Float(&STANDARD)),
+    );
+
+    // Analysis
+    assert!(result.is_err(), "Expected validation to fail");
+}
+
+#[test]
+fn test_validate_and_parse_float_ok_2() {
+    // Setup
+    let expected = ParsedValue::Float(1000000.0);
+
+    // Invoke
+    let result = cast_raw_value(
+        "1000000.0",
+        &CsvColumnInfo::required_content(0, CsvColumnDataType::Float(&STANDARD)),
+    );
+
+    // Analysis
+    assert!(result.is_ok(), "Expected validation to succeed");
+    assert_eq!(result.unwrap(), expected);
+}
+
+#[test]
+fn test_validate_and_parse_float_not_a_number() {
+    // Invoke
+    let result = cast_raw_value(
+        "Boo",
+        &CsvColumnInfo::required_content(0, CsvColumnDataType::Float(&STANDARD)),
+    );
+
+    // Analysis
+    assert!(
+        result.is_err(),
+        "Expected validation to fail for non-numeric value"
+    );
+}
+
+#[test]
+fn test_validate_and_parse_date_ok_format() {
+    // Setup
+    let expected = ParsedValue::Date(
+        NaiveDate::from_ymd_opt(1999, 11, 5)
+            .unwrap()
+            .and_hms_opt(0, 0, 0)
+            .unwrap(),
+    );
+
+    // Invoke
+    let result = cast_raw_value(
+        "1999-11-05",
+        &CsvColumnInfo::required_content(0, CsvColumnDataType::DateObject("%Y-%m-%d")),
+    );
+
+    // Analysis
+    assert!(result.is_ok(), "Expected validation to succeed");
+    assert_eq!(result.unwrap(), expected);
+}
+
+#[test]
+fn test_validate_and_parse_date_invalid_format_2() {
+    // Invoke
+    let result = cast_raw_value(
+        "1999/11/05",
+        &CsvColumnInfo::required_content(0, CsvColumnDataType::DateObject("%Y-%m-%d")),
+    );
+
+    // Analysis
+    assert!(
+        result.is_err(),
+        "Expected validation to fail for invalid date format"
+    );
+}
+
+#[test]
+fn test_validate_and_parse_date_invalid() {
+    // Invoke
+    let result = cast_raw_value(
+        "Boo",
+        &CsvColumnInfo::required_content(0, CsvColumnDataType::DateObject("%Y-%m-%d")),
+    );
+
+    // Analysis
+    assert!(
+        result.is_err(),
+        "Expected validation to fail for invalid date value"
+    );
 }
 
 #[test]
@@ -246,7 +361,7 @@ fn test_validate_csv_record_true() {
     let csv_definition_to_test: CsvDefinition = setup_csv_definition_for_test();
 
     let string_record_to_test: StringRecord =
-        StringRecord::from(vec!["1999-11-05", "Qball", "1.0"]);
+        StringRecord::from(vec!["1999-11-05", "Qball", "1.0", "Foo"]);
 
     // Invoke
     let result: bool = csv_definition_to_test.validate_against_record(&string_record_to_test);
@@ -256,8 +371,6 @@ fn test_validate_csv_record_true() {
 }
 
 #[test]
-<<<<<<< Updated upstream
-=======
 fn test_currency_role_with_second_amount() {
     // Setup
     let csv_definition = CsvDefinition::new(
@@ -838,7 +951,6 @@ fn test_parse_record_with_inversed_amount() {
 }
 
 #[test]
->>>>>>> Stashed changes
 fn test_open_file_from_path_valid_extension() {
     // Setup
     let temp = Builder::new()

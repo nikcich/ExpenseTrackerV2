@@ -43,22 +43,33 @@ export const parseStackedFormat = (
 const layout: Partial<Layout> = {
   barmode: "stack",
   autosize: true,
-  margin: { t: 40, r: 20, l: 40, b: 60 },
   paper_bgcolor: "transparent",
   plot_bgcolor: "transparent",
   font: { color: "#ffffff" },
-  legend: { orientation: "h" },
   dragmode: false,
 };
 
-export function StackedBarChart({ data }: { data: Data[] }) {
+export function StackedBarChart({
+  data,
+  legend = true,
+  legendDirection = "v",
+}: {
+  data: Data[];
+  legend?: boolean;
+  legendDirection?: "v" | "h";
+}) {
   return (
     <Plot
       data={data}
-      layout={layout}
+      layout={{
+        ...layout,
+        showlegend: legend,
+        legend: { orientation: legendDirection },
+        margin: { t: 20, r: 20, l: 40, b: legend ? 60 : 80 },
+      }}
       config={{ displayModeBar: false }}
       style={{ width: "100%", height: "100%" }}
-      useResizeHandler
+      useResizeHandler={true}
     />
   );
 }
