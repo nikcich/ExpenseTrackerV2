@@ -10,6 +10,7 @@ use std::error::Error as StdError;
 
 pub const STANDARD: bool = true;
 pub const INVERSED: bool = false;
+pub const SHEKEL_TO_DOLLAR_DIVISION: f64 = 3.5;
 
 ///GLOBAL DEFINITIONS
 pub static CSV_DEFINITIONS: Lazy<HashMap<CsvDefinitionKey, CsvDefinition>> =
@@ -79,7 +80,7 @@ impl CsvColumnRole {
         meta_data_columns: &HashMap<CsvColumnRole, CsvColumnInfo>,
     ) -> Result<(), Box<dyn StdError>> {
         // Fetch and normalize the value
-        let value = match Self::get_and_normalize(self, string_record, current_column_info)? {
+        let value = match Self::get_and_normalize(self, &string_record, &current_column_info)? {
             Some(val) => val,
             None => return Ok(()), // Skip if the value is optional and not present
         };
@@ -100,8 +101,8 @@ impl CsvColumnRole {
                 if !current_column_info.is_required {
                     if let Some(credit_column_info) = meta_data_columns.get(&CsvColumnRole::CreditAmount) {
                         credit_column_info.clone().with_temporary_required_state(|credit_info| {
-                            if let Ok(Some(credit_str)) = Self::get_and_normalize(CsvColumnRole::CreditAmount, &string_record, credit_info) {
-                                if let Ok(ParsedValue::Float(credit)) = cast_raw_value(&credit_str, credit_info) {
+                            if let Ok(Some(credit_str)) = Self::get_and_normalize(CsvColumnRole::CreditAmount, &string_record, &credit_info) {
+                                if let Ok(ParsedValue::Float(credit)) = cast_raw_value(&credit_str, &credit_info) {
                                     // Credit is treated as a negative amount (no negative sign here because credit amount is inversed)
                                     total_amount = credit;
                                 }
@@ -115,9 +116,11 @@ impl CsvColumnRole {
                     if let Some(credit_column_info) = meta_data_columns.get(&CsvColumnRole::CreditDebit) {
                         if let Some(credit_raw_str) = Self::get_and_normalize(CsvColumnRole::CreditDebit, &string_record, credit_column_info)? {
                             if let Ok(ParsedValue::String(credit_str)) = cast_raw_value(&credit_raw_str, credit_column_info) {
-                                if let Some(expected_str) = credit_column_info.args.get(0) {
-                                    if &credit_str == expected_str {
-                                        total_amount = -total_amount;
+                            if let Some(query) = credit_column_info.args_to_check.get(&Arg::CreditDebitQuery) {
+                                    if let ArgValue::String(query_str) = query {
+                                        if &credit_str == query_str{
+                                            total_amount = -total_amount;
+                                        }
                                     }
                                 }
                             }
@@ -130,6 +133,14 @@ impl CsvColumnRole {
                     return Err("Amount encountered as NaN, something went horribly wrong".into());
                 }
 
+                // If the amount is in Shekel, divide it by the exchange rate.
+                // This will be overwritten by Currency column by priority order iteration.
+                if let Some(ArgValue::Currency(currency)) = current_column_info.args_to_check.get(&Arg::AmountDefaultCurrency) {
+                    if currency == &Currency::Shekel {
+                        total_amount = total_amount / SHEKEL_TO_DOLLAR_DIVISION;
+                    }
+                }
+
                 expense.set_amount(total_amount);
             }
             (CsvColumnRole::Tag, ParsedValue::String(tag)) => {
@@ -138,28 +149,35 @@ impl CsvColumnRole {
                 }
             }
             (CsvColumnRole::Currency, ParsedValue::String(currency)) => {
-                if currency == "$" {
-                    // Fetch the second amount column definition
-                    let second_amount_column_definition =
-                        meta_data_columns
-                        .get(&CsvColumnRole::Amount)
-                        .ok_or("Currency is present in record but does not have second amount column definition to override with!")?;
 
-                    // Fetch and normalize the second amount value
-                    if let Some(second_amount_str) = CsvColumnRole::get_and_normalize(
-                        CsvColumnRole::Amount,
-                        string_record,
-                        second_amount_column_definition,
-                    )? {
-                        // Parse the second amount value
-                        if let Ok(ParsedValue::Float(second_amount)) = cast_raw_value(
-                            &second_amount_str,
-                            &second_amount_column_definition,
-                        ) {
-                            // Override the original amount with the second amount
-                            expense.set_amount(second_amount);
+                if let Some(currency_sign) = current_column_info.args_to_check.get(&Arg::CurrencyQuery) {
+                    if let ArgValue::String(target_currency) = currency_sign {
+                        if &currency == target_currency {
+                            // Fetch the second amount column definition
+                            let second_amount_column_definition =
+                                meta_data_columns
+                                    .get(&CsvColumnRole::Amount)
+                                    .ok_or("Currency is present in record but does not have second amount column definition to override with!")?;
+
+                            // Fetch and normalize the second amount value
+                            if let Some(second_amount_str) = CsvColumnRole::get_and_normalize(
+                                CsvColumnRole::Amount,
+                                string_record,
+                                second_amount_column_definition,
+                            )? {
+                                // Parse the second amount value
+                                if let Ok(ParsedValue::Float(second_amount)) = cast_raw_value(
+                                    &second_amount_str,
+                                    &second_amount_column_definition,
+                                ) {
+                                    // Override the original amount with the second amount
+                                    expense.set_amount(second_amount);
+                                }
+                            }
                         }
                     }
+                } else {
+                    return Err(format!("An argument is needed for the currency query!").into());
                 }
             }
             _ => return Err(format!("A role defined in expected columns was received, but there is no handling defined for it, occured at {}:{}", file!(), line!()).into()),
@@ -181,7 +199,30 @@ pub struct CsvColumnInfo {
     index: u8,
     data_type: CsvColumnDataType,
     is_required: bool,
-    args: Vec<String>,
+    args_to_check: HashMap<Arg, ArgValue>,
+}
+
+#[repr(u8)]
+#[derive(Debug, PartialEq, Eq, Clone, Hash)]
+pub enum Currency {
+    Dollar,
+    Shekel,
+}
+
+#[repr(u8)]
+#[derive(Debug, PartialEq, Eq, Clone, Hash)]
+pub enum ArgValue {
+    String(String),
+    Currency(Currency),
+    Bool(bool),
+}
+
+#[repr(u8)]
+#[derive(Hash, Eq, PartialEq, Debug, Clone)]
+pub enum Arg {
+    AmountDefaultCurrency,
+    CurrencyQuery,
+    CreditDebitQuery,
 }
 
 impl CsvColumnInfo {
@@ -195,8 +236,8 @@ impl CsvColumnInfo {
         self.is_required = original_state; // Reset the state
     }
 
-    pub fn add_argument(mut self, arg: String) -> Self {
-        self.args.push(arg);
+    pub fn look_for_argument(mut self, arg: Arg, arg_value: ArgValue) -> Self {
+        self.args_to_check.insert(arg, arg_value);
         return self;
     }
 
@@ -205,7 +246,7 @@ impl CsvColumnInfo {
             index: index,
             data_type: data_type,
             is_required: false,
-            args: Vec::new(),
+            args_to_check: HashMap::new(),
         };
     }
     pub fn required_content(index: u8, data_type: CsvColumnDataType) -> Self {
@@ -213,7 +254,7 @@ impl CsvColumnInfo {
             index: index,
             data_type: data_type,
             is_required: true,
-            args: Vec::new(),
+            args_to_check: HashMap::new(),
         };
     }
 }
@@ -481,9 +522,10 @@ pub fn build_definitions() -> HashMap<CsvDefinitionKey, CsvDefinition> {
         )
         .add_meta_data_column(
             CsvColumnRole::CreditDebit,
-            CsvColumnInfo::required_content(3, CsvColumnDataType::String)
-                .add_argument("Credit".to_string())
-                .add_argument("Debit".to_string()),
+            CsvColumnInfo::required_content(3, CsvColumnDataType::String).look_for_argument(
+                Arg::CreditDebitQuery,
+                ArgValue::String("Credit".to_string()),
+            ),
         ),
     );
 
@@ -529,7 +571,11 @@ pub fn build_definitions() -> HashMap<CsvDefinitionKey, CsvDefinition> {
                 ),
                 (
                     CsvColumnRole::Amount,
-                    CsvColumnInfo::optional_content(3, CsvColumnDataType::Float(&STANDARD)),
+                    CsvColumnInfo::optional_content(3, CsvColumnDataType::Float(&STANDARD))
+                        .look_for_argument(
+                            Arg::AmountDefaultCurrency,
+                            ArgValue::Currency(Currency::Shekel),
+                        ),
                 ),
             ],
         )
@@ -555,11 +601,16 @@ pub fn build_definitions() -> HashMap<CsvDefinitionKey, CsvDefinition> {
                 ),
                 (
                     CsvColumnRole::Amount,
-                    CsvColumnInfo::required_content(5, CsvColumnDataType::Float(&STANDARD)),
+                    CsvColumnInfo::required_content(5, CsvColumnDataType::Float(&STANDARD))
+                        .look_for_argument(
+                            Arg::AmountDefaultCurrency,
+                            ArgValue::Currency(Currency::Shekel),
+                        ),
                 ),
                 (
                     CsvColumnRole::Currency,
-                    CsvColumnInfo::optional_content(8, CsvColumnDataType::String),
+                    CsvColumnInfo::optional_content(8, CsvColumnDataType::String)
+                        .look_for_argument(Arg::CurrencyQuery, ArgValue::String("$".to_string())),
                 ),
             ],
         )
