@@ -10,7 +10,8 @@ use tempfile::Builder;
 
 use tauri_app_lib::definition::csv_definition::{
     cast_raw_value, Arg, ArgValue, CsvColumnDataType, CsvColumnInfo, CsvColumnRole, CsvDefinition,
-    CsvDefinitionKey, CsvParser, CsvValidator, MockCsvValidator, ParsedValue, INVERSED, STANDARD,
+    CsvDefinitionKey, CsvParser, CsvValidator, Currency, MockCsvValidator, ParsedValue, INVERSED,
+    STANDARD,
 };
 use tauri_app_lib::service::csv_file_service::{
     open_csv_file_and_find_definitions, open_file_from_path,
@@ -372,6 +373,73 @@ fn test_validate_csv_record_true() {
 }
 
 #[test]
+fn test_default_currency() {
+    // Setup
+    let csv_definition = CsvDefinition::new(
+        "Currency Test",
+        true,
+        vec![
+            (
+                CsvColumnRole::Amount,
+                CsvColumnInfo::required_content(0, CsvColumnDataType::Float(&STANDARD))
+                    .look_for_argument(
+                        Arg::AmountDefaultCurrency,
+                        ArgValue::Currency(Currency::Shekel),
+                    ),
+            ),
+            (
+                CsvColumnRole::Currency,
+                CsvColumnInfo::required_content(2, CsvColumnDataType::String)
+                    .look_for_argument(Arg::CurrencyQuery, ArgValue::String("$".to_string())),
+            ),
+        ],
+    )
+    .add_meta_data_column(
+        CsvColumnRole::Amount,
+        CsvColumnInfo::required_content(1, CsvColumnDataType::Float(&STANDARD)),
+    );
+
+    let string_record = StringRecord::from(vec!["100.0", "200.0", "€"]);
+    let expected_amount = 100.0 / SHEKEL_TO_DOLLAR_DIVISION;
+
+    // Invoke
+    let result = csv_definition.parse_record(&string_record);
+
+    // Analysis
+    assert!(result.is_ok(), "Expected parsing to succeed");
+    let expense = result.unwrap();
+    assert_eq!(expense.get_amount(), expected_amount);
+}
+
+#[test]
+fn test_default_currency_empty() {
+    // Setup
+    let csv_definition = CsvDefinition::new(
+        "Currency Test",
+        true,
+        vec![(
+            CsvColumnRole::Amount,
+            CsvColumnInfo::required_content(0, CsvColumnDataType::Float(&STANDARD))
+                .look_for_argument(
+                    Arg::AmountDefaultCurrency,
+                    ArgValue::Currency(Currency::Shekel),
+                ),
+        )],
+    );
+
+    let string_record = StringRecord::from(vec!["100.0"]);
+    let expected_amount = 100.0 / SHEKEL_TO_DOLLAR_DIVISION;
+
+    // Invoke
+    let result = csv_definition.parse_record(&string_record);
+
+    // Analysis
+    assert!(result.is_ok(), "Expected parsing to succeed");
+    let expense = result.unwrap();
+    assert_eq!(expense.get_amount(), expected_amount);
+}
+
+#[test]
 fn test_currency_role_with_second_amount() {
     // Setup
     let csv_definition = CsvDefinition::new(
@@ -442,7 +510,7 @@ fn test_currency_role_with_second_amount_empty() {
 }
 
 #[test]
-fn test_currency_role_shekel_amount() {
+fn test_currency_role_no_override() {
     // Setup
     let csv_definition = CsvDefinition::new(
         "Currency Test",
@@ -465,7 +533,7 @@ fn test_currency_role_shekel_amount() {
     );
 
     let string_record = StringRecord::from(vec!["100.0", "200.0", "₪"]);
-    let expected_amount = 100.0 / SHEKEL_TO_DOLLAR_DIVISION;
+    let expected_amount = 100.0;
 
     // Invoke
     let result = csv_definition.parse_record(&string_record);

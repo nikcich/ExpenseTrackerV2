@@ -135,11 +135,9 @@ impl CsvColumnRole {
 
                 // If the amount is in Shekel, divide it by the exchange rate.
                 // This will be overwritten by Currency column by priority order iteration.
-                if let Some(currency) = current_column_info.args_to_check.get(&Arg::AmountDefaultCurrency) {
-                    if let ArgValue::Currency(currency_enum) = currency {
-                        if currency_enum == &Currency::Shekel {
-                            expense.set_amount(total_amount / SHEKEL_TO_DOLLAR_DIVISION);
-                        }
+                if let Some(ArgValue::Currency(currency)) = current_column_info.args_to_check.get(&Arg::AmountDefaultCurrency) {
+                    if currency == &Currency::Shekel {
+                        total_amount = total_amount / SHEKEL_TO_DOLLAR_DIVISION;
                     }
                 }
 
@@ -158,8 +156,8 @@ impl CsvColumnRole {
                             // Fetch the second amount column definition
                             let second_amount_column_definition =
                                 meta_data_columns
-                                .get(&CsvColumnRole::Amount)
-                                .ok_or("Currency is present in record but does not have second amount column definition to override with!")?;
+                                    .get(&CsvColumnRole::Amount)
+                                    .ok_or("Currency is present in record but does not have second amount column definition to override with!")?;
 
                             // Fetch and normalize the second amount value
                             if let Some(second_amount_str) = CsvColumnRole::get_and_normalize(
@@ -176,11 +174,6 @@ impl CsvColumnRole {
                                     expense.set_amount(second_amount);
                                 }
                             }
-                        }
-                        else {
-                            // There's no dollar amount, so convert shekel amount to dollars
-                            let shekel_amount = expense.get_amount();
-                            expense.set_amount(shekel_amount / SHEKEL_TO_DOLLAR_DIVISION);
                         }
                     }
                 } else {
@@ -578,7 +571,11 @@ pub fn build_definitions() -> HashMap<CsvDefinitionKey, CsvDefinition> {
                 ),
                 (
                     CsvColumnRole::Amount,
-                    CsvColumnInfo::optional_content(3, CsvColumnDataType::Float(&STANDARD)),
+                    CsvColumnInfo::optional_content(3, CsvColumnDataType::Float(&STANDARD))
+                        .look_for_argument(
+                            Arg::AmountDefaultCurrency,
+                            ArgValue::Currency(Currency::Shekel),
+                        ),
                 ),
             ],
         )
@@ -604,7 +601,11 @@ pub fn build_definitions() -> HashMap<CsvDefinitionKey, CsvDefinition> {
                 ),
                 (
                     CsvColumnRole::Amount,
-                    CsvColumnInfo::required_content(5, CsvColumnDataType::Float(&STANDARD)),
+                    CsvColumnInfo::required_content(5, CsvColumnDataType::Float(&STANDARD))
+                        .look_for_argument(
+                            Arg::AmountDefaultCurrency,
+                            ArgValue::Currency(Currency::Shekel),
+                        ),
                 ),
                 (
                     CsvColumnRole::Currency,
