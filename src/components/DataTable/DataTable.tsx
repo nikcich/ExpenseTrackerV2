@@ -1,6 +1,13 @@
 import { Button, Input } from "@chakra-ui/react";
 import { memo, useCallback, useMemo, useState } from "react";
-import { API, Expense, NonExpenseTags, Response, Tag } from "@/types/types";
+import {
+  ALL_TAGS_OPTIONS,
+  API,
+  Expense,
+  NonExpenseTags,
+  Response,
+  Tag,
+} from "@/types/types";
 import { BrushScrubber } from "../Brush/BrushScrubber";
 import { GenericPage } from "../GenericPage/GenericPage";
 import { Tag as TagComp } from "@chakra-ui/react";
@@ -40,7 +47,7 @@ type SortDirection = "asc" | "desc";
 const compareDates = (
   date1: string,
   date2: string,
-  order: SortDirection,
+  order: SortDirection
 ): number => {
   const date1Obj = new Date(date1);
   const date2Obj = new Date(date2);
@@ -56,6 +63,11 @@ export const DataTable = ({ items }: { items: Expense[] }) => {
   const selection = useSelection();
   const [searchString, setSearchString] = useState<string>("");
 
+  const [includeIncome, setIncludeIncome] = useState(true);
+  const [includeExpenses, setIncludeExpenses] = useState(true);
+  const [includeSavings, setIncludeSavings] = useState(true);
+  const [includeUntagged, setIncludeUntagged] = useState(true);
+
   const handleDeleteSelection = useCallback(async (selection: string[]) => {
     for (const id of selection) {
       await invoke<Response<string>>(API.RemoveExpense, {
@@ -65,10 +77,31 @@ export const DataTable = ({ items }: { items: Expense[] }) => {
   }, []);
 
   const filteredItems = useMemo(() => {
-    return items.filter((item) =>
-      item.description.toLowerCase().includes(searchString.toLowerCase()),
-    );
-  }, [items, searchString]);
+    return items
+      .filter((item) => {
+        const isIncome = item.tags.includes(NonExpenseTags.Income);
+        const isSavings = item.tags.includes(NonExpenseTags.Savings);
+        const isUntagged = item.tags.length === 0;
+        const isExpense = !isIncome && !isSavings && !isUntagged;
+
+        if (!includeIncome && isIncome) return false;
+        if (!includeSavings && isSavings) return false;
+        if (!includeExpenses && isExpense) return false;
+        if (!includeUntagged && isUntagged) return false;
+
+        return true;
+      })
+      .filter((item) =>
+        item.description.toLowerCase().includes(searchString.toLowerCase())
+      );
+  }, [
+    items,
+    searchString,
+    includeExpenses,
+    includeSavings,
+    includeIncome,
+    includeUntagged,
+  ]);
 
   const debouncedSearchString = useMemo(() => {
     return debounce(setSearchString, 300);
@@ -76,7 +109,7 @@ export const DataTable = ({ items }: { items: Expense[] }) => {
 
   return (
     <GenericPage
-      title={`Expenses (${items.length})`}
+      title={`Expenses (${filteredItems.length})`}
       actions={
         <>
           <Button
@@ -132,16 +165,58 @@ export const DataTable = ({ items }: { items: Expense[] }) => {
           display: "flex",
           flexDirection: "column",
           alignItems: "center",
+          background: "black",
+          padding: "0.5rem",
         }}
       >
+        <div
+          style={{
+            display: "flex",
+            gap: "1rem",
+            paddingBottom: "0.5rem",
+            width: "100%",
+            alignItems: "flex-start",
+          }}
+        >
+          <Button
+            variant={includeIncome ? "solid" : "outline"}
+            colorPalette={"green"}
+            onClick={() => setIncludeIncome((e) => !e)}
+          >
+            Income {includeIncome ? "Included" : "Excluded"}
+          </Button>
+
+          <Button
+            variant={includeExpenses ? "solid" : "outline"}
+            colorPalette={"red"}
+            onClick={() => setIncludeExpenses((e) => !e)}
+          >
+            Expenses {includeExpenses ? "Included" : "Excluded"}
+          </Button>
+
+          <Button
+            variant={includeSavings ? "solid" : "outline"}
+            colorPalette={"yellow"}
+            onClick={() => setIncludeSavings((e) => !e)}
+          >
+            Savings {includeSavings ? "Included" : "Excluded"}
+          </Button>
+
+          <Button
+            variant={includeUntagged ? "solid" : "outline"}
+            colorPalette={"gray"}
+            onClick={() => setIncludeUntagged((e) => !e)}
+          >
+            Untagged {includeUntagged ? "Included" : "Excluded"}
+          </Button>
+        </div>
         <Input
           type="search"
           onChange={(e) => debouncedSearchString(e.target.value)}
           placeholder="Search..."
           style={{
-            width: "97%",
+            width: "100%",
             zIndex: 100,
-            background: "black",
             minHeight: "40px",
           }}
         />
@@ -308,7 +383,7 @@ const CoreTable = memo(({ items }: { items: Expense[] }) => {
                       setSelection((prev) =>
                         e.target.checked
                           ? [...prev, item.id]
-                          : prev.filter((x) => x !== item.id),
+                          : prev.filter((x) => x !== item.id)
                       )
                     }
                   />
