@@ -5,21 +5,28 @@ import { Expense } from "@/types/types";
 import { LineChart } from "@/components/charts/LineChart";
 import { chartDateCompare } from "@/utils/utils";
 
-const filterYearToDate = (data: Expense[]) => {
+const filterYear = (data: Expense[], beforeNow: number = 0) => {
   const now = new Date();
-  const startOfYear = new Date(now.getFullYear(), 0, 1);
-  return data.filter((e) => new Date(e.date) >= startOfYear);
-};
-
-const filterPreviousYear = (data: Expense[]) => {
-  const now = new Date();
-  const startOfYear = new Date(now.getFullYear(), 0, 1);
-  const startOfPreviousYear = new Date(now.getFullYear() - 1, 0, 1);
+  const startOfYear = new Date(now.getFullYear() - beforeNow, 0, 1);
+  const endOfYear = new Date(startOfYear.getFullYear() + 1, 0, 1);
 
   return data.filter((e) => {
     const d = new Date(e.date);
-    return d < startOfYear && d >= startOfPreviousYear;
+    return d < endOfYear && d >= startOfYear;
   });
+};
+
+const filterAllExpensesYear = (
+  income: Expense[],
+  expenses: Expense[],
+  savings: Expense[],
+  beforeNow: number = 0
+): [Expense[], Expense[], Expense[]] => {
+  const filteredIncome = filterYear(income, beforeNow);
+  const filteredExpenses = filterYear(expenses, beforeNow);
+  const filteredSavings = filterYear(savings, beforeNow);
+
+  return [filteredIncome, filteredExpenses, filteredSavings];
 };
 
 const getMonthKey = (i: number) => {
@@ -60,8 +67,15 @@ const groupAndSum = (data: Expense[]) => {
   return groupedData;
 };
 
-const LAST_YEAR = new Date(new Date().getFullYear() - 1, 0, 1).getFullYear();
-const THIS_YEAR = new Date().getFullYear();
+function withTransparency(hexColor: string, num: number) {
+  const step = 255 / 3;
+
+  const alpha = Math.max(0, 255 - num * step);
+  const alphaHex = alpha.toString(16).padStart(2, "0");
+
+  return hexColor.slice(0, 7) + alphaHex;
+}
+
 const createChart = (
   name: string,
   color: string,
@@ -79,6 +93,8 @@ const createChart = (
   };
 };
 
+const YEARS = [0, 1];
+
 export const YearToDateChartCore = ({
   legend = true,
   legendDirection = "v",
@@ -90,48 +106,59 @@ export const YearToDateChartCore = ({
   const rawIncome = useIncome();
   const rawSavings = useSavings();
 
-  const {
-    sortedGroupedExpenses,
-    sortedGroupedIncome,
-    sortedGroupedSavings,
-    lastYearSortedGroupedExpenses,
-    lastYearSortedGroupedIncome,
-    lastYearSortedGroupedSavings,
-    groups,
-  } = useMemo(() => {
-    const filteredExpenses = filterYearToDate(rawExpenses);
-    const filteredIncome = filterYearToDate(rawIncome);
-    const filteredSavings = filterYearToDate(rawSavings);
+  const { charts, groups } = useMemo(() => {
+    const groups = YEARS.map((year) => {
+      const currentYearFiltered = filterAllExpensesYear(
+        rawIncome,
+        rawExpenses,
+        rawSavings,
+        year
+      );
 
-    const filteredLastYearExpenses = filterPreviousYear(rawExpenses);
-    const filteredLastYearIncome = filterPreviousYear(rawIncome);
-    const filteredLastYearSavings = filterPreviousYear(rawSavings);
+      const currYearGrouped = currentYearFiltered.map((curr) =>
+        groupAndSum(curr)
+      );
+      return currYearGrouped;
+    });
 
-    const sortedGroupedExpenses = groupAndSum(filteredExpenses);
-    const sortedGroupedIncome = groupAndSum(filteredIncome);
-    const sortedGroupedSavings = groupAndSum(filteredSavings);
+    const groupsSet = new Set(groups.flat(2).map((item) => item.group));
+    const finalGroups = Array.from(groupsSet).sort((a, b) =>
+      chartDateCompare(a, b)
+    );
 
-    const lastYearSortedGroupedExpenses = groupAndSum(filteredLastYearExpenses);
-    const lastYearSortedGroupedIncome = groupAndSum(filteredLastYearIncome);
-    const lastYearSortedGroupedSavings = groupAndSum(filteredLastYearSavings);
+    const charts = YEARS.map((year, index) => {
+      const [yearIncome, yearExpenses, yearSavings] = groups[index];
+      const thisYear = new Date(
+        new Date().getFullYear() - year,
+        0,
+        1
+      ).getFullYear();
 
-    const groupsSet = new Set([
-      ...sortedGroupedExpenses.map((e) => e.group),
-      ...sortedGroupedIncome.map((e) => e.group),
-      ...sortedGroupedSavings.map((e) => e.group),
-      ...lastYearSortedGroupedExpenses.map((e) => e.group),
-      ...lastYearSortedGroupedIncome.map((e) => e.group),
-      ...lastYearSortedGroupedSavings.map((e) => e.group),
-    ]);
+      return [
+        createChart(
+          `${thisYear} Income`,
+          withTransparency("#00a100ff", year),
+          yearIncome,
+          finalGroups
+        ),
+        createChart(
+          `${thisYear} Expenses`,
+          withTransparency("#bb0000ff", year),
+          yearExpenses,
+          finalGroups
+        ),
+        createChart(
+          `${thisYear} Savings`,
+          withTransparency("#ffd000ff", year),
+          yearSavings,
+          finalGroups
+        ),
+      ];
+    }).flat();
 
     return {
-      sortedGroupedExpenses,
-      sortedGroupedIncome,
-      sortedGroupedSavings,
-      lastYearSortedGroupedExpenses,
-      lastYearSortedGroupedIncome,
-      lastYearSortedGroupedSavings,
-      groups: Array.from(groupsSet).sort((a, b) => chartDateCompare(a, b)),
+      charts,
+      groups: finalGroups,
     };
   }, [rawExpenses, rawIncome, rawSavings]);
 
@@ -140,44 +167,7 @@ export const YearToDateChartCore = ({
       legend={legend}
       legendDirection={legendDirection}
       x={groups}
-      barCharts={[
-        createChart(
-          `${THIS_YEAR} Expenses`,
-          "#bb0000ff",
-          sortedGroupedExpenses,
-          groups
-        ),
-        createChart(
-          `${THIS_YEAR} Income`,
-          "#00a100ff",
-          sortedGroupedIncome,
-          groups
-        ),
-        createChart(
-          `${THIS_YEAR} Savings`,
-          "#ffd000ff",
-          sortedGroupedSavings,
-          groups
-        ),
-        createChart(
-          `${LAST_YEAR} Expenses`,
-          "#bb000079",
-          lastYearSortedGroupedExpenses,
-          groups
-        ),
-        createChart(
-          `${LAST_YEAR} Income`,
-          "#00a10071",
-          lastYearSortedGroupedIncome,
-          groups
-        ),
-        createChart(
-          `${LAST_YEAR} Savings`,
-          "#ffd00067",
-          lastYearSortedGroupedSavings,
-          groups
-        ),
-      ]}
+      barCharts={charts}
     />
   );
 };
