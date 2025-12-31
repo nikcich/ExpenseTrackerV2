@@ -9,4 +9,5 @@ export enum Pages {
   RangeIncomeExpense = "/range-income-expense",
   YTDChart = "/year-to-date-chart",
   AverageSpending = "/average-spending",
+  Sankey = "/Sankey",
 }

@@ -15,6 +15,7 @@ import { RangeIncomeExpenseChart } from "./pages/RangeIncomeExpenseChart/RangeIn
 import { YearToDateChart } from "./pages/YearToDateChart/YearToDateChart";
 import { AverageSpending } from "./pages/AverageSpending/AverageSpending";
 import { ErrorBoundary } from "react-error-boundary";
+import { ExpenseSankey } from "./pages/Sankey/ExpenseSankey";
 
 function fallbackRender({ error }: { error: Error }) {
   return (
@@ -102,6 +103,11 @@ export function AppRouter() {
         <Route
           path={Pages.AverageSpending}
           element={<RouteComponent element={<AverageSpending />} />}
+        />
+
+        <Route
+          path={Pages.Sankey}
+          element={<RouteComponent element={<ExpenseSankey />} />}
         />
       </Routes>
     </BrowserRouter>

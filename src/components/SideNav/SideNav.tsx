@@ -14,6 +14,7 @@ import { RiBarChartHorizontalFill } from "react-icons/ri";
 import { FaChartLine } from "react-icons/fa6";
 import { BsAlignMiddle } from "react-icons/bs";
 import { BsFillGrid1X2Fill } from "react-icons/bs";
+import { TbChartSankey } from "react-icons/tb";
 
 const NavButton = ({ Icon, page }: { Icon: React.FC; page: string }) => {
   const navigate = useNavigate();
@@ -46,6 +47,7 @@ export function SideNav() {
       <NavButton Icon={FaChartBar} page={Pages.BarChart} />
       <NavButton Icon={LuChartColumnStacked} page={Pages.StackedBarChart} />
       <NavButton Icon={FaChartLine} page={Pages.YTDChart} />
+      <NavButton Icon={TbChartSankey} page={Pages.Sankey} />
       <NavButton Icon={BsFillGrid1X2Fill} page={Pages.Test} />
     </div>
   );
