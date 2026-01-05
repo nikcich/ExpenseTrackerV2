@@ -60,6 +60,7 @@ export enum ExpenseTag {
 export enum NonExpenseTags {
   Income = "Income",
   Savings = "Savings",
+  RSU = "RSU",
 }
 
 export type Tag = ExpenseTag | NonExpenseTags | string;

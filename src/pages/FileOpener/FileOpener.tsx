@@ -1,11 +1,19 @@
 import { API, Response } from "@/types/types";
-import { Button, NativeSelect, Spinner, Text } from "@chakra-ui/react";
+import {
+  Button,
+  NativeSelect,
+  Separator,
+  Spinner,
+  Text,
+} from "@chakra-ui/react";
 import { invoke } from "@tauri-apps/api/core";
 import { open } from "@tauri-apps/plugin-dialog";
 import { useCallback, useState } from "react";
 import styles from "./FileOpener.module.scss";
 import { Alert } from "@chakra-ui/react";
 import { GenericPage } from "@/components/GenericPage/GenericPage";
+import { downloadExpensesCSV } from "@/utils/download";
+import { useExpenses } from "@/hooks/expenses";
 
 const useFileOpener = () => {
   const [loading, setLoading] = useState(false);
@@ -69,6 +77,18 @@ const useFileOpener = () => {
   };
 };
 
+const FileDownloader = () => {
+  const expenses = useExpenses();
+  return (
+    <Button
+      onClick={() => downloadExpensesCSV(expenses)}
+      colorPalette={"green"}
+    >
+      Download CSV
+    </Button>
+  );
+};
+
 export function FileOpener() {
   const {
     loading,
@@ -114,6 +134,10 @@ export function FileOpener() {
             finishParsingCsv={finishParsingCsv}
           />
         )}
+
+        <Separator />
+
+        <FileDownloader />
       </div>
     </GenericPage>
   );

@@ -42,9 +42,9 @@ export const useFilteredIncome = () => {
   return filtered;
 };
 
-export const useFilteredSavings = () => {
+export const useFilteredSavings = (rsu: boolean = true) => {
   const [range] = useDebouncedBrushRange();
-  const savings = useSavings();
+  const savings = useSavings(rsu);
   const filtered = useMemo(() => {
     if (!range) return savings;
     return savings.filter((saving) => {
@@ -62,8 +62,12 @@ export const useExpenses = () => {
   const expenses = useMemo(
     () =>
       value?.filter((e) => {
-        const isIncome = e.tags.includes(NonExpenseTags.Income);
-        const isSavings = e.tags.includes(NonExpenseTags.Savings);
+        const isIncome =
+          e.tags.includes(NonExpenseTags.Income) ||
+          e.tags.includes(NonExpenseTags.RSU);
+        const isSavings =
+          e.tags.includes(NonExpenseTags.Savings) ||
+          e.tags.includes(NonExpenseTags.RSU);
         return !isIncome && !isSavings;
       }) ?? [],
     [value]
@@ -71,25 +75,35 @@ export const useExpenses = () => {
   return expenses;
 };
 
-export const useSavings = () => {
+export const useSavings = (rsu: boolean = true) => {
   const { value } = useExpensesStore();
+  const enabledTags = useSettingsStore("enabledTags");
+  const includeRSU = enabledTags.includes(NonExpenseTags.RSU) && rsu;
 
-  const savings = useMemo(
-    () =>
-      value?.filter((e) => {
-        const isSavings = e.tags.includes(NonExpenseTags.Savings);
-        return isSavings;
-      }) ?? [],
-    [value]
-  );
+  const savings = useMemo(() => {
+    const normalSavings =
+      value?.filter((e) => e.tags.includes(NonExpenseTags.Savings)) ?? [];
+    const rsuSavings = includeRSU
+      ? (value?.filter((e) => e.tags.includes(NonExpenseTags.RSU)) ?? [])
+      : [];
+    const invertedRSU = rsuSavings.map((e) => ({ ...e, amount: -e.amount })); // RSU amount needs to be inverted
+    return [...normalSavings, ...invertedRSU];
+  }, [value]);
   return savings;
 };
 
 export const useIncome = () => {
   const { value } = useExpensesStore();
+  const enabledTags = useSettingsStore("enabledTags");
+  const includeRSU = enabledTags.includes(NonExpenseTags.RSU);
 
   const expenses = useMemo(
-    () => value?.filter((e) => e.tags.includes(NonExpenseTags.Income)) ?? [],
+    () =>
+      value?.filter(
+        (e) =>
+          e.tags.includes(NonExpenseTags.Income) ||
+          (e.tags.includes(NonExpenseTags.RSU) && includeRSU)
+      ) ?? [],
     [value]
   );
   return expenses;

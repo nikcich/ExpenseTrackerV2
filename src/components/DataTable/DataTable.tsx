@@ -1,13 +1,6 @@
 import { Button, Input } from "@chakra-ui/react";
 import { memo, useCallback, useMemo, useState } from "react";
-import {
-  ALL_TAGS_OPTIONS,
-  API,
-  Expense,
-  NonExpenseTags,
-  Response,
-  Tag,
-} from "@/types/types";
+import { API, Expense, NonExpenseTags, Response, Tag } from "@/types/types";
 import { BrushScrubber } from "../Brush/BrushScrubber";
 import { GenericPage } from "../GenericPage/GenericPage";
 import { Tag as TagComp } from "@chakra-ui/react";
@@ -27,7 +20,7 @@ const TagCell = ({ tags }: { tags: Tag[] }) => {
         <TagComp.Root
           key={tag}
           colorPalette={
-            tag === NonExpenseTags.Income
+            tag === NonExpenseTags.Income || tag === NonExpenseTags.RSU
               ? "green"
               : tag === NonExpenseTags.Savings
                 ? "yellow"

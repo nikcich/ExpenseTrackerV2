@@ -9,7 +9,7 @@ import {
 export function TableView() {
   const expenses = useFilteredExpenses();
   const income = useFilteredIncome();
-  const savings = useFilteredSavings();
+  const savings = useFilteredSavings(false);
 
   return (
     <div className={styles.container}>

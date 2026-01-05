@@ -1,6 +1,6 @@
 import { GenericPage } from "@/components/GenericPage/GenericPage";
-import { ALL_EXPENSE_TAGS, ExpenseTag } from "@/types/types";
-import { CheckboxCard, Heading, Switch } from "@chakra-ui/react";
+import { ALL_EXPENSE_TAGS, ExpenseTag, NonExpenseTags } from "@/types/types";
+import { CheckboxCard, Heading, Separator, Switch } from "@chakra-ui/react";
 import styles from "./Settings.module.scss";
 import { setSettingsStore, useSettingsStore } from "@/store/SettingsStore";
 
@@ -36,23 +36,31 @@ const CustomCheckBox = ({
 export function Settings() {
   const enabledTags = useSettingsStore("enabledTags");
 
+  const includeRSU = enabledTags.includes(NonExpenseTags.RSU);
+  const isAll =
+    (includeRSU && enabledTags.length === ALL_EXPENSE_TAGS.length + 1) ||
+    (!includeRSU && enabledTags.length === ALL_EXPENSE_TAGS.length);
+
   return (
     <GenericPage title="Settings">
       <Heading>Enabled Tags</Heading>
       <div className={styles.switchContainer}>
         <CustomCheckBox
-          checked={enabledTags.length === ALL_EXPENSE_TAGS.length}
+          checked={isAll}
           label={"All"}
           onChange={(checked) => {
             if (!checked) {
               setSettingsStore((prev) => ({
                 ...prev,
-                enabledTags: [],
+                enabledTags: [...(includeRSU ? [NonExpenseTags.RSU] : [])],
               }));
             } else {
               setSettingsStore((prev) => ({
                 ...prev,
-                enabledTags: ALL_EXPENSE_TAGS,
+                enabledTags: [
+                  ...ALL_EXPENSE_TAGS,
+                  ...(includeRSU ? [NonExpenseTags.RSU] : []),
+                ],
               }));
             }
           }}
@@ -78,6 +86,28 @@ export function Settings() {
             label={tag}
           />
         ))}
+      </div>
+
+      <Separator />
+      <div className={styles.switchContainer}>
+        <CustomCheckBox
+          checked={enabledTags.includes(NonExpenseTags.RSU)}
+          onChange={(checked) => {
+            setSettingsStore((prev) => {
+              const tagsArr = checked
+                ? prev.enabledTags.includes(NonExpenseTags.RSU)
+                  ? prev.enabledTags
+                  : [...prev.enabledTags, NonExpenseTags.RSU]
+                : prev.enabledTags.filter((t) => t !== NonExpenseTags.RSU);
+
+              return {
+                ...prev,
+                enabledTags: tagsArr,
+              };
+            });
+          }}
+          label={"Include RSU's"}
+        />
       </div>
     </GenericPage>
   );
