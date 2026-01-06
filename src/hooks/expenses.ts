@@ -56,6 +56,21 @@ export const useFilteredSavings = (rsu: boolean = true) => {
   return filtered;
 };
 
+export const useFilteredRsu = () => {
+  const [range] = useDebouncedBrushRange();
+  const rsu = useRsu();
+
+  const filtered = useMemo(() => {
+    if (!range) return rsu;
+    return rsu.filter((rsu) => {
+      const expenseDate = parseDate(rsu.date).getTime();
+      return expenseDate >= range[0] && expenseDate <= range[1];
+    });
+  }, [range, rsu]);
+
+  return filtered;
+};
+
 export const useExpenses = () => {
   const { value } = useExpensesStore();
 
@@ -90,6 +105,14 @@ export const useSavings = (rsu: boolean = true) => {
     return [...normalSavings, ...invertedRSU];
   }, [value]);
   return savings;
+};
+
+export const useRsu = () => {
+  const { value } = useExpensesStore();
+  const rsu = useMemo(() => {
+    return value?.filter((e) => e.tags.includes(NonExpenseTags.RSU)) ?? [];
+  }, [value]);
+  return rsu;
 };
 
 export const useIncome = () => {
