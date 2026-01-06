@@ -24,7 +24,9 @@ const TagCell = ({ tags }: { tags: Tag[] }) => {
               ? "green"
               : tag === NonExpenseTags.Savings
                 ? "yellow"
-                : "red"
+                : tag === NonExpenseTags.Retirement
+                  ? "pink"
+                  : "orange"
           }
         >
           <TagComp.Label>{tag}</TagComp.Label>

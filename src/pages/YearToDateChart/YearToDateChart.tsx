@@ -81,14 +81,23 @@ const groupAndSum = (data: Expense[]) => {
   return groupedData;
 };
 
-function withTransparency(hexColor: string, num: number, years: number[]) {
-  // get smallest year number
-  const minYear = Math.min(...years);
-  const maxYear = Math.max(...years);
-  const range = maxYear - minYear + 1;
-  const step = 255 / (range + 1);
+function normalizeRange(start1: number, end1: number, value: number): number {
+  const range = end1 - start1;
+  const normalizedStart = 0;
+  const normalizedEnd = range;
+  return (
+    ((value - start1) * (normalizedEnd - normalizedStart)) / range +
+    normalizedStart
+  );
+}
 
-  const alpha = Math.max(0, 255 - (maxYear - num) * step);
+function withTransparency(hexColor: string, num: number, years: number[]) {
+  const minYear = Math.max(...years);
+  const maxYear = Math.min(...years);
+  const range = minYear - maxYear + 1;
+  const step = 255 / (range + 1);
+  const alpha = Math.max(0, 255 - normalizeRange(maxYear, minYear, num) * step);
+
   const alphaHex = alpha.toString(16).padStart(2, "0");
 
   return hexColor.slice(0, 7) + alphaHex;
