@@ -29,6 +29,8 @@ export const DateRangeModal = () => {
   const onApply = useCallback((start: string, end: string) => {
     const d1 = new Date(start);
     const d2 = new Date(end);
+    d1.setDate(d1.getDate() + 1); // Idk why its off by 1
+    d2.setDate(d2.getDate() + 1);
 
     const ts1 = d1.getTime();
     const ts2 = d2.getTime();

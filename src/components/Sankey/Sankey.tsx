@@ -21,10 +21,9 @@ import styles from "./Sankey.module.scss";
 
 type SankeyProps = {
   data: SankeyData;
-  height?: number;
 };
 
-export const Sankey = ({ data, height = 500 }: SankeyProps) => {
+export const Sankey = ({ data }: SankeyProps) => {
   // Build node index map
   const nodeIndex = new Map<string, number>();
   data.nodes.forEach((node, i) => nodeIndex.set(node.id, i));
@@ -49,6 +48,8 @@ export const Sankey = ({ data, height = 500 }: SankeyProps) => {
                 color: data.links.map(
                   (l) => l.color ?? "rgba(255,255,255,0.2)"
                 ),
+                customdata: data.links.map((l) => l.value),
+                hoverinfo: "none",
               },
             },
           ]}

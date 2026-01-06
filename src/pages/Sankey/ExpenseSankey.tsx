@@ -44,6 +44,16 @@ type SankeyData = {
   links: SankeyLink[];
 };
 
+const formatMoney = (value: number) => {
+  const abs = Math.abs(value);
+
+  if (abs < 1000) {
+    return `$${value.toFixed(2)}`;
+  }
+
+  return `$${(value / 1000).toFixed(2)}k`;
+};
+
 function buildCashFlowSankey(
   income: Expense[],
   savings: Expense[],
@@ -66,16 +76,37 @@ function buildCashFlowSankey(
     }
   }
 
+  const excessTotal = Math.abs(incomeTotal) - expensesTotal - savingsTotal;
+
   const nodes: SankeyNode[] = [
-    { id: "income", label: "Income", color: "#2ecc71" },
-    { id: "savings", label: "Savings", color: "#3498db" },
-    { id: "expenses", label: "Expenses", color: "#e67e22" },
-    ...ALL_EXPENSE_TAGS.map((tag) => ({
-      id: `tag:${tag}`,
-      label: tag,
-      color: "#e74c3c",
-    })),
-    { id: "excess", label: "UNTRACKED MONEY", color: "red" },
+    {
+      id: "income",
+      label: `Income – ${formatMoney(Math.abs(incomeTotal))}`,
+      color: "#2ecc71",
+    },
+    {
+      id: "savings",
+      label: `Savings – ${formatMoney(savingsTotal)}`,
+      color: "#3498db",
+    },
+    {
+      id: "expenses",
+      label: "Expenses",
+      color: "#e67e22",
+    },
+    ...ALL_EXPENSE_TAGS.map((tag) => {
+      const value = expensesByTag[tag];
+      return {
+        id: `tag:${tag}`,
+        label: value > 0 ? `${tag} – ${formatMoney(value)}` : tag,
+        color: "#e74c3c",
+      };
+    }),
+    {
+      id: "excess",
+      label: `UNTRACKED MONEY – ${formatMoney(excessTotal)}`,
+      color: "red",
+    },
   ];
 
   const links: SankeyLink[] = [
@@ -87,7 +118,7 @@ function buildCashFlowSankey(
     {
       source: "income",
       target: "excess",
-      value: Math.abs(incomeTotal) - expensesTotal - savingsTotal,
+      value: excessTotal,
     },
   ];
 
