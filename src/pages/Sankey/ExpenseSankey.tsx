@@ -115,7 +115,7 @@ function buildCashFlowSankey(
     }),
     {
       id: "excess",
-      label: `UNTRACKED MONEY – ${formatMoney(excessTotal)}`,
+      label: `Unallocated – ${formatMoney(excessTotal)}`,
       color: "red",
     },
   ];
