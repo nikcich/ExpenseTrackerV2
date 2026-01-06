@@ -1,5 +1,9 @@
 import { GenericPage } from "@/components/GenericPage/GenericPage";
-import { useFilteredExpenses, useFilteredSavings } from "@/hooks/expenses";
+import {
+  useFilteredExpenses,
+  useFilteredRetirement,
+  useFilteredSavings,
+} from "@/hooks/expenses";
 import { byTag, groupAndSumExpenses } from "@/utils/expense-utils";
 import { useMemo } from "react";
 import {
@@ -53,17 +57,18 @@ export const AverageSpendingCore = ({
 }) => {
   const filteredExpenses = useFilteredExpenses();
   const filteredSavings = useFilteredSavings();
+  const filteredRetirement = useFilteredRetirement();
   const [range] = useDebouncedBrushRange();
 
   const groupedExpenses = useMemo(() => {
     const tagGrouped = groupAndSumExpenses(
-      [...filteredExpenses, ...filteredSavings],
+      [...filteredExpenses, ...filteredSavings, ...filteredRetirement],
       byTag
     );
 
     const topLevelGrouped = addTopLevelGroup(tagGrouped, "Range Average");
     return averageSums(topLevelGrouped, range);
-  }, [filteredExpenses, filteredSavings, range]);
+  }, [filteredExpenses, filteredSavings, filteredRetirement, range]);
 
   const traces = useMemo(
     () => parseStackedFormat(groupedExpenses),

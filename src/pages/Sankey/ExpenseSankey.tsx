@@ -3,17 +3,20 @@ import {
   useExpenses,
   useFilteredExpenses,
   useFilteredIncome,
+  useFilteredRetirement,
   useFilteredRsu,
   useFilteredSavings,
   useIncome,
+  useRetirement,
   useRsu,
   useSavings,
 } from "@/hooks/expenses";
-import { ALL_EXPENSE_TAGS, Expense } from "@/types/types";
+import { ALL_EXPENSE_TAGS, Expense, NonExpenseTags } from "@/types/types";
 import { Sankey } from "@/components/Sankey/Sankey";
 import { BrushScrubber } from "@/components/Brush/BrushScrubber";
 import { useMemo, useState } from "react";
 import { SegmentGroup } from "@chakra-ui/react";
+import { useSettingsStore } from "@/store/SettingsStore";
 
 const filterYear = (data: Expense[], beforeNow: number = 0) => {
   const now = new Date();
@@ -26,8 +29,10 @@ const filterYear = (data: Expense[], beforeNow: number = 0) => {
   });
 };
 
-const sumAmounts = (expenses: Expense[]) =>
-  expenses.reduce((sum, e) => sum + e.amount, 0);
+const sumAmounts = (expenses: Expense[]): number => {
+  const num = expenses.reduce((sum, e) => sum + e.amount, 0);
+  return parseFloat(num.toFixed(2));
+};
 
 type SankeyNode = {
   id: string;
@@ -60,12 +65,15 @@ function buildCashFlowSankey(
   income: Expense[],
   savings: Expense[],
   trueExpenses: Expense[],
-  rsus: Expense[]
+  rsus: Expense[],
+  retirement: Expense[]
 ): SankeyData {
   const incomeTotal = sumAmounts(income);
   const savingsTotal = sumAmounts(savings);
   const expensesTotal = sumAmounts(trueExpenses);
   const rsuTotal = -sumAmounts(rsus); // Invert because its income so its negative by default
+  const retirementTotal = sumAmounts(retirement);
+  const tcTotal = incomeTotal - rsuTotal;
 
   const expensesByTag: Record<string, number> = Object.fromEntries(
     ALL_EXPENSE_TAGS.map((tag) => [tag, 0])
@@ -80,13 +88,35 @@ function buildCashFlowSankey(
     }
   }
 
-  const excessTotal =
-    Math.abs(incomeTotal) - expensesTotal - savingsTotal - rsuTotal;
+  const spending = expensesTotal + savingsTotal + rsuTotal;
+  const excessTotal = Math.abs(tcTotal) - spending;
+
+  console.log(spending, tcTotal);
 
   const nodes: SankeyNode[] = [
     {
+      id: "retirementded",
+      label: `Retirement Deductions – ${formatMoney(Math.abs(retirementTotal))}`,
+      color: "#3498db",
+    },
+    {
+      id: "retirement",
+      label: `Retirement – ${formatMoney(Math.abs(retirementTotal))}`,
+      color: "#3498db",
+    },
+    {
+      id: "base",
+      label: `Base Salary (After tax & Deductions) – ${formatMoney(Math.abs(incomeTotal))}`,
+      color: "#3498db",
+    },
+    {
+      id: "stock",
+      label: `RSU Vesting – ${formatMoney(Math.abs(rsuTotal))}`,
+      color: "#3498db",
+    },
+    {
       id: "income",
-      label: `Income – ${formatMoney(Math.abs(incomeTotal))}`,
+      label: `Total Comp – ${formatMoney(Math.abs(tcTotal))}`,
       color: "#2ecc71",
     },
     {
@@ -97,12 +127,7 @@ function buildCashFlowSankey(
     {
       id: "rsu",
       label: `RSU's – ${formatMoney(rsuTotal)}`,
-      color: "#3498db",
-    },
-    {
-      id: "expenses",
-      label: "Expenses",
-      color: "#e67e22",
+      color: "#dbc234ff",
     },
     ...ALL_EXPENSE_TAGS.filter((t) => expensesByTag[t] > 0.009).map((tag) => {
       // FLoats are dumb
@@ -110,17 +135,32 @@ function buildCashFlowSankey(
       return {
         id: `tag:${tag}`,
         label: value > 0 ? `${tag} – ${formatMoney(value)}` : tag,
-        color: "#e74c3c",
+        color: "#ff7b00ff",
       };
     }),
     {
       id: "excess",
       label: `Unallocated – ${formatMoney(excessTotal)}`,
-      color: "red",
+      color: "#ff0000ff",
     },
   ];
 
   const links: SankeyLink[] = [
+    {
+      source: "retirementded",
+      target: "retirement",
+      value: Math.abs(retirementTotal),
+    },
+    {
+      source: "base",
+      target: "income",
+      value: Math.abs(incomeTotal),
+    },
+    {
+      source: "stock",
+      target: "income",
+      value: rsuTotal,
+    },
     {
       source: "income",
       target: "savings",
@@ -172,14 +212,19 @@ const filterExpenseMode = (
 
 export const SankeyCore = ({ mode }: { mode: Mode }) => {
   const rawExpenses = useExpenses();
-  const rawIncome = useIncome();
+  const rawIncome = useIncome(false);
   const rawSavings = useSavings(false);
   const rawRsu = useRsu();
+  const rawRetirement = useRetirement();
 
-  const filteredIncome = useFilteredIncome();
+  const filteredIncome = useFilteredIncome(false);
   const filteredExpenses = useFilteredExpenses();
   const filteredSavings = useFilteredSavings(false);
   const filteredRsu = useFilteredRsu();
+  const filteredRetirement = useFilteredRetirement();
+
+  const enabledTags = useSettingsStore("enabledTags");
+  const includeRSU = enabledTags.includes(NonExpenseTags.RSU);
 
   const income = useMemo(() => {
     return filterExpenseMode(mode, rawIncome, filteredIncome);
@@ -194,22 +239,26 @@ export const SankeyCore = ({ mode }: { mode: Mode }) => {
   }, [mode, filteredSavings, rawSavings]);
 
   const rsu = useMemo(() => {
-    return filterExpenseMode(mode, rawRsu, filteredRsu);
+    return includeRSU ? filterExpenseMode(mode, rawRsu, filteredRsu) : [];
   }, [mode, filteredRsu, rawRsu]);
 
+  const retirement = useMemo(() => {
+    return filterExpenseMode(mode, rawRetirement, filteredRetirement);
+  }, [mode, filteredRetirement, rawRetirement]);
+
   const sankeyData = useMemo(() => {
-    return buildCashFlowSankey(income, savings, expense, rsu);
-  }, [income, expense, savings, rsu]);
+    return buildCashFlowSankey(income, savings, expense, rsu, retirement);
+  }, [income, expense, savings, rsu, retirement]);
 
   return <Sankey data={sankeyData} />;
 };
 
 export function ExpenseSankey() {
-  const [mode, setMode] = useState<Mode>(Mode.ALL_TIME);
+  const [mode, setMode] = useState<Mode>(Mode.RANGE);
 
   return (
     <GenericPage
-      title="Expense Sankey Chart"
+      title="Comp and Spending Flow Chart"
       hasRange={mode === Mode.RANGE}
       footer={mode === Mode.RANGE ? <BrushScrubber /> : <></>}
       actions={

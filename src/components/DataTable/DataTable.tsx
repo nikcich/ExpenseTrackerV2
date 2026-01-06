@@ -58,6 +58,7 @@ export const DataTable = ({ items }: { items: Expense[] }) => {
 
   const [includeIncome, setIncludeIncome] = useState(true);
   const [includeExpenses, setIncludeExpenses] = useState(true);
+  const [includeRetirement, setIncludeRetirement] = useState(true);
   const [includeSavings, setIncludeSavings] = useState(true);
   const [includeUntagged, setIncludeUntagged] = useState(true);
 
@@ -72,14 +73,19 @@ export const DataTable = ({ items }: { items: Expense[] }) => {
   const filteredItems = useMemo(() => {
     return items
       .filter((item) => {
-        const isIncome = item.tags.includes(NonExpenseTags.Income);
+        const isIncome =
+          item.tags.includes(NonExpenseTags.Income) ||
+          item.tags.includes(NonExpenseTags.RSU);
         const isSavings = item.tags.includes(NonExpenseTags.Savings);
+        const isRetirement = item.tags.includes(NonExpenseTags.Retirement);
         const isUntagged = item.tags.length === 0;
-        const isExpense = !isIncome && !isSavings && !isUntagged;
+        const isExpense =
+          !isIncome && !isSavings && !isUntagged && !isRetirement;
 
         if (!includeIncome && isIncome) return false;
         if (!includeSavings && isSavings) return false;
         if (!includeExpenses && isExpense) return false;
+        if (!includeRetirement && isRetirement) return false;
         if (!includeUntagged && isUntagged) return false;
 
         return true;
@@ -94,6 +100,7 @@ export const DataTable = ({ items }: { items: Expense[] }) => {
     includeSavings,
     includeIncome,
     includeUntagged,
+    includeRetirement,
   ]);
 
   const debouncedSearchString = useMemo(() => {
@@ -193,6 +200,14 @@ export const DataTable = ({ items }: { items: Expense[] }) => {
             onClick={() => setIncludeSavings((e) => !e)}
           >
             Savings {includeSavings ? "Included" : "Excluded"}
+          </Button>
+
+          <Button
+            variant={includeRetirement ? "solid" : "outline"}
+            colorPalette={"pink"}
+            onClick={() => setIncludeRetirement((e) => !e)}
+          >
+            Retirement {includeRetirement ? "Included" : "Excluded"}
           </Button>
 
           <Button

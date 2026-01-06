@@ -1,9 +1,16 @@
 import { GenericPage } from "@/components/GenericPage/GenericPage";
-import { useExpenses, useIncome, useSavings } from "@/hooks/expenses";
-import { useMemo } from "react";
+import {
+  useDateExtents,
+  useExpenses,
+  useIncome,
+  useRetirement,
+  useSavings,
+} from "@/hooks/expenses";
+import { useMemo, useState } from "react";
 import { Expense } from "@/types/types";
 import { LineChart } from "@/components/charts/LineChart";
 import { chartDateCompare } from "@/utils/utils";
+import { SegmentGroup } from "@chakra-ui/react";
 
 const filterYear = (data: Expense[], beforeNow: number = 0) => {
   const now = new Date();
@@ -20,13 +27,20 @@ const filterAllExpensesYear = (
   income: Expense[],
   expenses: Expense[],
   savings: Expense[],
+  retirement: Expense[],
   beforeNow: number = 0
-): [Expense[], Expense[], Expense[]] => {
+): [Expense[], Expense[], Expense[], Expense[]] => {
   const filteredIncome = filterYear(income, beforeNow);
   const filteredExpenses = filterYear(expenses, beforeNow);
   const filteredSavings = filterYear(savings, beforeNow);
+  const filteredRetirement = filterYear(retirement, beforeNow);
 
-  return [filteredIncome, filteredExpenses, filteredSavings];
+  return [
+    filteredIncome,
+    filteredExpenses,
+    filteredSavings,
+    filteredRetirement,
+  ];
 };
 
 const getMonthKey = (i: number) => {
@@ -67,10 +81,14 @@ const groupAndSum = (data: Expense[]) => {
   return groupedData;
 };
 
-function withTransparency(hexColor: string, num: number) {
-  const step = 255 / 3;
+function withTransparency(hexColor: string, num: number, years: number[]) {
+  // get smallest year number
+  const minYear = Math.min(...years);
+  const maxYear = Math.max(...years);
+  const range = maxYear - minYear + 1;
+  const step = 255 / (range + 1);
 
-  const alpha = Math.max(0, 255 - num * step);
+  const alpha = Math.max(0, 255 - (maxYear - num) * step);
   const alphaHex = alpha.toString(16).padStart(2, "0");
 
   return hexColor.slice(0, 7) + alphaHex;
@@ -93,25 +111,27 @@ const createChart = (
   };
 };
 
-const YEARS = [0, 1];
-
 export const YearToDateChartCore = ({
   legend = true,
   legendDirection = "v",
+  years = [0, 1],
 }: {
   legend?: boolean;
   legendDirection?: "v" | "h";
+  years?: [number, number];
 }) => {
   const rawExpenses = useExpenses();
   const rawIncome = useIncome();
   const rawSavings = useSavings();
+  const rawRetirement = useRetirement();
 
   const { charts, groups } = useMemo(() => {
-    const groups = YEARS.map((year) => {
+    const groups = years.map((year) => {
       const currentYearFiltered = filterAllExpensesYear(
         rawIncome,
         rawExpenses,
         rawSavings,
+        rawRetirement,
         year
       );
 
@@ -126,35 +146,44 @@ export const YearToDateChartCore = ({
       chartDateCompare(a, b)
     );
 
-    const charts = YEARS.map((year, index) => {
-      const [yearIncome, yearExpenses, yearSavings] = groups[index];
-      const thisYear = new Date(
-        new Date().getFullYear() - year,
-        0,
-        1
-      ).getFullYear();
+    const charts = years
+      .map((year, index) => {
+        const [yearIncome, yearExpenses, yearSavings, yearRetirement] =
+          groups[index];
+        const thisYear = new Date(
+          new Date().getFullYear() - year,
+          0,
+          1
+        ).getFullYear();
 
-      return [
-        createChart(
-          `${thisYear} Income`,
-          withTransparency("#00a100ff", year),
-          yearIncome,
-          finalGroups
-        ),
-        createChart(
-          `${thisYear} Expenses`,
-          withTransparency("#bb0000ff", year),
-          yearExpenses,
-          finalGroups
-        ),
-        createChart(
-          `${thisYear} Savings`,
-          withTransparency("#ffd000ff", year),
-          yearSavings,
-          finalGroups
-        ),
-      ];
-    }).flat();
+        return [
+          createChart(
+            `${thisYear} Income`,
+            withTransparency("#00a100ff", year, years),
+            yearIncome,
+            finalGroups
+          ),
+          createChart(
+            `${thisYear} Expenses`,
+            withTransparency("#bb0000ff", year, years),
+            yearExpenses,
+            finalGroups
+          ),
+          createChart(
+            `${thisYear} Savings`,
+            withTransparency("#ffd000ff", year, years),
+            yearSavings,
+            finalGroups
+          ),
+          createChart(
+            `${thisYear} Retirement`,
+            withTransparency("#ff00c8ff", year, years),
+            yearRetirement,
+            finalGroups
+          ),
+        ];
+      })
+      .flat();
 
     return {
       charts,
@@ -172,10 +201,71 @@ export const YearToDateChartCore = ({
   );
 };
 
+const getYearsInRange = (range: [Date, Date]): number[] => {
+  const start = range[0];
+  const end = range[1];
+  const years: number[] = [];
+
+  let current = start;
+  while (current.getFullYear() <= end.getFullYear()) {
+    years.push(current.getFullYear());
+    current.setFullYear(current.getFullYear() + 1);
+  }
+
+  return years;
+};
+
+const getYearsRelative = (years: number[]): number[] => {
+  const currentYear = new Date().getFullYear();
+  return years
+    .map((year) => Math.abs(year - currentYear))
+    .sort((a, b) => b - a);
+};
+
+const get2YearWindowPairs = (relativeYears: number[]): [number, number][] => {
+  if (relativeYears.length < 2) return [[0, 1]];
+
+  const pairs = [];
+  for (let i = 0; i < relativeYears.length - 1; i++) {
+    const pair: [number, number] = [relativeYears[i], relativeYears[i + 1]];
+    pairs.push(pair);
+  }
+  return pairs;
+};
+
 export function YearToDateChart() {
+  const extents = useDateExtents();
+  const years = getYearsInRange(extents);
+  const relativeYears = getYearsRelative(years);
+  const yearGroups = get2YearWindowPairs(relativeYears);
+  const [yearSelection, setYearSelection] = useState<string | null>(
+    `${yearGroups.length - 1}`
+  );
+  const currentSelection =
+    yearSelection !== null ? yearGroups[Number(yearSelection)] : yearGroups[0];
+
   return (
-    <GenericPage title="Year To Date" hasRange={false}>
-      <YearToDateChartCore />
+    <GenericPage
+      title="Year To Date"
+      hasRange={false}
+      actions={
+        <>
+          <SegmentGroup.Root
+            value={yearSelection}
+            onValueChange={(e) => setYearSelection(e.value)}
+          >
+            <SegmentGroup.Indicator />
+            <SegmentGroup.Items
+              items={yearGroups.map((group, index) => ({
+                value: `${index}`,
+                label: `${new Date().getFullYear() - group[0]} vs ${new Date().getFullYear() - group[1]}`,
+              }))}
+            />
+          </SegmentGroup.Root>
+        </>
+      }
+    >
+      <YearToDateChartCore years={currentSelection} />
     </GenericPage>
   );
 }

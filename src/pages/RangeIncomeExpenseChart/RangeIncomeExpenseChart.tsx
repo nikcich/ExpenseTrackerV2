@@ -4,6 +4,7 @@ import { GenericPage } from "@/components/GenericPage/GenericPage";
 import {
   useFilteredExpenses,
   useFilteredIncome,
+  useFilteredRetirement,
   useFilteredSavings,
 } from "@/hooks/expenses";
 import { useMemo } from "react";
@@ -18,6 +19,7 @@ export const RangeIncomeExpenseChartCore = ({
   const filteredExpenses = useFilteredExpenses();
   const filteredIncome = useFilteredIncome();
   const filteredSavings = useFilteredSavings();
+  const filteredRetirement = useFilteredRetirement();
 
   const totalExpenses = useMemo(() => {
     return filteredExpenses.reduce((acc, expense) => acc + expense.amount, 0);
@@ -30,6 +32,13 @@ export const RangeIncomeExpenseChartCore = ({
   const totalSavings = useMemo(() => {
     return filteredSavings.reduce((acc, savings) => acc + savings.amount, 0);
   }, [filteredSavings]);
+
+  const totalRetirement = useMemo(() => {
+    return filteredRetirement.reduce(
+      (acc, retirement) => acc + retirement.amount,
+      0
+    );
+  }, [filteredRetirement]);
 
   return (
     <BarChart
@@ -52,6 +61,11 @@ export const RangeIncomeExpenseChartCore = ({
           name: "Savings",
           y: [Math.abs(totalSavings)],
           color: "#ffd000ff",
+        },
+        {
+          name: "Retirement",
+          y: [Math.abs(totalRetirement)],
+          color: "#ff00c8ff",
         },
       ]}
     />
