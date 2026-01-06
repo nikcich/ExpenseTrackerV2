@@ -104,7 +104,8 @@ function buildCashFlowSankey(
       label: "Expenses",
       color: "#e67e22",
     },
-    ...ALL_EXPENSE_TAGS.map((tag) => {
+    ...ALL_EXPENSE_TAGS.filter((t) => expensesByTag[t] > 0.009).map((tag) => {
+      // FLoats are dumb
       const value = expensesByTag[tag];
       return {
         id: `tag:${tag}`,
@@ -177,7 +178,7 @@ export const SankeyCore = ({ mode }: { mode: Mode }) => {
 
   const filteredIncome = useFilteredIncome();
   const filteredExpenses = useFilteredExpenses();
-  const filteredSavings = useFilteredSavings();
+  const filteredSavings = useFilteredSavings(false);
   const filteredRsu = useFilteredRsu();
 
   const income = useMemo(() => {
