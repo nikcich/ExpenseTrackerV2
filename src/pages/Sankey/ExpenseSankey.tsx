@@ -11,12 +11,13 @@ import {
   useRsu,
   useSavings,
 } from "@/hooks/expenses";
-import { ALL_EXPENSE_TAGS, Expense, NonExpenseTags } from "@/types/types";
+import { Expense, NonExpenseTags } from "@/types/types";
 import { Sankey } from "@/components/Sankey/Sankey";
 import { BrushScrubber } from "@/components/Brush/BrushScrubber";
 import { useMemo, useState } from "react";
 import { SegmentGroup } from "@chakra-ui/react";
 import { useSettingsStore } from "@/store/SettingsStore";
+import { useAllTags } from "@/utils/tags";
 
 const filterYear = (data: Expense[], beforeNow: number = 0) => {
   const now = new Date();
@@ -66,7 +67,8 @@ function buildCashFlowSankey(
   savings: Expense[],
   trueExpenses: Expense[],
   rsus: Expense[],
-  retirement: Expense[]
+  retirement: Expense[],
+  tags: string[]
 ): SankeyData {
   const incomeTotal = sumAmounts(income);
   const savingsTotal = sumAmounts(savings);
@@ -76,7 +78,7 @@ function buildCashFlowSankey(
   const tcTotal = incomeTotal - rsuTotal;
 
   const expensesByTag: Record<string, number> = Object.fromEntries(
-    ALL_EXPENSE_TAGS.map((tag) => [tag, 0])
+    tags.map((tag) => [tag, 0])
   );
 
   for (const expense of trueExpenses) {
@@ -90,8 +92,6 @@ function buildCashFlowSankey(
 
   const spending = expensesTotal + savingsTotal + rsuTotal;
   const excessTotal = Math.abs(tcTotal) - spending;
-
-  console.log(spending, tcTotal);
 
   const nodes: SankeyNode[] = [
     {
@@ -129,15 +129,17 @@ function buildCashFlowSankey(
       label: `RSU's – ${formatMoney(rsuTotal)}`,
       color: "#dbc234ff",
     },
-    ...ALL_EXPENSE_TAGS.filter((t) => expensesByTag[t] > 0.009).map((tag) => {
-      // FLoats are dumb
-      const value = expensesByTag[tag];
-      return {
-        id: `tag:${tag}`,
-        label: value > 0 ? `${tag} – ${formatMoney(value)}` : tag,
-        color: "#ff7b00ff",
-      };
-    }),
+    ...tags
+      .filter((t) => expensesByTag[t] > 0.009)
+      .map((tag) => {
+        // FLoats are dumb
+        const value = expensesByTag[tag];
+        return {
+          id: `tag:${tag}`,
+          label: value > 0 ? `${tag} – ${formatMoney(value)}` : tag,
+          color: "#ff7b00ff",
+        };
+      }),
     {
       id: "excess",
       label: `Unallocated – ${formatMoney(excessTotal)}`,
@@ -178,7 +180,7 @@ function buildCashFlowSankey(
     },
   ];
 
-  for (const tag of ALL_EXPENSE_TAGS) {
+  for (const tag of tags) {
     const value = expensesByTag[tag];
     if (value > 0) {
       links.push({
@@ -222,9 +224,10 @@ export const SankeyCore = ({ mode }: { mode: Mode }) => {
   const filteredSavings = useFilteredSavings(false);
   const filteredRsu = useFilteredRsu();
   const filteredRetirement = useFilteredRetirement();
+  const tags = useAllTags();
 
-  const enabledTags = useSettingsStore("enabledTags");
-  const includeRSU = enabledTags.includes(NonExpenseTags.RSU);
+  const disabledTags = useSettingsStore("disabledTags");
+  const includeRSU = !disabledTags.includes(NonExpenseTags.RSU);
 
   const income = useMemo(() => {
     return filterExpenseMode(mode, rawIncome, filteredIncome);
@@ -247,8 +250,10 @@ export const SankeyCore = ({ mode }: { mode: Mode }) => {
   }, [mode, filteredRetirement, rawRetirement]);
 
   const sankeyData = useMemo(() => {
-    return buildCashFlowSankey(income, savings, expense, rsu, retirement);
-  }, [income, expense, savings, rsu, retirement]);
+    return buildCashFlowSankey(income, savings, expense, rsu, retirement, [
+      ...tags,
+    ]);
+  }, [income, expense, savings, rsu, retirement, tags]);
 
   return <Sankey data={sankeyData} />;
 };

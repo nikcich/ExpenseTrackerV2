@@ -50,6 +50,7 @@ const useFileOpener = () => {
   }, []);
 
   const finishParsingCsv = useCallback(async () => {
+    setLoading(true);
     const res = await invoke<Response<string>>(API.ParseCSV, {
       path: selectedFile!,
       csvDefinitionKey: selectedFormat!,
@@ -57,6 +58,10 @@ const useFileOpener = () => {
 
     reset();
     setResult(res);
+
+    setTimeout(() => {
+      setLoading(false);
+    }, 500);
   }, [selectedFormat, selectedFile]);
 
   const reset = useCallback(() => {
@@ -114,7 +119,7 @@ export function FileOpener() {
 
         {loading && (
           <div className={styles.spinnerContainer}>
-            <Spinner />
+            <Spinner size={"xl"} />
           </div>
         )}
 

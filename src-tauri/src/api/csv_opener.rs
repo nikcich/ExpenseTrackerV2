@@ -128,6 +128,35 @@ pub fn add_expense_manual(
 }
 
 #[tauri::command]
+pub fn remove_bulk_expenses(
+    expense_store_state: State<'_, ExpenseStore>,
+    hashes: Vec<String>,
+) -> Response {
+    match expense_store_state.remove_bulk_expenses(hashes) {
+        Ok(updated) => {
+            if updated {
+                return Response::ok(
+                    String::from("Expenses removed successfully"),
+                    Option::<String>::None,
+                );
+            } else {
+                return Response::new(
+                    Status::NotFound,
+                    String::from("One or more expenses not found"),
+                    Option::<String>::None,
+                );
+            }
+        }
+        Err(e) => {
+            return Response::err(
+                format!("Failed to remove expenses: {}", e),
+                Option::<String>::None,
+            );
+        }
+    }
+}
+
+#[tauri::command]
 pub fn remove_expense(expense_store_state: State<'_, ExpenseStore>, hash: String) -> Response {
     match expense_store_state.remove_expense(&hash) {
         Ok(updated) => {

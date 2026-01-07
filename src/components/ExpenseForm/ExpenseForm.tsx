@@ -1,8 +1,9 @@
 import { Button, Input, Text } from "@chakra-ui/react";
 import { useCallback, useState } from "react";
-import { ALL_TAGS_OPTIONS, Expense, Tag } from "@/types/types";
+import { Expense, Tag } from "@/types/types";
 import { format, parse } from "date-fns";
 import { MultiSelectInput } from "./MultiSelectInput";
+import { useAllTagsOptions } from "@/utils/tags";
 
 export const ExpenseForm = ({
   expense,
@@ -19,6 +20,8 @@ export const ExpenseForm = ({
   const [amount, setAmount] = useState(expense?.amount ?? 0);
   const [description, setDescription] = useState(expense?.description ?? "");
   const [tags, setTags] = useState<string[]>(expense?.tags ?? []);
+
+  const ALL_TAGS_OPTIONS = useAllTagsOptions();
 
   const onFormSubmit = useCallback(
     (dt: string, a: number, d: string, t: string[]) => {

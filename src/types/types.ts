@@ -11,6 +11,7 @@ export enum API {
   UpdateExpense = "update_expense",
   AddManualExpense = "add_expense_manual",
   RemoveExpense = "remove_expense",
+  RemoveBulkExpenses = "remove_bulk_expenses",
   UpdateBulkExpenses = "update_bulk_expenses",
 }
 
@@ -66,17 +67,10 @@ export enum NonExpenseTags {
 
 export type Tag = ExpenseTag | NonExpenseTags | string;
 
-export const ALL_EXPENSE_TAGS: Tag[] = Object.values(ExpenseTag) as Tag[];
-
-const ALL_TAGS: Tag[] = [
+export const ALL_TAGS: Tag[] = [
   ...Object.values(ExpenseTag),
   ...Object.values(NonExpenseTags),
 ];
-
-export const ALL_TAGS_OPTIONS = ALL_TAGS.map((tag) => ({
-  value: tag,
-  label: tag,
-}));
 
 export type Response<T> = {
   status: number;

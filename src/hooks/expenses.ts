@@ -1,6 +1,6 @@
 import { useSettingsStore } from "@/store/SettingsStore";
 import { useDebouncedBrushRange, useExpensesStore } from "@/store/store";
-import { ALL_EXPENSE_TAGS, Expense, NonExpenseTags } from "@/types/types";
+import { Expense, NonExpenseTags } from "@/types/types";
 import { parseDate } from "@/utils/utils";
 import { useMemo } from "react";
 import * as d3 from "d3";
@@ -28,7 +28,7 @@ export const useExpenses = () => {
 export const useFilteredExpenses = () => {
   const [range] = useDebouncedBrushRange();
   const expenses = useExpenses();
-  const enabledTags = useSettingsStore("enabledTags");
+  const disabledTags = useSettingsStore("disabledTags");
 
   const filtered = useMemo(() => {
     if (!range) return expenses;
@@ -39,9 +39,8 @@ export const useFilteredExpenses = () => {
       })
       .filter(
         (expense) =>
-          enabledTags.some((tag) => expense.tags.includes(tag)) ||
-          expense.tags.length === 0 ||
-          expense.tags.some((tag) => !ALL_EXPENSE_TAGS.includes(tag)) // Custom tag
+          !disabledTags.some((tag) => expense.tags.includes(tag)) ||
+          expense.tags.length === 0
       );
   }, [range, expenses]);
 
@@ -50,8 +49,8 @@ export const useFilteredExpenses = () => {
 
 export const useIncome = (includeRsu: boolean = true) => {
   const { value } = useExpensesStore();
-  const enabledTags = useSettingsStore("enabledTags");
-  const includeRSU = enabledTags.includes(NonExpenseTags.RSU) && includeRsu;
+  const disabledTags = useSettingsStore("disabledTags");
+  const includeRSU = !disabledTags.includes(NonExpenseTags.RSU) && includeRsu;
 
   const expenses = useMemo(
     () =>
@@ -82,8 +81,8 @@ export const useFilteredIncome = (includeRsu: boolean = true) => {
 
 export const useSavings = (rsu: boolean = true) => {
   const { value } = useExpensesStore();
-  const enabledTags = useSettingsStore("enabledTags");
-  const includeRSU = enabledTags.includes(NonExpenseTags.RSU) && rsu;
+  const disabledTags = useSettingsStore("disabledTags");
+  const includeRSU = !disabledTags.includes(NonExpenseTags.RSU) && rsu;
 
   const savings = useMemo(() => {
     const normalSavings =

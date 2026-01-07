@@ -14,7 +14,7 @@ import { AverageSpendingCore } from "../AverageSpending/AverageSpending";
 import { RangeIncomeExpenseChartCore } from "../RangeIncomeExpenseChart/RangeIncomeExpenseChart";
 import { TagStackedBarChartCore } from "../TagStackedBarChart/TagStackedBarChart";
 import { YearToDateChartCore } from "../YearToDateChart/YearToDateChart";
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { BrushScrubber } from "@/components/Brush/BrushScrubber";
 import { SegmentGroup } from "@chakra-ui/react";
 

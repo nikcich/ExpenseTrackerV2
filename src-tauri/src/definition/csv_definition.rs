@@ -414,6 +414,7 @@ pub enum CsvDefinitionKey {
     CapitalOneSavorOne,
     BankLeumi,
     Max,
+    NavyFederal,
 }
 
 /// Helper function that builds a column map from a list of (role, index, datatype) pairs.
@@ -453,6 +454,42 @@ pub fn build_definitions() -> HashMap<CsvDefinitionKey, CsvDefinition> {
                     CsvColumnInfo::optional_content(0, CsvColumnDataType::String),
                 ),
             ],
+        ),
+    );
+
+    map.insert(
+        CsvDefinitionKey::NavyFederal,
+        CsvDefinition::new(
+            "Navy Federal Spending Report",
+            true,
+            vec![
+                (
+                    CsvColumnRole::Date,
+                    CsvColumnInfo::required_content(0, CsvColumnDataType::DateObject("%m/%d/%Y")),
+                ),
+                (
+                    CsvColumnRole::Description,
+                    CsvColumnInfo::required_content(10, CsvColumnDataType::String),
+                ),
+                (
+                    CsvColumnRole::Amount,
+                    CsvColumnInfo::required_content(2, CsvColumnDataType::Float(&STANDARD)),
+                ),
+            ],
+        )
+        .add_meta_data_column(
+            CsvColumnRole::CreditDebit,
+            CsvColumnInfo::required_content(5, CsvColumnDataType::String).look_for_argument(
+                Arg::CreditDebitQuery,
+                ArgValue::String("Credit".to_string()),
+            ),
+        )
+        .add_meta_data_column(
+            CsvColumnRole::CreditDebit,
+            CsvColumnInfo::required_content(5, CsvColumnDataType::String).look_for_argument(
+                Arg::CreditDebitQuery,
+                ArgValue::String("ACH Credit".to_string()),
+            ),
         ),
     );
 

@@ -4,9 +4,10 @@ import { Alert, Button, Spinner, Text, VStack } from "@chakra-ui/react";
 import { useCallback, useState } from "react";
 import { setSelection, useSelection } from "@/store/SelectionStore";
 import { useGetExpenseById } from "@/hooks/expenses";
-import { ALL_TAGS_OPTIONS, API, Expense, Response, Tag } from "@/types/types";
+import { API, Expense, Response, Tag } from "@/types/types";
 import { invoke } from "@tauri-apps/api/core";
 import { MultiSelectInput } from "../ExpenseForm/MultiSelectInput";
+import { useAllTagsOptions } from "@/utils/tags";
 
 export const TagModal = () => {
   const onClose = useCallback(() => {
@@ -15,6 +16,8 @@ export const TagModal = () => {
     setSelection([]);
     closeAllOverlays();
   }, []);
+
+  const ALL_TAGS_OPTIONS = useAllTagsOptions();
 
   const selection = useSelection();
   const [result, setResult] = useState<

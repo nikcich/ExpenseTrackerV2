@@ -194,6 +194,41 @@ impl ExpenseStore {
         }
     }
 
+    pub fn remove_bulk_expenses(&self, hashes: Vec<String>) -> Result<bool, Box<dyn StdError>> {
+        let mut store_data = match self.load()? {
+            Some(data) => data,
+            None => return Err("Store data is null, could not load it to update expense".into()),
+        };
+
+        let mut missing_hashes: Vec<String> = Vec::new();
+
+        for hash in hashes.iter() {
+            if !store_data.data.contains_key(hash) {
+                missing_hashes.push(hash.to_string());
+            }
+        }
+
+        if !missing_hashes.is_empty() {
+            return Err(format!(
+                "The following expenses do not exist: {}",
+                missing_hashes.join(", ")
+            )
+            .into());
+        }
+
+        for hash in hashes.iter() {
+            if store_data.data.remove(hash).is_some() {
+                continue;
+            } else {
+                return Err(format!("Failed to remove expense with hash: {}", hash).into());
+            }
+        }
+
+        self.save(&store_data)?;
+
+        Ok(true)
+    }
+
     pub fn get_all_expense(&self) -> Result<Option<StoreData>, Box<dyn StdError>> {
         let loaded = self.load()?;
 
