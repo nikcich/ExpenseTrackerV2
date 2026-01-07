@@ -2,7 +2,7 @@ import { closeAllOverlays, Overlay } from "@/store/OverlayStore";
 import { GenericModal } from "../GenericModal/GenericModal";
 import { Alert, Button, Text, VStack } from "@chakra-ui/react";
 import { useCallback, useState } from "react";
-import { useSelection } from "@/store/SelectionStore";
+import { setSelection, useSelection } from "@/store/SelectionStore";
 import { useGetExpenseById } from "@/hooks/expenses";
 import { ExpenseForm } from "../ExpenseForm/ExpenseForm";
 import { API, Expense, Response } from "@/types/types";
@@ -12,6 +12,7 @@ export const EditModal = () => {
   const onClose = useCallback(() => {
     setResult(null);
     setSelectedExpenseIndex(0);
+    setSelection([]);
     closeAllOverlays();
   }, []);
 
