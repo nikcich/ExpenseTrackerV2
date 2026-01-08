@@ -8,7 +8,7 @@ use std::collections::HashMap;
 use std::error::Error as StdError;
 use std::fs::File;
 use std::io::Error as IoError;
-use std::io::{Seek, SeekFrom};
+use std::io::{Read, Seek, SeekFrom};
 use std::path::Path;
 
 /// FUNCTION DEFINITIONS
@@ -69,6 +69,41 @@ pub fn open_csv_file_and_find_definitions(
 
     // If none matched, return None
     return Ok(Some(matched_definition_keys));
+}
+
+pub fn determine_chunk_size(mut file: File, threads: usize) -> Result<Vec<(u64, u64)>, IoError> {
+    let metadata = file.metadata()?;
+    let file_size = metadata.len();
+    let approx_chunk_size = file_size / threads as u64;
+
+    println!("Calculated chunk size! Approximate: {}", approx_chunk_size);
+
+    let mut offsets = Vec::new();
+    let mut start = 0;
+
+    for i in 0..threads {
+        let mut end = start + approx_chunk_size;
+
+        // Make sure the last chunk goes to the end of the file
+        if i == threads - 1 {
+            end = file_size;
+        } else {
+            // Adjust end to the next newline
+            file.seek(SeekFrom::Start(end))?;
+            let mut buf = [0 as u8; 1];
+            while end < file_size {
+                let bytes_read = file.read(&mut buf)?;
+                if bytes_read == 0 || buf[0] == b'\n' {
+                    break;
+                }
+                end += 1;
+            }
+        }
+        offsets.push((start, end));
+        start = end + 1;
+    }
+
+    return Ok(offsets);
 }
 
 /// Parse a CSV file with a given definition and update the store

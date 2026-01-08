@@ -549,7 +549,7 @@ pub fn build_definitions() -> HashMap<CsvDefinitionKey, CsvDefinition> {
                 ),
                 (
                     CsvColumnRole::Date,
-                    CsvColumnInfo::required_content(2, CsvColumnDataType::DateObject("%m/%d/%Y")),
+                    CsvColumnInfo::required_content(2, CsvColumnDataType::DateObject("%m/%d/%y")),
                 ),
                 (
                     CsvColumnRole::Amount,
