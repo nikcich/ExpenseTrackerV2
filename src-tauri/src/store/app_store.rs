@@ -41,6 +41,11 @@ pub struct StoreData {
     pub data: HashMap<String, Expense>,
 }
 
+pub struct AddedResult {
+    pub added_count: u16,
+    pub duplicate_count: u16,
+}
+
 impl StoreData {
     fn new(json_value: Value) -> Result<Self, Box<dyn StdError>> {
         let data_from_json_as_hashmap: HashMap<String, Expense> =
@@ -138,6 +143,49 @@ impl ExpenseStore {
         self.store.save()?;
 
         Ok(true)
+    }
+
+    pub fn add_expense_as_batch(
+        &self,
+        expense_batch: Vec<Expense>,
+        manual: bool,
+    ) -> Result<AddedResult, Box<dyn StdError>> {
+        let mut store_data = match self.load()? {
+            Some(data) => data,
+            None => StoreData::default(), // create default if nothing is saved
+        };
+
+        let mut result = AddedResult {
+            added_count: 0,
+            duplicate_count: 0,
+        };
+
+        for mut expense in expense_batch {
+            let hash: String = store_data.generate_hash_for_new_entry(&expense, manual)?;
+
+            expense.set_id(&hash);
+
+            if store_data.data.contains_key(&hash) {
+                println!(
+                    "Duplicate expense found for Date: {}, Description: {}, Amount: {}",
+                    expense.get_date(),
+                    expense.get_description(),
+                    expense.get_amount()
+                );
+                result.duplicate_count += 1;
+                continue;
+            }
+
+            store_data.data.insert(hash, expense);
+            result.added_count += 1;
+        }
+
+        if result.added_count > 0 {
+            // Save updated store
+            self.save(&store_data)?;
+        }
+
+        return Ok(result);
     }
 
     /// Add a new expense
