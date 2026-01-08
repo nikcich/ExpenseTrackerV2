@@ -8,7 +8,7 @@ use std::collections::HashMap;
 use std::error::Error as StdError;
 use std::fs::File;
 use std::io::Error as IoError;
-use std::io::{Seek, SeekFrom};
+use std::io::{Read, Seek, SeekFrom};
 use std::path::Path;
 
 /// FUNCTION DEFINITIONS
@@ -88,8 +88,7 @@ pub fn parse_csv_file_with_selected_definition(
         .has_headers(csv_definition.has_header())
         .from_reader(file);
 
-    let mut duplicate_count: u16 = 0;
-    let mut added_count: u16 = 0;
+    let mut expenses_batch = Vec::new();
 
     for record in reader.records() {
         let record = match record {
@@ -102,16 +101,14 @@ pub fn parse_csv_file_with_selected_definition(
         // Parse a record and return as Expense object if successfully
         let parsed_record: Expense = csv_definition.parse_record(&record)?;
 
-        let result_expense_added: bool = expense_store.add_expense(parsed_record, false)?;
-
-        if !result_expense_added {
-            duplicate_count += 1;
-        } else {
-            added_count += 1;
-        }
+        expenses_batch.push(parsed_record);
     }
 
-    return Ok((added_count, duplicate_count));
+    if let Ok(result) = expense_store.add_expense_as_batch(expenses_batch, false) {
+        return Ok((result.added_count, result.duplicate_count));
+    }
+
+    return Err("Failed to add expenses".into());
 }
 
 /// Opens a CSV file from a given path, only if it has a `.csv` extension.
