@@ -332,7 +332,7 @@ impl CsvParser for CsvDefinition {
 }
 
 #[automock]
-pub trait CsvValidator {
+pub trait CsvValidator: Send + Sync {
     /// Validates a CSV definition against CSV record.
     ///
     /// Parameters:

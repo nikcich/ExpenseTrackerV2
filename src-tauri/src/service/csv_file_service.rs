@@ -1,15 +1,18 @@
 use crate::definition::csv_definition::{
-    CsvDefinitionKey, CsvParser, CsvValidator, CSV_DEFINITIONS,
+    CsvDefinition, CsvDefinitionKey, CsvParser, CsvValidator, CSV_DEFINITIONS,
 };
 use crate::model::expense::Expense;
 use crate::store::app_store::ExpenseStore;
-use csv::ReaderBuilder;
+use csv::{ReaderBuilder, StringRecord};
 use std::collections::HashMap;
 use std::error::Error as StdError;
 use std::fs::File;
 use std::io::Error as IoError;
-use std::io::{Read, Seek, SeekFrom};
 use std::path::Path;
+use std::sync::Arc;
+use std::thread;
+
+const NUM_THREADS: usize = 4;
 
 /// FUNCTION DEFINITIONS
 
@@ -22,53 +25,83 @@ use std::path::Path;
 /// - `Result<Option<CsvDefinitionKey>, Box<dyn StdError>>`: None or a valid CsvDefinitionKey
 pub fn open_csv_file_and_find_definitions(
     file: &File,
-    csv_definitions: &HashMap<CsvDefinitionKey, Box<dyn CsvValidator>>,
+    csv_definitions: &'static HashMap<CsvDefinitionKey, CsvDefinition>,
 ) -> Result<Option<Vec<CsvDefinitionKey>>, Box<dyn StdError>> {
-    let mut matched_definition_keys: Vec<CsvDefinitionKey> = Vec::new();
-    // We’ll reuse the same file handle by resetting it for each definition test.
-    for (&csv_definition_key, definition) in csv_definitions.iter() {
-        // Reset file cursor before re-reading
-        let mut reader_file = file;
-        reader_file.seek(SeekFrom::Start(0))?;
+    let mut reader = ReaderBuilder::new().has_headers(false).from_reader(file);
 
-        // Check if the CSV definition has headers
-        let has_header: bool = definition.has_header();
+    let mut lines: Vec<StringRecord> = Vec::new();
 
-        let mut reader = ReaderBuilder::new()
-            .has_headers(has_header)
-            .from_reader(reader_file);
+    for record in reader.records() {
+        match record {
+            Ok(rec) => lines.push(rec),
+            Err(_) => return Err("Could not read CSV file".into()),
+        }
+    }
 
-        let mut all_valid = true;
-        let mut record_count = 0;
+    // Collect keys for deterministic chunking
+    let definition_keys: Vec<_> = csv_definitions.keys().collect();
+    let chunk_size: usize = definition_keys.len() / NUM_THREADS;
+    let remainder: usize = definition_keys.len() % NUM_THREADS;
 
-        for record in reader.records() {
-            let record = match record {
-                Ok(rec) => rec,
-                Err(_) => {
-                    all_valid = false;
-                    break;
+    // Create shared pointers (RAII stuff)
+    let shared_lines = Arc::new(lines);
+    let shared_keys = Arc::new(definition_keys);
+
+    let mut thread_handles = Vec::new();
+
+    for thread_id in 0..NUM_THREADS {
+        let start_def = thread_id * chunk_size;
+        let mut end_def = start_def + chunk_size;
+
+        if thread_id == NUM_THREADS - 1 {
+            end_def += remainder;
+        }
+
+        // Clone Arcs cheaply for threads
+        let lines_ref = Arc::clone(&shared_lines);
+        let keys_ref = Arc::clone(&shared_keys);
+
+        let handle = thread::spawn(move || {
+            let mut worker_matched = Vec::new();
+
+            // Main work loop for each thread
+            // The work is the chunks defined above
+            for idx in start_def..end_def {
+                // Borrow the key from Arc
+                let key = keys_ref[idx];
+                // Borrow the validator
+                let validator = &csv_definitions[&key];
+
+                let start_idx = if validator.has_header() { 1 } else { 0 };
+
+                let mut all_valid = true;
+
+                // Loop through cached lines with the definition
+                for line in &lines_ref[start_idx..] {
+                    if !validator.validate_against_record(line) {
+                        all_valid = false;
+                        break;
+                    }
                 }
-            };
 
-            if !definition.validate_against_record(&record) {
-                all_valid = false;
-                break;
-            } else {
-                record_count += 1;
+                if all_valid {
+                    worker_matched.push(key);
+                }
             }
-        }
 
-        if all_valid && record_count > 0 {
-            matched_definition_keys.push(csv_definition_key);
-        }
+            worker_matched
+        });
+
+        thread_handles.push(handle);
     }
 
-    if matched_definition_keys.is_empty() {
-        return Ok(None);
+    let mut matched = Vec::new();
+    for handle in thread_handles {
+        let thread_results = handle.join().unwrap();
+        matched.extend(thread_results.iter().cloned());
     }
 
-    // If none matched, return None
-    return Ok(Some(matched_definition_keys));
+    return Ok(Some(matched));
 }
 
 /// Parse a CSV file with a given definition and update the store
