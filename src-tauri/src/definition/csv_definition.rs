@@ -5,7 +5,7 @@ use mockall::automock;
 use once_cell::sync::Lazy;
 use regex::Regex;
 use serde::{Deserialize, Serialize};
-use std::collections::{BTreeMap, HashMap};
+use std::collections::{BTreeMap, BTreeSet, HashMap};
 use std::error::Error as StdError;
 
 pub const STANDARD: bool = true;
@@ -122,6 +122,11 @@ impl CsvColumnRole {
                                             total_amount = -total_amount;
                                         }
                                     }
+                                    else if let ArgValue::StringVA(query_strs) = query {
+                                        if query_strs.contains(&credit_str) {
+                                            total_amount = -total_amount;
+                                        }
+                                    }
                                 }
                             }
                         }
@@ -213,8 +218,15 @@ pub enum Currency {
 #[derive(Debug, PartialEq, Eq, Clone, Hash)]
 pub enum ArgValue {
     String(String),
+    StringVA(BTreeSet<String>),
     Currency(Currency),
     Bool(bool),
+}
+
+impl ArgValue {
+    pub fn strings_va<const N: usize>(values: [&str; N]) -> Self {
+        Self::StringVA(values.into_iter().map(String::from).collect())
+    }
 }
 
 #[repr(u8)]
@@ -481,14 +493,7 @@ pub fn build_definitions() -> HashMap<CsvDefinitionKey, CsvDefinition> {
             CsvColumnRole::CreditDebit,
             CsvColumnInfo::required_content(5, CsvColumnDataType::String).look_for_argument(
                 Arg::CreditDebitQuery,
-                ArgValue::String("Credit".to_string()),
-            ),
-        )
-        .add_meta_data_column(
-            CsvColumnRole::CreditDebit,
-            CsvColumnInfo::required_content(5, CsvColumnDataType::String).look_for_argument(
-                Arg::CreditDebitQuery,
-                ArgValue::String("ACH Credit".to_string()),
+                ArgValue::strings_va(["Credit", "ACH Credit"]),
             ),
         ),
     );
