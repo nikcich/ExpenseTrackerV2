@@ -1,4 +1,4 @@
-use crate::definition::csv_definition::{CsvDefinitionKey, CsvValidator, CSV_DEFINITIONS};
+use crate::definition::csv_definition::{CsvDefinitionKey, CSV_DEFINITIONS};
 use crate::model::expense::Expense;
 use crate::model::response::{Response, Status};
 use crate::service::csv_file_service::{
@@ -6,7 +6,6 @@ use crate::service::csv_file_service::{
     parse_csv_file_with_selected_definition,
 };
 use crate::store::app_store::ExpenseStore;
-use std::collections::HashMap;
 use std::error::Error as StdError;
 use tauri::State;
 
@@ -25,14 +24,8 @@ pub fn open_csv_from_path(file: String) -> Response {
             // process CSV here
             println!("File opened: {:?}", file);
 
-            // Temporarily casts all key, value map to use CsvValidator (polymorphism)
-            let defs: HashMap<_, Box<dyn CsvValidator>> = CSV_DEFINITIONS
-                .iter()
-                .map(|(k, v)| (*k, Box::new(v.clone()) as Box<dyn CsvValidator>))
-                .collect();
-
             let find_matched_definitions: Result<Option<Vec<CsvDefinitionKey>>, Box<dyn StdError>> =
-                open_csv_file_and_find_definitions(&file, &defs);
+                open_csv_file_and_find_definitions(&file, &CSV_DEFINITIONS);
 
             if find_matched_definitions.is_ok() {
                 match find_matched_definitions.unwrap() {

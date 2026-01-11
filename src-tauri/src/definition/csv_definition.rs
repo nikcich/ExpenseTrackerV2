@@ -5,7 +5,7 @@ use mockall::automock;
 use once_cell::sync::Lazy;
 use regex::Regex;
 use serde::{Deserialize, Serialize};
-use std::collections::{BTreeMap, HashMap};
+use std::collections::{BTreeMap, BTreeSet, HashMap};
 use std::error::Error as StdError;
 
 pub const STANDARD: bool = true;
@@ -122,6 +122,11 @@ impl CsvColumnRole {
                                             total_amount = -total_amount;
                                         }
                                     }
+                                    else if let ArgValue::StringVA(query_strs) = query {
+                                        if query_strs.contains(&credit_str) {
+                                            total_amount = -total_amount;
+                                        }
+                                    }
                                 }
                             }
                         }
@@ -213,8 +218,15 @@ pub enum Currency {
 #[derive(Debug, PartialEq, Eq, Clone, Hash)]
 pub enum ArgValue {
     String(String),
+    StringVA(BTreeSet<String>),
     Currency(Currency),
     Bool(bool),
+}
+
+impl ArgValue {
+    pub fn strings_va<const N: usize>(values: [&str; N]) -> Self {
+        Self::StringVA(values.into_iter().map(String::from).collect())
+    }
 }
 
 #[repr(u8)]
@@ -332,7 +344,7 @@ impl CsvParser for CsvDefinition {
 }
 
 #[automock]
-pub trait CsvValidator {
+pub trait CsvValidator: Send + Sync {
     /// Validates a CSV definition against CSV record.
     ///
     /// Parameters:
@@ -349,38 +361,38 @@ pub trait CsvValidator {
     fn has_header(&self) -> bool;
 }
 
+// Helper function to validate a single column
+fn validate_column_with_record(record: &StringRecord, col_info: &CsvColumnInfo) -> bool {
+    let index = col_info.index as usize;
+
+    // Check if the index is invalid (too large for a record)
+    if index >= record.len() {
+        return false;
+    }
+
+    // Fetch the raw value
+    let raw_value = record.get(index);
+    if raw_value.is_none() {
+        return false;
+    }
+
+    let normalized_raw_value = normalize(raw_value.unwrap());
+
+    // If the raw value for that column is required but empty string, return false
+    if normalized_raw_value.is_empty() && col_info.is_required {
+        return false;
+    }
+
+    // Lastly, validate by casting the raw value
+    if let Err(_) = cast_raw_value(raw_value.unwrap(), &col_info) {
+        return false; // Casting failed
+    }
+
+    return true;
+}
+
 impl CsvValidator for CsvDefinition {
     fn validate_against_record(&self, record: &StringRecord) -> bool {
-        // Helper function to validate a single column
-        fn validate_column_with_record(record: &StringRecord, col_info: &CsvColumnInfo) -> bool {
-            let index = col_info.index as usize;
-
-            // Check if the index is invalid (too large for a record)
-            if index >= record.len() {
-                return false;
-            }
-
-            // Fetch the raw value
-            let raw_value = record.get(index);
-            if raw_value.is_none() {
-                return false;
-            }
-
-            let normalized_raw_value = normalize(raw_value.unwrap());
-
-            // If the raw value for that column is required but empty string, return false
-            if normalized_raw_value.is_empty() && col_info.is_required {
-                return false;
-            }
-
-            // Lastly, validate by casting the raw value
-            if let Err(_) = cast_raw_value(raw_value.unwrap(), &col_info) {
-                return false; // Casting failed
-            }
-
-            return true;
-        }
-
         // Validate expected columns
         for (_role, col_info) in &self.expected_columns {
             if !validate_column_with_record(record, col_info) {
@@ -481,14 +493,7 @@ pub fn build_definitions() -> HashMap<CsvDefinitionKey, CsvDefinition> {
             CsvColumnRole::CreditDebit,
             CsvColumnInfo::required_content(5, CsvColumnDataType::String).look_for_argument(
                 Arg::CreditDebitQuery,
-                ArgValue::String("Credit".to_string()),
-            ),
-        )
-        .add_meta_data_column(
-            CsvColumnRole::CreditDebit,
-            CsvColumnInfo::required_content(5, CsvColumnDataType::String).look_for_argument(
-                Arg::CreditDebitQuery,
-                ArgValue::String("ACH Credit".to_string()),
+                ArgValue::strings_va(["Credit", "ACH Credit"]),
             ),
         ),
     );
