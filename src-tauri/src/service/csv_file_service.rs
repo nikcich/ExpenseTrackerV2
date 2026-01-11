@@ -12,7 +12,7 @@ use std::path::Path;
 use std::sync::Arc;
 use std::thread;
 
-const NUM_THREADS: usize = 4;
+const NUM_THREADS: usize = 12;
 
 /// FUNCTION DEFINITIONS
 
@@ -116,12 +116,11 @@ pub fn parse_csv_file_with_selected_definition(
 
     let file =
         open_file_from_path(&path).map_err(|_| format!("Failed to open file at path: {}", path))?;
-
     let mut reader = ReaderBuilder::new()
         .has_headers(csv_definition.has_header())
         .from_reader(file);
-
     let mut expenses_batch = Vec::new();
+    let mut linesarr: Vec<StringRecord> = Vec::new();
 
     for record in reader.records() {
         let record = match record {
@@ -130,11 +129,46 @@ pub fn parse_csv_file_with_selected_definition(
                 return Err(format!("Failed to read CSV record: {}", err).into());
             }
         };
+        linesarr.push(record);
+    }
 
-        // Parse a record and return as Expense object if successfully
-        let parsed_record: Expense = csv_definition.parse_record(&record)?;
+    let lines = Arc::new(linesarr);
+    let chunk_size: usize = lines.len() / NUM_THREADS;
+    let remainder: usize = lines.len() % NUM_THREADS;
+    let mut thread_handles = Vec::new();
 
-        expenses_batch.push(parsed_record);
+    for thread_id in 0..NUM_THREADS {
+        let start_idx = thread_id * chunk_size;
+        let mut end_idx = start_idx + chunk_size;
+
+        if thread_id == NUM_THREADS - 1 {
+            end_idx += remainder;
+        }
+
+        let lines_ref = Arc::clone(&lines);
+        let handle = thread::spawn(move || {
+            let mut worker_parsed = Vec::new();
+
+            // Main work loop for each thread
+            // The work is the chunks defined above
+            for idx in start_idx..end_idx {
+                let line = &lines_ref[idx];
+
+                // Parse a record and return as Expense object if successfully
+                let parsed_record: Expense = csv_definition.parse_record(line).unwrap();
+
+                worker_parsed.push(parsed_record);
+            }
+
+            worker_parsed
+        });
+
+        thread_handles.push(handle);
+    }
+
+    for handle in thread_handles {
+        let thread_results = handle.join().unwrap();
+        expenses_batch.extend(thread_results.iter().cloned());
     }
 
     if let Ok(result) = expense_store.add_expense_as_batch(expenses_batch, false) {
