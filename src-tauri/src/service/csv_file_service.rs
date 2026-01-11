@@ -120,7 +120,7 @@ pub fn parse_csv_file_with_selected_definition(
         .has_headers(csv_definition.has_header())
         .from_reader(file);
     let mut expenses_batch = Vec::new();
-    let mut linesarr: Vec<StringRecord> = Vec::new();
+    let mut lines: Vec<StringRecord> = Vec::new();
 
     for record in reader.records() {
         let record = match record {
@@ -129,10 +129,10 @@ pub fn parse_csv_file_with_selected_definition(
                 return Err(format!("Failed to read CSV record: {}", err).into());
             }
         };
-        linesarr.push(record);
+        lines.push(record);
     }
 
-    let lines = Arc::new(linesarr);
+    let lines = Arc::new(lines);
     let chunk_size: usize = lines.len() / NUM_THREADS;
     let remainder: usize = lines.len() % NUM_THREADS;
     let mut thread_handles = Vec::new();

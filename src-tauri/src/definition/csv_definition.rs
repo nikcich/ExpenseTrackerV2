@@ -349,38 +349,38 @@ pub trait CsvValidator: Send + Sync {
     fn has_header(&self) -> bool;
 }
 
+// Helper function to validate a single column
+fn validate_column_with_record(record: &StringRecord, col_info: &CsvColumnInfo) -> bool {
+    let index = col_info.index as usize;
+
+    // Check if the index is invalid (too large for a record)
+    if index >= record.len() {
+        return false;
+    }
+
+    // Fetch the raw value
+    let raw_value = record.get(index);
+    if raw_value.is_none() {
+        return false;
+    }
+
+    let normalized_raw_value = normalize(raw_value.unwrap());
+
+    // If the raw value for that column is required but empty string, return false
+    if normalized_raw_value.is_empty() && col_info.is_required {
+        return false;
+    }
+
+    // Lastly, validate by casting the raw value
+    if let Err(_) = cast_raw_value(raw_value.unwrap(), &col_info) {
+        return false; // Casting failed
+    }
+
+    return true;
+}
+
 impl CsvValidator for CsvDefinition {
     fn validate_against_record(&self, record: &StringRecord) -> bool {
-        // Helper function to validate a single column
-        fn validate_column_with_record(record: &StringRecord, col_info: &CsvColumnInfo) -> bool {
-            let index = col_info.index as usize;
-
-            // Check if the index is invalid (too large for a record)
-            if index >= record.len() {
-                return false;
-            }
-
-            // Fetch the raw value
-            let raw_value = record.get(index);
-            if raw_value.is_none() {
-                return false;
-            }
-
-            let normalized_raw_value = normalize(raw_value.unwrap());
-
-            // If the raw value for that column is required but empty string, return false
-            if normalized_raw_value.is_empty() && col_info.is_required {
-                return false;
-            }
-
-            // Lastly, validate by casting the raw value
-            if let Err(_) = cast_raw_value(raw_value.unwrap(), &col_info) {
-                return false; // Casting failed
-            }
-
-            return true;
-        }
-
         // Validate expected columns
         for (_role, col_info) in &self.expected_columns {
             if !validate_column_with_record(record, col_info) {
