@@ -1,27 +1,20 @@
 import { GenericPage } from "@/components/GenericPage/GenericPage";
-import { useMemo, useState } from "react";
+import { useMemo, useState, useCallback } from "react";
 import {
-  format,
-  parseISO,
-  addDays,
-  getDaysInMonth,
-  isAfter,
-} from "date-fns";
-import { Box, Text, Input, Flex, Field } from "@chakra-ui/react";
-
-interface CashFlowEvent {
-  date: string;
-  event: string;
-  change: number | null;
-  checking: number;
-  savings: number;
-}
-
-interface CashFlowSummary {
-  endingChecking: number;
-  endingSavings: number;
-  lowestChecking: number;
-}
+  Box,
+  Text,
+  Input,
+  Flex,
+  Field,
+  NativeSelect,
+  Button,
+} from "@chakra-ui/react";
+import {
+  CashFlowEvent,
+  PayPeriod,
+  ExpenseRule,
+  computeCashFlowForecast,
+} from "@/utils/cash-flow-forecast";
 
 const formatCurrency = (amount: number) =>
   new Intl.NumberFormat("en-US", {
@@ -63,9 +56,15 @@ const TableHeader = () => (
   >
     <Box w="120px">Date</Box>
     <Box w="180px">Event</Box>
-    <Box w="130px" textAlign="right">Change</Box>
-    <Box w="130px" textAlign="right">Checking</Box>
-    <Box w="130px" textAlign="right">Savings</Box>
+    <Box w="130px" textAlign="right">
+      Change
+    </Box>
+    <Box w="130px" textAlign="right">
+      Checking
+    </Box>
+    <Box w="130px" textAlign="right">
+      Savings
+    </Box>
   </Flex>
 );
 
@@ -93,8 +92,12 @@ const TableRow = ({ event }: { event: CashFlowEvent }) => (
         ? (event.change >= 0 ? "+" : "") + formatCurrency(event.change)
         : ""}
     </Box>
-    <Box w="130px" textAlign="right">{formatCurrency(event.checking)}</Box>
-    <Box w="130px" textAlign="right">{formatCurrency(event.savings)}</Box>
+    <Box w="130px" textAlign="right">
+      {formatCurrency(event.checking)}
+    </Box>
+    <Box w="130px" textAlign="right">
+      {formatCurrency(event.savings)}
+    </Box>
   </Flex>
 );
 
@@ -104,9 +107,10 @@ const DEFAULT_CONFIG = {
   startDate: "2026-06-01",
   endDate: "2026-12-31",
   paycheckAmount: 4800,
+  payPeriod: "biweekly" as PayPeriod,
   firstPaycheckDate: "2026-06-05",
-  expense12th: 1500,
-  expense20th: 3500,
+  semimonthlyPayday1: 1,
+  semimonthlyPayday2: 15,
 };
 
 export function Forecast() {
@@ -114,184 +118,250 @@ export function Forecast() {
   const [reserve, setReserve] = useState(DEFAULT_CONFIG.reserve);
   const [startDate, setStartDate] = useState(DEFAULT_CONFIG.startDate);
   const [endDate, setEndDate] = useState(DEFAULT_CONFIG.endDate);
-  const [paycheckAmount, setPaycheckAmount] = useState(DEFAULT_CONFIG.paycheckAmount);
-  const [firstPaycheckDate, setFirstPaycheckDate] = useState(DEFAULT_CONFIG.firstPaycheckDate);
-  const [expense12th, setExpense12th] = useState(DEFAULT_CONFIG.expense12th);
-  const [expense20th, setExpense20th] = useState(DEFAULT_CONFIG.expense20th);
-
-  const result = useMemo(() => {
-    const start = parseISO(startDate);
-    const end = parseISO(endDate);
-    const firstPaycheck = parseISO(firstPaycheckDate);
-
-    let balance = startBalance;
-    let savings = 0;
-    let lowestBalance = balance;
-
-    const paydays = new Set<string>();
-    let d = firstPaycheck;
-    while (!isAfter(d, end)) {
-      paydays.add(format(d, "yyyy-MM-dd"));
-      d = addDays(d, 14);
-    }
-
-    const events: CashFlowEvent[] = [
-      {
-        date: format(start, "yyyy-MM-dd"),
-        event: "Starting Balance",
-        change: null,
-        checking: balance,
-        savings,
-      },
-    ];
-
-    let current = start;
-    while (!isAfter(current, end)) {
-      const dateStr = format(current, "yyyy-MM-dd");
-      let hasEvent = false;
-
-      if (paydays.has(dateStr)) {
-        balance += paycheckAmount;
-        events.push({
-          date: dateStr,
-          event: "Paycheck",
-          change: paycheckAmount,
-          checking: balance,
-          savings,
-        });
-        hasEvent = true;
-      }
-
-      if (current.getDate() === 12) {
-        balance -= expense12th;
-        events.push({
-          date: dateStr,
-          event: "Expense (12th)",
-          change: -expense12th,
-          checking: balance,
-          savings,
-        });
-        hasEvent = true;
-      }
-
-      if (current.getDate() === 20) {
-        balance -= expense20th;
-        events.push({
-          date: dateStr,
-          event: "Expense (20th)",
-          change: -expense20th,
-          checking: balance,
-          savings,
-        });
-        hasEvent = true;
-      }
-
-      const lastDay = getDaysInMonth(current);
-      if (current.getDate() === lastDay) {
-        const transfer = Math.max(0, balance - reserve);
-        if (transfer > 0) {
-          balance -= transfer;
-          savings += transfer;
-          events.push({
-            date: dateStr,
-            event: "Savings Transfer",
-            change: -transfer,
-            checking: balance,
-            savings,
-          });
-          hasEvent = true;
-        }
-      }
-
-      if (hasEvent) {
-        lowestBalance = Math.min(lowestBalance, balance);
-      }
-
-      current = addDays(current, 1);
-    }
-
-    const summary: CashFlowSummary = {
-      endingChecking: balance,
-      endingSavings: savings,
-      lowestChecking: lowestBalance,
-    };
-
-    return { events, summary };
-  }, [
-    startBalance,
-    reserve,
-    startDate,
-    endDate,
-    paycheckAmount,
-    firstPaycheckDate,
-    expense12th,
-    expense20th,
+  const [paycheckAmount, setPaycheckAmount] = useState(
+    DEFAULT_CONFIG.paycheckAmount,
+  );
+  const [payPeriod, setPayPeriod] = useState<PayPeriod>(
+    DEFAULT_CONFIG.payPeriod,
+  );
+  const [firstPaycheckDate, setFirstPaycheckDate] = useState(
+    DEFAULT_CONFIG.firstPaycheckDate,
+  );
+  const [semimonthlyPayday1, setSemimonthlyPayday1] = useState(
+    DEFAULT_CONFIG.semimonthlyPayday1,
+  );
+  const [semimonthlyPayday2, setSemimonthlyPayday2] = useState(
+    DEFAULT_CONFIG.semimonthlyPayday2,
+  );
+  const [expenses, setExpenses] = useState<ExpenseRule[]>([
+    { day: 12, amount: 1500 },
+    { day: 20, amount: 3500 },
   ]);
+
+  const updateExpense = useCallback(
+    (index: number, field: keyof ExpenseRule, value: number) => {
+      setExpenses((prev) => {
+        const next = [...prev];
+        next[index] = {
+          ...next[index],
+          [field]: field === "day" ? Math.min(31, Math.max(1, value)) : value,
+        };
+        return next;
+      });
+    },
+    [],
+  );
+
+  const removeExpense = useCallback((index: number) => {
+    setExpenses((prev) => prev.filter((_, i) => i !== index));
+  }, []);
+
+  const addExpense = useCallback(() => {
+    setExpenses((prev) => [...prev, { day: 1, amount: 0 }]);
+  }, []);
+
+  const result = useMemo(
+    () =>
+      computeCashFlowForecast({
+        startBalance,
+        reserve,
+        startDate,
+        endDate,
+        paycheckAmount,
+        payPeriod,
+        firstPaycheckDate,
+        semimonthlyPayday1,
+        semimonthlyPayday2,
+        expenses,
+      }),
+    [
+      startBalance,
+      reserve,
+      startDate,
+      endDate,
+      paycheckAmount,
+      payPeriod,
+      firstPaycheckDate,
+      semimonthlyPayday1,
+      semimonthlyPayday2,
+      expenses,
+    ],
+  );
 
   return (
     <GenericPage title="Forecast" hasRange={false} needsData={false}>
-      <Box p={4}>
-        <Flex wrap="wrap" gap={4} mb={6}>
-          <CFGroup
-            label="Starting Balance"
-            value={startBalance}
-            onChange={(v) => setStartBalance(Number(v))}
-          />
-          <CFGroup
-            label="Reserve Amount"
-            value={reserve}
-            onChange={(v) => setReserve(Number(v))}
-          />
-          <CFGroup
-            label="Start Date"
-            value={startDate}
-            onChange={setStartDate}
-            type="date"
-          />
-          <CFGroup
-            label="End Date"
-            value={endDate}
-            onChange={setEndDate}
-            type="date"
-          />
-          <CFGroup
-            label="Paycheck Amount"
-            value={paycheckAmount}
-            onChange={(v) => setPaycheckAmount(Number(v))}
-          />
-          <CFGroup
-            label="First Paycheck"
-            value={firstPaycheckDate}
-            onChange={setFirstPaycheckDate}
-            type="date"
-          />
-          <CFGroup
-            label="Expense (12th)"
-            value={expense12th}
-            onChange={(v) => setExpense12th(Number(v))}
-          />
-          <CFGroup
-            label="Expense (20th)"
-            value={expense20th}
-            onChange={(v) => setExpense20th(Number(v))}
-          />
+      <Flex direction="column" h="100%" overflow="hidden" p={4} gap={4}>
+        <Flex direction="column" gap={2} flexShrink={0} w="100%">
+          <Text
+            fontSize="sm"
+            fontWeight="medium"
+            color="gray.300"
+            textAlign="left"
+          >
+            General
+          </Text>
+          <Flex wrap="wrap" gap={4} alignItems="flex-end">
+            <CFGroup
+              label="Starting Balance"
+              value={startBalance}
+              onChange={(v) => setStartBalance(Number(v))}
+            />
+            <CFGroup
+              label="Reserve Amount"
+              value={reserve}
+              onChange={(v) => setReserve(Number(v))}
+            />
+            <CFGroup
+              label="Start Date"
+              value={startDate}
+              onChange={setStartDate}
+              type="date"
+            />
+            <CFGroup
+              label="End Date"
+              value={endDate}
+              onChange={setEndDate}
+              type="date"
+            />
+          </Flex>
+        </Flex>
+
+        <Flex direction="column" gap={2} flexShrink={0} w="100%">
+          <Text
+            fontSize="sm"
+            fontWeight="medium"
+            color="gray.300"
+            textAlign="left"
+          >
+            Paycheck
+          </Text>
+          <Flex wrap="wrap" gap={4} alignItems="flex-end">
+            <CFGroup
+              label="Paycheck Amount"
+              value={paycheckAmount}
+              onChange={(v) => setPaycheckAmount(Number(v))}
+            />
+            <Field.Root flex="1" minW="140px">
+              <Field.Label fontSize="sm">Pay Period</Field.Label>
+              <NativeSelect.Root>
+                <NativeSelect.Field
+                  value={payPeriod}
+                  onChange={(e) =>
+                    setPayPeriod(e.currentTarget.value as PayPeriod)
+                  }
+                >
+                  <option value="biweekly">Bi-weekly (every 14 days)</option>
+                  <option value="weekly">Weekly (every 7 days)</option>
+                  <option value="semimonthly">
+                    Semi-monthly (fixed dates)
+                  </option>
+                </NativeSelect.Field>
+                <NativeSelect.Indicator />
+              </NativeSelect.Root>
+            </Field.Root>
+            {payPeriod !== "semimonthly" ? (
+              <CFGroup
+                label="First Paycheck"
+                value={firstPaycheckDate}
+                onChange={setFirstPaycheckDate}
+                type="date"
+              />
+            ) : (
+              <>
+                <CFGroup
+                  label="Payday 1"
+                  value={semimonthlyPayday1}
+                  onChange={(v) =>
+                    setSemimonthlyPayday1(Math.min(31, Math.max(1, Number(v))))
+                  }
+                />
+                <CFGroup
+                  label="Payday 2"
+                  value={semimonthlyPayday2}
+                  onChange={(v) =>
+                    setSemimonthlyPayday2(Math.min(31, Math.max(1, Number(v))))
+                  }
+                />
+              </>
+            )}
+          </Flex>
+        </Flex>
+
+        <Flex direction="column" gap={2} flexShrink={0} maxW="500px">
+          <Text
+            fontSize="sm"
+            fontWeight="medium"
+            color="gray.300"
+            textAlign="left"
+          >
+            Expenses
+          </Text>
+          {expenses.map((exp, i) => (
+            <Flex key={i} gap={2} alignItems="flex-end">
+              <Field.Root maxW="70px">
+                <Field.Label fontSize="xs">Day</Field.Label>
+                <Input
+                  type="number"
+                  min={1}
+                  max={31}
+                  value={exp.day}
+                  onChange={(e) =>
+                    updateExpense(i, "day", Number(e.target.value))
+                  }
+                  size="sm"
+                />
+              </Field.Root>
+              <Field.Root flex={1}>
+                <Field.Label fontSize="xs">Amount</Field.Label>
+                <Input
+                  type="number"
+                  value={exp.amount}
+                  onChange={(e) =>
+                    updateExpense(i, "amount", Number(e.target.value))
+                  }
+                  size="sm"
+                />
+              </Field.Root>
+              <Button
+                size="sm"
+                variant="solid"
+                colorPalette="red"
+                flexShrink={0}
+                onClick={() => removeExpense(i)}
+              >
+                &#x2716;
+              </Button>
+            </Flex>
+          ))}
+          <Button
+            size="sm"
+            variant="solid"
+            colorPalette="green"
+            alignSelf="start"
+            onClick={addExpense}
+          >
+            + Add Expense
+          </Button>
         </Flex>
 
         {result.events.length > 0 && (
           <>
             <Box
+              flex={1}
+              minH={0}
               border="1px solid"
               borderColor="gray.700"
               borderRadius="md"
               overflow="hidden"
-              mb={4}
-              maxH="60vh"
-              overflowY="auto"
+              display="flex"
+              flexDirection="column"
             >
-              <TableHeader />
-              {result.events.map((ev, i) => (
-                <TableRow key={i} event={ev} />
-              ))}
+              <Box overflowY="auto" flex={1}>
+                <TableHeader />
+                {result.events.map((ev, i) => (
+                  <TableRow key={i} event={ev} />
+                ))}
+              </Box>
             </Box>
 
             <Flex
@@ -301,6 +371,7 @@ export function Forecast() {
               p={4}
               gap={8}
               bg="gray.800"
+              flexShrink={0}
             >
               <Box>
                 <Text fontSize="xs" color="gray.400" mb={1}>
@@ -311,9 +382,7 @@ export function Forecast() {
                   fontWeight="bold"
                   fontFamily="mono"
                   color={
-                    result.summary.endingChecking >= 0
-                      ? "green.300"
-                      : "red.300"
+                    result.summary.endingChecking >= 0 ? "green.300" : "red.300"
                   }
                 >
                   {formatCurrency(result.summary.endingChecking)}
@@ -341,9 +410,7 @@ export function Forecast() {
                   fontWeight="bold"
                   fontFamily="mono"
                   color={
-                    result.summary.lowestChecking >= 0
-                      ? "green.300"
-                      : "red.300"
+                    result.summary.lowestChecking >= 0 ? "green.300" : "red.300"
                   }
                 >
                   {formatCurrency(result.summary.lowestChecking)}
@@ -352,7 +419,7 @@ export function Forecast() {
             </Flex>
           </>
         )}
-      </Box>
+      </Flex>
     </GenericPage>
   );
 }
