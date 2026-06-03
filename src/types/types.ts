@@ -28,11 +28,13 @@ export type ForecastConfigData = {
   reserve: number;
   startDate: string;
   endDate: string;
-  paycheckAmount: number;
-  payPeriod: string;
-  firstPaycheckDate: string;
-  semimonthlyPayday1: number;
-  semimonthlyPayday2: number;
+  incomeStreams: {
+    amount: number;
+    payPeriod: string;
+    firstPaycheckDate: string;
+    semimonthlyPayday1: number;
+    semimonthlyPayday2: number;
+  }[];
   expenses: { day: number; amount: number }[];
 };
 

@@ -12,10 +12,13 @@ import {
 import {
   CashFlowEvent,
   PayPeriod,
+  IncomeRule,
   ExpenseRule,
   computeCashFlowForecast,
 } from "@/utils/cash-flow-forecast";
 import { useForecastConfig } from "@/store/store";
+import { format } from "date-fns";
+import { FaChevronRight } from "react-icons/fa";
 
 const formatCurrency = (amount: number) =>
   new Intl.NumberFormat("en-US", {
@@ -107,11 +110,6 @@ const DEFAULT_CONFIG = {
   reserve: 8000,
   startDate: "2026-06-01",
   endDate: "2026-12-31",
-  paycheckAmount: 4800,
-  payPeriod: "biweekly" as PayPeriod,
-  firstPaycheckDate: "2026-06-05",
-  semimonthlyPayday1: 1,
-  semimonthlyPayday2: 15,
 };
 
 export function Forecast() {
@@ -119,21 +117,12 @@ export function Forecast() {
   const [reserve, setReserve] = useState(DEFAULT_CONFIG.reserve);
   const [startDate, setStartDate] = useState(DEFAULT_CONFIG.startDate);
   const [endDate, setEndDate] = useState(DEFAULT_CONFIG.endDate);
-  const [paycheckAmount, setPaycheckAmount] = useState(
-    DEFAULT_CONFIG.paycheckAmount,
-  );
-  const [payPeriod, setPayPeriod] = useState<PayPeriod>(
-    DEFAULT_CONFIG.payPeriod,
-  );
-  const [firstPaycheckDate, setFirstPaycheckDate] = useState(
-    DEFAULT_CONFIG.firstPaycheckDate,
-  );
-  const [semimonthlyPayday1, setSemimonthlyPayday1] = useState(
-    DEFAULT_CONFIG.semimonthlyPayday1,
-  );
-  const [semimonthlyPayday2, setSemimonthlyPayday2] = useState(
-    DEFAULT_CONFIG.semimonthlyPayday2,
-  );
+  const [sections, setSections] = useState({ general: true, income: true, expenses: true });
+  const toggleSection = (key: keyof typeof sections) => setSections((prev) => ({ ...prev, [key]: !prev[key] }));
+
+  const [incomeStreams, setIncomeStreams] = useState<IncomeRule[]>([
+    { amount: 4800, payPeriod: "biweekly", firstPaycheckDate: "2026-06-05", semimonthlyPayday1: 1, semimonthlyPayday2: 15 },
+  ]);
   const [expenses, setExpenses] = useState<ExpenseRule[]>([
     { day: 12, amount: 1500 },
     { day: 20, amount: 3500 },
@@ -148,12 +137,17 @@ export function Forecast() {
       setReserve(savedConfig.reserve);
       setStartDate(savedConfig.startDate);
       setEndDate(savedConfig.endDate);
-      setPaycheckAmount(savedConfig.paycheckAmount);
-      setPayPeriod(savedConfig.payPeriod as PayPeriod);
-      setFirstPaycheckDate(savedConfig.firstPaycheckDate);
-      setSemimonthlyPayday1(savedConfig.semimonthlyPayday1);
-      setSemimonthlyPayday2(savedConfig.semimonthlyPayday2);
-      setExpenses(savedConfig.expenses);
+      if (savedConfig.incomeStreams) {
+        setIncomeStreams(
+          savedConfig.incomeStreams.map((s) => ({
+            ...s,
+            payPeriod: s.payPeriod as PayPeriod,
+          }))
+        );
+      }
+      if (savedConfig.expenses) {
+        setExpenses(savedConfig.expenses);
+      }
       initialized.current = true;
     } else if (loaded && !initialized.current) {
       initialized.current = true;
@@ -162,14 +156,28 @@ export function Forecast() {
 
   useEffect(() => {
     if (!initialized.current) return;
-    saveConfig({
-      startBalance, reserve, startDate, endDate, paycheckAmount,
-      payPeriod, firstPaycheckDate, semimonthlyPayday1, semimonthlyPayday2, expenses,
+    saveConfig({ startBalance, reserve, startDate, endDate, incomeStreams, expenses });
+  }, [startBalance, reserve, startDate, endDate, incomeStreams, expenses]);
+
+  const updateIncome = useCallback((index: number, field: string, value: string | number) => {
+    setIncomeStreams((prev) => {
+      const next = [...prev];
+      (next[index] as any)[field] = value;
+      return next;
     });
-  }, [
-    startBalance, reserve, startDate, endDate, paycheckAmount,
-    payPeriod, firstPaycheckDate, semimonthlyPayday1, semimonthlyPayday2, expenses,
-  ]);
+  }, []);
+
+  const removeIncome = useCallback((index: number) => {
+    setIncomeStreams((prev) => prev.filter((_, i) => i !== index));
+  }, []);
+
+  const addIncome = useCallback(() => {
+    const defaultDate = format(new Date(), "yyyy-MM-dd");
+    setIncomeStreams((prev) => [
+      ...prev,
+      { amount: 0, payPeriod: "biweekly", firstPaycheckDate: defaultDate, semimonthlyPayday1: 1, semimonthlyPayday2: 15 },
+    ]);
+  }, []);
 
   const updateExpense = useCallback(
     (index: number, field: keyof ExpenseRule, value: number) => {
@@ -194,258 +202,144 @@ export function Forecast() {
   }, []);
 
   const result = useMemo(
-    () =>
-      computeCashFlowForecast({
-        startBalance,
-        reserve,
-        startDate,
-        endDate,
-        paycheckAmount,
-        payPeriod,
-        firstPaycheckDate,
-        semimonthlyPayday1,
-        semimonthlyPayday2,
-        expenses,
-      }),
-    [
-      startBalance,
-      reserve,
-      startDate,
-      endDate,
-      paycheckAmount,
-      payPeriod,
-      firstPaycheckDate,
-      semimonthlyPayday1,
-      semimonthlyPayday2,
-      expenses,
-    ],
+    () => computeCashFlowForecast({ startBalance, reserve, startDate, endDate, incomeStreams, expenses }),
+    [startBalance, reserve, startDate, endDate, incomeStreams, expenses],
   );
 
   return (
     <GenericPage title="Forecast" hasRange={false} needsData={false}>
-      <Flex direction="column" h="100%" overflow="hidden" p={4} gap={4}>
-        <Flex direction="column" gap={2} flexShrink={0} w="100%">
-          <Text
-            fontSize="sm"
-            fontWeight="medium"
-            color="gray.300"
-            textAlign="left"
-          >
-            General
-          </Text>
-          <Flex wrap="wrap" gap={4} alignItems="flex-end">
-            <CFGroup
-              label="Starting Balance"
-              value={startBalance}
-              onChange={(v) => setStartBalance(Number(v))}
-            />
-            <CFGroup
-              label="Reserve Amount"
-              value={reserve}
-              onChange={(v) => setReserve(Number(v))}
-            />
-            <CFGroup
-              label="Start Date"
-              value={startDate}
-              onChange={setStartDate}
-              type="date"
-            />
-            <CFGroup
-              label="End Date"
-              value={endDate}
-              onChange={setEndDate}
-              type="date"
-            />
+      <Flex direction="column" p={4} gap={4}>
+        <Box>
+          <Flex align="center" gap={2} cursor="pointer" onClick={() => toggleSection("general")}>
+            <Box transition="transform 0.2s" transform={sections.general ? "rotate(90deg)" : undefined}>
+              <FaChevronRight size={12} />
+            </Box>
+            <Text fontSize="sm" fontWeight="medium" color="gray.300">General</Text>
           </Flex>
-        </Flex>
+          {sections.general && (
+            <Flex direction="column" gap={2} w="100%" mt={2}>
+              <Flex wrap="wrap" gap={4} alignItems="flex-end">
+                <CFGroup label="Starting Balance" value={startBalance} onChange={(v) => setStartBalance(Number(v))} />
+                <CFGroup label="Reserve Amount" value={reserve} onChange={(v) => setReserve(Number(v))} />
+                <CFGroup label="Start Date" value={startDate} onChange={setStartDate} type="date" />
+                <CFGroup label="End Date" value={endDate} onChange={setEndDate} type="date" />
+              </Flex>
+            </Flex>
+          )}
+        </Box>
 
-        <Flex direction="column" gap={2} flexShrink={0} w="100%">
-          <Text
-            fontSize="sm"
-            fontWeight="medium"
-            color="gray.300"
-            textAlign="left"
-          >
-            Paycheck
-          </Text>
-          <Flex wrap="wrap" gap={4} alignItems="flex-end">
-            <CFGroup
-              label="Paycheck Amount"
-              value={paycheckAmount}
-              onChange={(v) => setPaycheckAmount(Number(v))}
-            />
-            <Field.Root flex="1" minW="140px">
-              <Field.Label fontSize="sm">Pay Period</Field.Label>
-              <NativeSelect.Root>
-                <NativeSelect.Field
-                  value={payPeriod}
-                  onChange={(e) =>
-                    setPayPeriod(e.currentTarget.value as PayPeriod)
-                  }
-                >
-                  <option value="biweekly">Bi-weekly (every 14 days)</option>
-                  <option value="weekly">Weekly (every 7 days)</option>
-                  <option value="semimonthly">
-                    Semi-monthly (fixed dates)
-                  </option>
-                </NativeSelect.Field>
-                <NativeSelect.Indicator />
-              </NativeSelect.Root>
-            </Field.Root>
-            {payPeriod !== "semimonthly" ? (
-              <CFGroup
-                label="First Paycheck"
-                value={firstPaycheckDate}
-                onChange={setFirstPaycheckDate}
-                type="date"
-              />
-            ) : (
-              <>
-                <CFGroup
-                  label="Payday 1"
-                  value={semimonthlyPayday1}
-                  onChange={(v) =>
-                    setSemimonthlyPayday1(Math.min(31, Math.max(1, Number(v))))
-                  }
-                />
-                <CFGroup
-                  label="Payday 2"
-                  value={semimonthlyPayday2}
-                  onChange={(v) =>
-                    setSemimonthlyPayday2(Math.min(31, Math.max(1, Number(v))))
-                  }
-                />
-              </>
-            )}
+        <Box>
+          <Flex align="center" gap={2} cursor="pointer" onClick={() => toggleSection("income")}>
+            <Box transition="transform 0.2s" transform={sections.income ? "rotate(90deg)" : undefined}>
+              <FaChevronRight size={12} />
+            </Box>
+            <Text fontSize="sm" fontWeight="medium" color="gray.300">Income</Text>
           </Flex>
-        </Flex>
-
-        <Flex direction="column" gap={2} flexShrink={0} maxW="500px">
-          <Text
-            fontSize="sm"
-            fontWeight="medium"
-            color="gray.300"
-            textAlign="left"
-          >
-            Expenses
-          </Text>
-          {expenses.map((exp, i) => (
-            <Flex key={i} gap={2} alignItems="flex-end">
-              <Field.Root maxW="70px">
-                <Field.Label fontSize="xs">Day</Field.Label>
-                <Input
-                  type="number"
-                  min={1}
-                  max={31}
-                  value={exp.day}
-                  onChange={(e) =>
-                    updateExpense(i, "day", Number(e.target.value))
-                  }
-                  size="sm"
-                />
-              </Field.Root>
-              <Field.Root flex={1}>
-                <Field.Label fontSize="xs">Amount</Field.Label>
-                <Input
-                  type="number"
-                  value={exp.amount}
-                  onChange={(e) =>
-                    updateExpense(i, "amount", Number(e.target.value))
-                  }
-                  size="sm"
-                />
-              </Field.Root>
-              <Button
-                size="sm"
-                variant="solid"
-                colorPalette="red"
-                flexShrink={0}
-                onClick={() => removeExpense(i)}
-              >
-                &#x2716;
+          {sections.income && (
+            <Flex direction="column" gap={2} mt={2}>
+              {incomeStreams.map((stream, i) => (
+                <Flex key={i} gap={2} alignItems="flex-end" wrap="wrap">
+                  <Field.Root maxW="120px">
+                    <Field.Label fontSize="xs">Amount</Field.Label>
+                    <Input type="number" value={stream.amount} onChange={(e) => updateIncome(i, "amount", Number(e.target.value))} size="sm" />
+                  </Field.Root>
+                  <Field.Root maxW="160px">
+                    <Field.Label fontSize="xs">Period</Field.Label>
+                    <NativeSelect.Root>
+                      <NativeSelect.Field value={stream.payPeriod} onChange={(e) => updateIncome(i, "payPeriod", e.currentTarget.value)}>
+                        <option value="biweekly">Bi-weekly</option>
+                        <option value="weekly">Weekly</option>
+                        <option value="semimonthly">Semi-monthly</option>
+                        <option value="monthly">Monthly</option>
+                      </NativeSelect.Field>
+                      <NativeSelect.Indicator />
+                    </NativeSelect.Root>
+                  </Field.Root>
+                  {stream.payPeriod !== "semimonthly" ? (
+                    <Field.Root maxW="150px">
+                      <Field.Label fontSize="xs">First Paycheck</Field.Label>
+                      <Input type="date" value={stream.firstPaycheckDate} onChange={(e) => updateIncome(i, "firstPaycheckDate", e.target.value)} size="sm" />
+                    </Field.Root>
+                  ) : (
+                    <>
+                      <Field.Root maxW="70px">
+                        <Field.Label fontSize="xs">Day 1</Field.Label>
+                        <Input type="number" min={1} max={31} value={stream.semimonthlyPayday1} onChange={(e) => updateIncome(i, "semimonthlyPayday1", Math.min(31, Math.max(1, Number(e.target.value))))} size="sm" />
+                      </Field.Root>
+                      <Field.Root maxW="70px">
+                        <Field.Label fontSize="xs">Day 2</Field.Label>
+                        <Input type="number" min={1} max={31} value={stream.semimonthlyPayday2} onChange={(e) => updateIncome(i, "semimonthlyPayday2", Math.min(31, Math.max(1, Number(e.target.value))))} size="sm" />
+                      </Field.Root>
+                    </>
+                  )}
+                  <Button size="sm" variant="solid" colorPalette="red" flexShrink={0} onClick={() => removeIncome(i)}>
+                    &#x2716;
+                  </Button>
+                </Flex>
+              ))}
+              <Button size="sm" variant="solid" colorPalette="green" alignSelf="start" onClick={addIncome}>
+                + Add Income
               </Button>
             </Flex>
-          ))}
-          <Button
-            size="sm"
-            variant="solid"
-            colorPalette="green"
-            alignSelf="start"
-            onClick={addExpense}
-          >
-            + Add Expense
-          </Button>
-        </Flex>
+          )}
+        </Box>
+
+        <Box>
+          <Flex align="center" gap={2} cursor="pointer" onClick={() => toggleSection("expenses")}>
+            <Box transition="transform 0.2s" transform={sections.expenses ? "rotate(90deg)" : undefined}>
+              <FaChevronRight size={12} />
+            </Box>
+            <Text fontSize="sm" fontWeight="medium" color="gray.300">Expenses</Text>
+          </Flex>
+          {sections.expenses && (
+            <Flex direction="column" gap={2} maxW="500px" mt={2}>
+              {expenses.map((exp, i) => (
+                <Flex key={i} gap={2} alignItems="flex-end">
+                  <Field.Root maxW="70px">
+                    <Field.Label fontSize="xs">Day</Field.Label>
+                    <Input type="number" min={1} max={31} value={exp.day} onChange={(e) => updateExpense(i, "day", Number(e.target.value))} size="sm" />
+                  </Field.Root>
+                  <Field.Root flex={1}>
+                    <Field.Label fontSize="xs">Amount</Field.Label>
+                    <Input type="number" value={exp.amount} onChange={(e) => updateExpense(i, "amount", Number(e.target.value))} size="sm" />
+                  </Field.Root>
+                  <Button size="sm" variant="solid" colorPalette="red" flexShrink={0} onClick={() => removeExpense(i)}>
+                    &#x2716;
+                  </Button>
+                </Flex>
+              ))}
+              <Button size="sm" variant="solid" colorPalette="green" alignSelf="start" onClick={addExpense}>
+                + Add Expense
+              </Button>
+            </Flex>
+          )}
+        </Box>
 
         {result.events.length > 0 && (
           <>
-            <Box
-              flex={1}
-              minH={0}
-              border="1px solid"
-              borderColor="gray.700"
-              borderRadius="md"
-              overflow="hidden"
-              display="flex"
-              flexDirection="column"
-            >
+            <Box h="500px" border="1px solid" borderColor="gray.700" borderRadius="md" overflow="hidden" display="flex" flexDirection="column">
               <Box overflowY="auto" flex={1}>
                 <TableHeader />
-                {result.events.map((ev, i) => (
-                  <TableRow key={i} event={ev} />
-                ))}
+                {result.events.map((ev, i) => <TableRow key={i} event={ev} />)}
               </Box>
             </Box>
 
-            <Flex
-              border="1px solid"
-              borderColor="gray.700"
-              borderRadius="md"
-              p={4}
-              gap={8}
-              bg="gray.800"
-              flexShrink={0}
-            >
+            <Flex border="1px solid" borderColor="gray.700" borderRadius="md" p={4} gap={8} bg="gray.800">
               <Box>
-                <Text fontSize="xs" color="gray.400" mb={1}>
-                  Ending Checking
-                </Text>
-                <Text
-                  fontSize="xl"
-                  fontWeight="bold"
-                  fontFamily="mono"
-                  color={
-                    result.summary.endingChecking >= 0 ? "green.300" : "red.300"
-                  }
-                >
+                <Text fontSize="xs" color="gray.400" mb={1}>Ending Checking</Text>
+                <Text fontSize="xl" fontWeight="bold" fontFamily="mono" color={result.summary.endingChecking >= 0 ? "green.300" : "red.300"}>
                   {formatCurrency(result.summary.endingChecking)}
                 </Text>
               </Box>
               <Box>
-                <Text fontSize="xs" color="gray.400" mb={1}>
-                  Ending Savings
-                </Text>
-                <Text
-                  fontSize="xl"
-                  fontWeight="bold"
-                  fontFamily="mono"
-                  color="yellow.300"
-                >
+                <Text fontSize="xs" color="gray.400" mb={1}>Ending Savings</Text>
+                <Text fontSize="xl" fontWeight="bold" fontFamily="mono" color="yellow.300">
                   {formatCurrency(result.summary.endingSavings)}
                 </Text>
               </Box>
               <Box>
-                <Text fontSize="xs" color="gray.400" mb={1}>
-                  Lowest Checking
-                </Text>
-                <Text
-                  fontSize="xl"
-                  fontWeight="bold"
-                  fontFamily="mono"
-                  color={
-                    result.summary.lowestChecking >= 0 ? "green.300" : "red.300"
-                  }
-                >
+                <Text fontSize="xs" color="gray.400" mb={1}>Lowest Checking</Text>
+                <Text fontSize="xl" fontWeight="bold" fontFamily="mono" color={result.summary.lowestChecking >= 0 ? "green.300" : "red.300"}>
                   {formatCurrency(result.summary.lowestChecking)}
                 </Text>
               </Box>

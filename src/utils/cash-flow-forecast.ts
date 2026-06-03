@@ -1,6 +1,14 @@
-import { format, parseISO, addDays, getDaysInMonth, isAfter } from "date-fns";
+import { format, parseISO, addDays, getDaysInMonth, isAfter, isValid } from "date-fns";
 
-export type PayPeriod = "biweekly" | "weekly" | "semimonthly";
+export type PayPeriod = "biweekly" | "weekly" | "semimonthly" | "monthly";
+
+export interface IncomeRule {
+  amount: number;
+  payPeriod: PayPeriod;
+  firstPaycheckDate: string;
+  semimonthlyPayday1: number;
+  semimonthlyPayday2: number;
+}
 
 export interface ExpenseRule {
   day: number;
@@ -26,51 +34,65 @@ export interface CashFlowConfig {
   reserve: number;
   startDate: string;
   endDate: string;
-  paycheckAmount: number;
-  payPeriod: PayPeriod;
-  firstPaycheckDate: string;
-  semimonthlyPayday1: number;
-  semimonthlyPayday2: number;
+  incomeStreams: IncomeRule[];
   expenses: ExpenseRule[];
+}
+
+function addPayday(map: Map<string, number[]>, date: string, amount: number) {
+  const existing = map.get(date) ?? [];
+  existing.push(amount);
+  map.set(date, existing);
 }
 
 function buildPaydays(
   start: Date,
   end: Date,
-  period: PayPeriod,
-  firstPaycheckDate: string,
-  semimonthlyPayday1: number,
-  semimonthlyPayday2: number
-): Set<string> {
-  const paydays = new Set<string>();
+  incomeStreams: IncomeRule[]
+): Map<string, number[]> {
+  const paydayMap = new Map<string, number[]>();
 
-  if (period === "semimonthly") {
-    let current = start;
-    while (!isAfter(current, end)) {
-      const daysInMonth = getDaysInMonth(current);
-      const day1 = Math.min(semimonthlyPayday1, daysInMonth);
-      const day2 = Math.min(semimonthlyPayday2, daysInMonth);
-      paydays.add(format(new Date(current.getFullYear(), current.getMonth(), day1), "yyyy-MM-dd"));
-      paydays.add(format(new Date(current.getFullYear(), current.getMonth(), day2), "yyyy-MM-dd"));
-      current = new Date(current.getFullYear(), current.getMonth() + 1, 1);
+  for (const stream of incomeStreams) {
+    if (stream.payPeriod === "semimonthly") {
+      let current = start;
+      while (!isAfter(current, end)) {
+        const daysInMonth = getDaysInMonth(current);
+        const day1 = Math.min(stream.semimonthlyPayday1, daysInMonth);
+        const day2 = Math.min(stream.semimonthlyPayday2, daysInMonth);
+        addPayday(paydayMap, format(new Date(current.getFullYear(), current.getMonth(), day1), "yyyy-MM-dd"), stream.amount);
+        addPayday(paydayMap, format(new Date(current.getFullYear(), current.getMonth(), day2), "yyyy-MM-dd"), stream.amount);
+        current = new Date(current.getFullYear(), current.getMonth() + 1, 1);
+      }
+    } else if (stream.payPeriod === "monthly") {
+      if (!stream.firstPaycheckDate) continue;
+      const firstPaycheck = parseISO(stream.firstPaycheckDate);
+      if (!isValid(firstPaycheck)) continue;
+      const payDay = firstPaycheck.getDate();
+      let current = new Date(firstPaycheck.getFullYear(), firstPaycheck.getMonth(), 1);
+      while (!isAfter(current, end)) {
+        const clampedDay = Math.min(payDay, getDaysInMonth(current));
+        addPayday(paydayMap, format(new Date(current.getFullYear(), current.getMonth(), clampedDay), "yyyy-MM-dd"), stream.amount);
+        current = new Date(current.getFullYear(), current.getMonth() + 1, 1);
+      }
+    } else {
+      if (!stream.firstPaycheckDate) continue;
+      const firstPaycheck = parseISO(stream.firstPaycheckDate);
+      if (!isValid(firstPaycheck)) continue;
+      const interval = stream.payPeriod === "biweekly" ? 14 : 7;
+      let d = firstPaycheck;
+      while (!isAfter(d, end)) {
+        addPayday(paydayMap, format(d, "yyyy-MM-dd"), stream.amount);
+        d = addDays(d, interval);
+      }
     }
-    return paydays;
   }
 
-  const firstPaycheck = parseISO(firstPaycheckDate);
-  const interval = period === "biweekly" ? 14 : 7;
-  let d = firstPaycheck;
-  while (!isAfter(d, end)) {
-    paydays.add(format(d, "yyyy-MM-dd"));
-    d = addDays(d, interval);
-  }
-  return paydays;
+  return paydayMap;
 }
 
 export function computeCashFlowForecast(
   config: CashFlowConfig
 ): { events: CashFlowEvent[]; summary: CashFlowSummary } {
-  const { startBalance, reserve, startDate, endDate, paycheckAmount, payPeriod, firstPaycheckDate, semimonthlyPayday1, semimonthlyPayday2, expenses } = config;
+  const { startBalance, reserve, startDate, endDate, incomeStreams, expenses } = config;
 
   const start = parseISO(startDate);
   const end = parseISO(endDate);
@@ -79,7 +101,7 @@ export function computeCashFlowForecast(
   let savings = 0;
   let lowestBalance = balance;
 
-  const paydays = buildPaydays(start, end, payPeriod, firstPaycheckDate, semimonthlyPayday1, semimonthlyPayday2);
+  const paydayMap = buildPaydays(start, end, incomeStreams);
 
   const events: CashFlowEvent[] = [
     {
@@ -96,10 +118,13 @@ export function computeCashFlowForecast(
     const dateStr = format(current, "yyyy-MM-dd");
     let hasEvent = false;
 
-    if (paydays.has(dateStr)) {
-      balance += paycheckAmount;
-      events.push({ date: dateStr, event: "Paycheck", change: paycheckAmount, checking: balance, savings });
-      hasEvent = true;
+    const paydayAmounts = paydayMap.get(dateStr);
+    if (paydayAmounts) {
+      for (const amount of paydayAmounts) {
+        balance += amount;
+        events.push({ date: dateStr, event: "Paycheck", change: amount, checking: balance, savings });
+        hasEvent = true;
+      }
     }
 
     for (const expense of expenses) {
