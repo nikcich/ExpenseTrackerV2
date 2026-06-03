@@ -1,5 +1,5 @@
 import { GenericPage } from "@/components/GenericPage/GenericPage";
-import { useMemo, useState, useCallback } from "react";
+import { useMemo, useState, useCallback, useRef, useEffect } from "react";
 import {
   Box,
   Text,
@@ -15,6 +15,7 @@ import {
   ExpenseRule,
   computeCashFlowForecast,
 } from "@/utils/cash-flow-forecast";
+import { useForecastConfig } from "@/store/store";
 
 const formatCurrency = (amount: number) =>
   new Intl.NumberFormat("en-US", {
@@ -136,6 +137,38 @@ export function Forecast() {
   const [expenses, setExpenses] = useState<ExpenseRule[]>([
     { day: 12, amount: 1500 },
     { day: 20, amount: 3500 },
+  ]);
+
+  const { config: savedConfig, loaded, saveConfig } = useForecastConfig();
+  const initialized = useRef(false);
+
+  useEffect(() => {
+    if (savedConfig && !initialized.current) {
+      setStartBalance(savedConfig.startBalance);
+      setReserve(savedConfig.reserve);
+      setStartDate(savedConfig.startDate);
+      setEndDate(savedConfig.endDate);
+      setPaycheckAmount(savedConfig.paycheckAmount);
+      setPayPeriod(savedConfig.payPeriod as PayPeriod);
+      setFirstPaycheckDate(savedConfig.firstPaycheckDate);
+      setSemimonthlyPayday1(savedConfig.semimonthlyPayday1);
+      setSemimonthlyPayday2(savedConfig.semimonthlyPayday2);
+      setExpenses(savedConfig.expenses);
+      initialized.current = true;
+    } else if (loaded && !initialized.current) {
+      initialized.current = true;
+    }
+  }, [savedConfig, loaded]);
+
+  useEffect(() => {
+    if (!initialized.current) return;
+    saveConfig({
+      startBalance, reserve, startDate, endDate, paycheckAmount,
+      payPeriod, firstPaycheckDate, semimonthlyPayday1, semimonthlyPayday2, expenses,
+    });
+  }, [
+    startBalance, reserve, startDate, endDate, paycheckAmount,
+    payPeriod, firstPaycheckDate, semimonthlyPayday1, semimonthlyPayday2, expenses,
   ]);
 
   const updateExpense = useCallback(

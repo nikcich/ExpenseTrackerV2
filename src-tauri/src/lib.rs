@@ -53,7 +53,9 @@ pub fn run() {
             api::csv_opener::update_bulk_expenses,
             api::csv_opener::add_expense_manual,
             api::csv_opener::remove_expense,
-            api::csv_opener::remove_bulk_expenses
+            api::csv_opener::remove_bulk_expenses,
+            api::store::store_set_json_value,
+            api::store::store_get_json_value
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

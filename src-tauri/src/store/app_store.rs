@@ -355,6 +355,23 @@ impl ExpenseStore {
         Ok(true)
     }
 
+    pub fn set_json_value(
+        &self,
+        key: &str,
+        value: serde_json::Value,
+    ) -> Result<(), Box<dyn StdError>> {
+        self.store.set(key, value);
+        self.store.save()?;
+        Ok(())
+    }
+
+    pub fn get_json_value(
+        &self,
+        key: &str,
+    ) -> Result<Option<serde_json::Value>, Box<dyn StdError>> {
+        Ok(self.store.get(key))
+    }
+
     /// Update an expense in store
     pub fn update_expense(
         &self,

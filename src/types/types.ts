@@ -13,12 +13,28 @@ export enum API {
   RemoveExpense = "remove_expense",
   RemoveBulkExpenses = "remove_bulk_expenses",
   UpdateBulkExpenses = "update_bulk_expenses",
+  SetJsonValue = "store_set_json_value",
+  GetJsonValue = "store_get_json_value",
 }
 
 export enum KnownStoreKeys {
   MyValue = "my_value",
   Expenses = "expenses",
+  ForecastConfig = "forecast_config",
 }
+
+export type ForecastConfigData = {
+  startBalance: number;
+  reserve: number;
+  startDate: string;
+  endDate: string;
+  paycheckAmount: number;
+  payPeriod: string;
+  firstPaycheckDate: string;
+  semimonthlyPayday1: number;
+  semimonthlyPayday2: number;
+  expenses: { day: number; amount: number }[];
+};
 
 export type Expense = {
   id: string;
