@@ -35,8 +35,9 @@ export type ForecastConfigData = {
     firstPaycheckDate: string;
     semimonthlyPayday1: number;
     semimonthlyPayday2: number;
+    endDate?: string;
   }[];
-  expenses: { name?: string; day: number; amount: number; period?: string; firstDate?: string }[];
+  expenses: { name?: string; day: number; amount: number; period?: string; firstDate?: string; endDate?: string }[];
 };
 
 export type Expense = {

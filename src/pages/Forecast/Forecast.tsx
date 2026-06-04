@@ -62,17 +62,11 @@ const TableHeader = () => (
     bg="gray.800"
     fontSize="sm"
   >
-    <Box w="120px">Date</Box>
-    <Box w="180px">Event</Box>
-    <Box w="130px" textAlign="right">
-      Change
-    </Box>
-    <Box w="130px" textAlign="right">
-      Checking
-    </Box>
-    <Box w="130px" textAlign="right">
-      Savings
-    </Box>
+    <Box w="120px" textAlign="left">Date</Box>
+    <Box w="180px" textAlign="left">Event</Box>
+    <Box w="130px" textAlign="left">Change</Box>
+    <Box w="130px" textAlign="left">Checking</Box>
+    <Box w="130px" textAlign="left">Savings</Box>
   </Flex>
 );
 
@@ -93,17 +87,17 @@ const TableRow = ({ event }: { event: CashFlowEvent }) => (
     fontFamily="mono"
     color={eventColor(event)}
   >
-    <Box w="120px">{event.date}</Box>
-    <Box w="180px">{event.event}</Box>
-    <Box w="130px" textAlign="right">
+    <Box w="120px" textAlign="left">{event.date}</Box>
+    <Box w="180px" textAlign="left">{event.event}</Box>
+    <Box w="130px" textAlign="left">
       {event.change !== null
         ? (event.change >= 0 ? "+" : "") + formatCurrency(event.change)
         : ""}
     </Box>
-    <Box w="130px" textAlign="right">
+    <Box w="130px" textAlign="left">
       {formatCurrency(event.checking)}
     </Box>
-    <Box w="130px" textAlign="right">
+    <Box w="130px" textAlign="left">
       {formatCurrency(event.savings)}
     </Box>
   </Flex>
@@ -273,7 +267,7 @@ export function Forecast() {
                   </Field.Root>
                   {stream.payPeriod !== "semimonthly" ? (
                     <Field.Root maxW="150px">
-                      <Field.Label fontSize="xs">First Paycheck</Field.Label>
+                      <Field.Label fontSize="xs">First Date</Field.Label>
                       <Input type="date" value={stream.firstPaycheckDate} onChange={(e) => updateIncome(i, "firstPaycheckDate", e.target.value)} size="sm" />
                     </Field.Root>
                   ) : (
@@ -298,6 +292,10 @@ export function Forecast() {
                       </Field.Root>
                     </>
                   )}
+                  <Field.Root maxW="150px">
+                    <Field.Label fontSize="xs">End Date</Field.Label>
+                    <Input type="date" value={stream.endDate || ""} onChange={(e) => updateIncome(i, "endDate", e.target.value)} size="sm" />
+                  </Field.Root>
                   <Button size="sm" variant="solid" colorPalette="red" flexShrink={0} onClick={() => removeIncome(i)}>
                     &#x2716;
                   </Button>
@@ -369,6 +367,10 @@ export function Forecast() {
                       </NativeSelect.Field>
                       <NativeSelect.Indicator />
                     </NativeSelect.Root>
+                  </Field.Root>
+                  <Field.Root maxW="150px">
+                    <Field.Label fontSize="xs">End Date</Field.Label>
+                    <Input type="date" value={exp.endDate || ""} onChange={(e) => updateExpense(i, "endDate", e.target.value)} size="sm" />
                   </Field.Root>
                   <Button size="sm" variant="solid" colorPalette="red" flexShrink={0} onClick={() => removeExpense(i)}>
                     &#x2716;

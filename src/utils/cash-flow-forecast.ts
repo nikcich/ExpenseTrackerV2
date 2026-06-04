@@ -9,6 +9,7 @@ export interface IncomeRule {
   firstPaycheckDate: string;
   semimonthlyPayday1: number;
   semimonthlyPayday2: number;
+  endDate?: string;
 }
 
 export interface ExpenseRule {
@@ -17,6 +18,7 @@ export interface ExpenseRule {
   amount: number;
   period?: PayPeriod;
   firstDate?: string;
+  endDate?: string;
 }
 
 export type EventType = "income" | "expense" | "transfer" | "starting";
@@ -51,6 +53,10 @@ function addPayday(map: Map<string, {amount: number; streamIndex: number}[]>, da
   map.set(date, existing);
 }
 
+function isPastEnd(dateStr: string, endDate?: string): boolean {
+  return !!endDate && isAfter(parseISO(dateStr), parseISO(endDate));
+}
+
 function buildPaydays(
   start: Date,
   end: Date,
@@ -66,8 +72,10 @@ function buildPaydays(
         const daysInMonth = getDaysInMonth(current);
         const day1 = Math.min(stream.semimonthlyPayday1, daysInMonth);
         const day2 = Math.min(stream.semimonthlyPayday2, daysInMonth);
-        addPayday(paydayMap, format(new Date(current.getFullYear(), current.getMonth(), day1), "yyyy-MM-dd"), stream.amount, i);
-        addPayday(paydayMap, format(new Date(current.getFullYear(), current.getMonth(), day2), "yyyy-MM-dd"), stream.amount, i);
+        const dateStr1 = format(new Date(current.getFullYear(), current.getMonth(), day1), "yyyy-MM-dd");
+        const dateStr2 = format(new Date(current.getFullYear(), current.getMonth(), day2), "yyyy-MM-dd");
+        if (!isPastEnd(dateStr1, stream.endDate)) addPayday(paydayMap, dateStr1, stream.amount, i);
+        if (!isPastEnd(dateStr2, stream.endDate)) addPayday(paydayMap, dateStr2, stream.amount, i);
         current = new Date(current.getFullYear(), current.getMonth() + 1, 1);
       }
     } else if (["monthly", "quarterly", "semiannual", "annual"].includes(stream.payPeriod)) {
@@ -79,7 +87,8 @@ function buildPaydays(
       let current = new Date(firstPaycheck.getFullYear(), firstPaycheck.getMonth(), 1);
       while (!isAfter(current, end)) {
         const clampedDay = Math.min(payDay, getDaysInMonth(current));
-        addPayday(paydayMap, format(new Date(current.getFullYear(), current.getMonth(), clampedDay), "yyyy-MM-dd"), stream.amount, i);
+        const dateStr = format(new Date(current.getFullYear(), current.getMonth(), clampedDay), "yyyy-MM-dd");
+        if (!isPastEnd(dateStr, stream.endDate)) addPayday(paydayMap, dateStr, stream.amount, i);
         current = addMonths(current, monthInterval);
       }
     } else {
@@ -89,7 +98,8 @@ function buildPaydays(
       const interval = stream.payPeriod === "biweekly" ? 14 : 7;
       let d = firstPaycheck;
       while (!isAfter(d, end)) {
-        addPayday(paydayMap, format(d, "yyyy-MM-dd"), stream.amount, i);
+        const dateStr = format(d, "yyyy-MM-dd");
+        if (!isPastEnd(dateStr, stream.endDate)) addPayday(paydayMap, dateStr, stream.amount, i);
         d = addDays(d, interval);
       }
     }
@@ -114,7 +124,7 @@ function buildExpenses(
       while (!isAfter(current, end)) {
         const clampedDay = Math.min(exp.day, getDaysInMonth(current));
         const dateStr = format(new Date(current.getFullYear(), current.getMonth(), clampedDay), "yyyy-MM-dd");
-        addPayday(expenseMap, dateStr, exp.amount, i);
+        if (!isPastEnd(dateStr, exp.endDate)) addPayday(expenseMap, dateStr, exp.amount, i);
         current = new Date(current.getFullYear(), current.getMonth() + 1, 1);
       }
     } else if (period === "weekly" || period === "biweekly") {
@@ -124,7 +134,8 @@ function buildExpenses(
       const interval = period === "biweekly" ? 14 : 7;
       let d = first;
       while (!isAfter(d, end)) {
-        addPayday(expenseMap, format(d, "yyyy-MM-dd"), exp.amount, i);
+        const dateStr = format(d, "yyyy-MM-dd");
+        if (!isPastEnd(dateStr, exp.endDate)) addPayday(expenseMap, dateStr, exp.amount, i);
         d = addDays(d, interval);
       }
     } else {
@@ -137,7 +148,7 @@ function buildExpenses(
       while (!isAfter(current, end)) {
         const clampedDay = Math.min(refDay, getDaysInMonth(current));
         const dateStr = format(new Date(current.getFullYear(), current.getMonth(), clampedDay), "yyyy-MM-dd");
-        if (!isAfter(parseISO(dateStr), end)) {
+        if (!isAfter(parseISO(dateStr), end) && !isPastEnd(dateStr, exp.endDate)) {
           addPayday(expenseMap, dateStr, exp.amount, i);
         }
         current = addMonths(current, monthInterval);
