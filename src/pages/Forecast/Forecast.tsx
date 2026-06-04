@@ -26,6 +26,8 @@ const formatCurrency = (amount: number) =>
     currency: "USD",
   }).format(amount);
 
+const cleanNum = (v: string) => String(Number(v));
+
 const CFGroup = ({
   label,
   value,
@@ -40,9 +42,11 @@ const CFGroup = ({
   <Field.Root flex="1" minW="180px">
     <Field.Label fontSize="sm">{label}</Field.Label>
     <Input
-      type={type}
+      type={type === "number" ? "text" : type}
+      inputMode={type === "number" ? "decimal" : undefined}
       value={value}
       onChange={(e) => onChange(e.target.value)}
+      onBlur={type === "number" ? (e) => onChange(cleanNum(e.target.value)) : undefined}
       size="sm"
     />
   </Field.Root>
@@ -245,7 +249,12 @@ export function Forecast() {
                   </Field.Root>
                   <Field.Root maxW="120px">
                     <Field.Label fontSize="xs">Amount</Field.Label>
-                    <Input type="number" value={stream.amount} onChange={(e) => updateIncome(i, "amount", Number(e.target.value))} size="sm" />
+                    <Input type="text" inputMode="decimal" value={stream.amount} onChange={(e) => {
+                      const raw = e.target.value;
+                      if (raw === "") return;
+                      const num = Number(raw);
+                      if (!isNaN(num)) updateIncome(i, "amount", num);
+                    }} size="sm" />
                   </Field.Root>
                   <Field.Root maxW="160px">
                     <Field.Label fontSize="xs">Period</Field.Label>
@@ -271,11 +280,21 @@ export function Forecast() {
                     <>
                       <Field.Root maxW="70px">
                         <Field.Label fontSize="xs">Day 1</Field.Label>
-                        <Input type="number" min={1} max={31} value={stream.semimonthlyPayday1} onChange={(e) => updateIncome(i, "semimonthlyPayday1", Math.min(31, Math.max(1, Number(e.target.value))))} size="sm" />
+                        <Input type="text" inputMode="numeric" value={stream.semimonthlyPayday1} onChange={(e) => {
+                          const raw = e.target.value;
+                          if (raw === "") return;
+                          const num = Number(raw);
+                          if (!isNaN(num)) updateIncome(i, "semimonthlyPayday1", Math.min(31, Math.max(1, num)));
+                        }} size="sm" />
                       </Field.Root>
                       <Field.Root maxW="70px">
                         <Field.Label fontSize="xs">Day 2</Field.Label>
-                        <Input type="number" min={1} max={31} value={stream.semimonthlyPayday2} onChange={(e) => updateIncome(i, "semimonthlyPayday2", Math.min(31, Math.max(1, Number(e.target.value))))} size="sm" />
+                        <Input type="text" inputMode="numeric" value={stream.semimonthlyPayday2} onChange={(e) => {
+                          const raw = e.target.value;
+                          if (raw === "") return;
+                          const num = Number(raw);
+                          if (!isNaN(num)) updateIncome(i, "semimonthlyPayday2", Math.min(31, Math.max(1, num)));
+                        }} size="sm" />
                       </Field.Root>
                     </>
                   )}
@@ -309,7 +328,12 @@ export function Forecast() {
                   {(!exp.period || exp.period === "monthly") ? (
                     <Field.Root maxW="70px">
                       <Field.Label fontSize="xs">Day</Field.Label>
-                      <Input type="number" min={1} max={31} value={exp.day} onChange={(e) => updateExpense(i, "day", Number(e.target.value))} size="sm" />
+                      <Input type="text" inputMode="numeric" value={exp.day} onChange={(e) => {
+                        const raw = e.target.value;
+                        if (raw === "") return;
+                        const num = Number(raw);
+                        if (!isNaN(num)) updateExpense(i, "day", num);
+                      }} size="sm" />
                     </Field.Root>
                   ) : (
                     <Field.Root maxW="150px">
@@ -319,7 +343,12 @@ export function Forecast() {
                   )}
                   <Field.Root maxW="100px">
                     <Field.Label fontSize="xs">Amount</Field.Label>
-                    <Input type="number" value={exp.amount} onChange={(e) => updateExpense(i, "amount", Number(e.target.value))} size="sm" />
+                    <Input type="text" inputMode="decimal" value={exp.amount} onChange={(e) => {
+                      const raw = e.target.value;
+                      if (raw === "") return;
+                      const num = Number(raw);
+                      if (!isNaN(num)) updateExpense(i, "amount", num);
+                    }} size="sm" />
                   </Field.Root>
                   <Field.Root maxW="140px">
                     <Field.Label fontSize="xs">Period</Field.Label>
