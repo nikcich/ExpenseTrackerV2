@@ -10,4 +10,5 @@ export enum Pages {
   YTDChart = "/year-to-date-chart",
   AverageSpending = "/average-spending",
   Sankey = "/Sankey",
+  Forecast = "/forecast",
 }

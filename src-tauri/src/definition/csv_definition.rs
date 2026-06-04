@@ -420,6 +420,7 @@ impl CsvValidator for CsvDefinition {
 #[derive(Serialize, Hash, Eq, PartialEq, Debug, Clone, Copy, Deserialize)]
 pub enum CsvDefinitionKey {
     WellsFargo,
+    WellsFargo2026,
     CapitalOne,
     Amex,
     ExpenseTrackerV1,
@@ -515,6 +516,28 @@ pub fn build_definitions() -> HashMap<CsvDefinitionKey, CsvDefinition> {
                 (
                     CsvColumnRole::Description,
                     CsvColumnInfo::required_content(4, CsvColumnDataType::String),
+                ),
+            ],
+        ),
+    );
+
+    map.insert(
+        CsvDefinitionKey::WellsFargo2026,
+        CsvDefinition::new(
+            "Wells Fargo Activity 2026",
+            true,
+            vec![
+                (
+                    CsvColumnRole::Date,
+                    CsvColumnInfo::required_content(0, CsvColumnDataType::DateObject("%m/%d/%Y")),
+                ),
+                (
+                    CsvColumnRole::Description,
+                    CsvColumnInfo::required_content(1, CsvColumnDataType::String),
+                ),
+                (
+                    CsvColumnRole::Amount,
+                    CsvColumnInfo::required_content(2, CsvColumnDataType::Float(&INVERSED)),
                 ),
             ],
         ),
