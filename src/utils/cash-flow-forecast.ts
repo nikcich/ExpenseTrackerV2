@@ -36,6 +36,8 @@ export interface CashFlowSummary {
   endingChecking: number;
   endingSavings: number;
   lowestChecking: number;
+  totalIncome: number;
+  totalExpenses: number;
 }
 
 export interface CashFlowConfig {
@@ -180,7 +182,7 @@ export function computeCashFlowForecast(
   if (!isValid(start) || !isValid(end)) {
     return {
       events: [],
-      summary: { endingChecking: startBalance, endingSavings: 0, lowestChecking: startBalance },
+      summary: { endingChecking: startBalance, endingSavings: 0, lowestChecking: startBalance, totalIncome: 0, totalExpenses: 0 },
     };
   }
 
@@ -245,8 +247,15 @@ export function computeCashFlowForecast(
     current = addDays(current, 1);
   }
 
+  const totalIncome = events
+    .filter((e) => e.type === "income")
+    .reduce((s, e) => s + (e.change ?? 0), 0);
+  const totalExpenses = events
+    .filter((e) => e.type === "expense")
+    .reduce((s, e) => s + Math.abs(e.change ?? 0), 0);
+
   return {
     events,
-    summary: { endingChecking: balance, endingSavings: savings, lowestChecking: lowestBalance },
+    summary: { endingChecking: balance, endingSavings: savings, lowestChecking: lowestBalance, totalIncome, totalExpenses },
   };
 }

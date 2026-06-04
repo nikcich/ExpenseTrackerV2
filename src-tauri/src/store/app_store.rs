@@ -1,91 +1,59 @@
 use crate::model::expense::Expense;
 use blake3::Hasher;
 use chrono::{DateTime, Utc};
-use serde::{Deserialize, Serialize};
-use serde_json::Value;
+use serde_json::{Map, Value};
 use std::collections::HashMap;
 use std::error::Error as StdError;
-use std::fmt::Debug;
 use std::sync::Arc;
 use std::time::SystemTime;
 use tauri::Wry;
 use tauri_plugin_store::Store;
-/// STORE data structure example:
+
+/// All data lives under a single top-level key "store_data":
 /// {
-///     "data" :
-///     {
-///         uuid1:
-///         {
-///             "name": "Transaction One"
-///             "amount": 100.0,
-///             "tags": ["Food"],
-///             "date": "2023-01-01"
-///         },
-///         uuid2:
-///         {
-///             "name": "Transaction Two"
-///             "amount": 200.0,
-///             "tags": ["Gas"],
-///             "date": "2023-01-01"
-///          }
-///     }
-///
-///     NOTE that uuid is generated using: date + desc + amount converted to strings, then hashed
-///     In theory, no collission should exist. If duplicates exist, this will be rejected.
+///   "expenses": { "<hash>": { ... }, ... },
+///   "forecast_config": { ... },
+///   ...
 /// }
+///
+/// The UI passes sub-keys ("expenses", "forecast_config", etc.)
+/// to read/write within this object.
 
-static STORE_NAME: &str = "store_data";
-
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
-pub struct StoreData {
-    pub data: HashMap<String, Expense>,
-}
+pub static STORE_DATA_KEY: &str = "store_data";
+static EXPENSES_SUB_KEY: &str = "expenses";
 
 pub struct AddedResult {
     pub added_count: u16,
     pub duplicate_count: u16,
 }
 
-impl StoreData {
-    fn new(json_value: Value) -> Result<Self, Box<dyn StdError>> {
-        let data_from_json_as_hashmap: HashMap<String, Expense> =
-            serde_json::from_value(json_value)?;
-        Ok(Self {
-            data: data_from_json_as_hashmap,
-        })
+/// Generate a deterministic hash for an Expense based on description, date, and amount
+fn generate_hash_for_new_entry(
+    expense: &Expense,
+    manual: bool,
+) -> Result<String, Box<dyn StdError>> {
+    let mut input = format!(
+        "{}:{}:{}",
+        expense.get_description(),
+        expense.get_date(),
+        expense.get_amount()
+    );
+
+    if manual {
+        let datetime: DateTime<Utc> = SystemTime::now().into();
+        let formatted_time = datetime.format("%Y-%m-%d %H:%M:%S").to_string();
+        input.insert_str(0, &formatted_time);
     }
-    /// Generate a deterministic UUID for an Expense based on description, date, and amount
-    fn generate_hash_for_new_entry(
-        &self,
-        expense: &Expense,
-        manual: bool,
-    ) -> Result<String, Box<dyn StdError>> {
-        // Serialize expense fields
 
-        let mut input = format!(
-            "{}:{}:{}",
-            expense.get_description(),
-            expense.get_date(),
-            expense.get_amount()
-        );
+    let hash = Hasher::new().update(input.as_bytes()).finalize();
+    let hash_str = hash.to_hex().to_string();
 
-        if manual {
-            let datetime: DateTime<Utc> = SystemTime::now().into();
-            let formatted_time = datetime.format("%Y-%m-%d %H:%M:%S").to_string();
-            input.insert_str(0, &formatted_time);
-        }
-
-        // Hash it using Blake3
-        let hash = Hasher::new().update(input.as_bytes()).finalize();
-        let hash_str = hash.to_hex().to_string();
-
-        return Ok(hash_str);
-    }
+    Ok(hash_str)
 }
 
 /// Helper struct for backend store operations
 pub struct ExpenseStore {
-    store: Arc<Store<Wry>>, // Tauri store
+    store: Arc<Store<Wry>>,
 }
 
 impl ExpenseStore {
@@ -93,56 +61,52 @@ impl ExpenseStore {
         Self { store }
     }
 
-    /// This is a dangerous call, UI only should call this when absolutely necessary
-    pub fn overwrite_using_json(
-        &self,
-        json_value: serde_json::Value,
-    ) -> Result<bool, Box<dyn StdError>> {
-        // Deserialize JSON into StoreData
-        let store_data = StoreData::new(json_value)?;
+    fn get_store_data(&self) -> Value {
+        self.store.get(STORE_DATA_KEY).unwrap_or(Value::Null)
+    }
 
-        // Convert StoreData back to JSON value to store it
-        let data_as_json = serde_json::to_value(&store_data)?;
-
-        // Store it and save
-        self.store.set(STORE_NAME, data_as_json);
+    fn save_store_data(&self, data: &Value) -> Result<bool, Box<dyn StdError>> {
+        self.store.set(STORE_DATA_KEY, data.clone());
         self.store.save()?;
-
         Ok(true)
     }
 
-    /// Load the persisted store data
-    fn load(&self) -> Result<Option<StoreData>, Box<dyn StdError>> {
-        let json_data_from_disk: serde_json::Value = self
-            .store
-            .get(STORE_NAME)
-            .unwrap_or(serde_json::Value::Null);
+    fn load_expenses(&self) -> Result<Option<HashMap<String, Expense>>, Box<dyn StdError>> {
+        let store_data = self.get_store_data();
 
-        if json_data_from_disk.is_null() {
-            // Not an error, the disk was just empty and had nothing to load from
+        if store_data.is_null() {
             return Ok(None);
         }
 
-        // Deserialize JSON -> StoreData
-        let store_data: StoreData = serde_json::from_value(json_data_from_disk)
-            .map_err(|err| format!("Failed to deserialize StoreData: {}", err))?;
+        let expenses = store_data.get(EXPENSES_SUB_KEY);
 
-        Ok(Some(store_data))
+        let expenses = match expenses {
+            Some(Value::Object(_)) => expenses.unwrap(),
+            _ => return Ok(None),
+        };
+
+        let data: HashMap<String, Expense> = serde_json::from_value(expenses.clone())
+            .map_err(|err| format!("Failed to deserialize expenses: {}", err))?;
+
+        Ok(Some(data))
     }
 
-    /// Save store data back to the Tauri store
-    fn save(&self, data: &StoreData) -> Result<bool, Box<dyn StdError>> {
-        // Read only operation
-        let json_value: serde_json::Value = serde_json::to_value(data)
-            .map_err(|err| format!("Failed to serialize StoreData: {}", err))?;
+    fn save_expenses(&self, data: &HashMap<String, Expense>) -> Result<bool, Box<dyn StdError>> {
+        let mut store_data = self.get_store_data();
 
-        // Write to the store
-        self.store.set(STORE_NAME, json_value);
+        if !store_data.is_object() {
+            store_data = Value::Object(Map::new());
+        }
 
-        // Persist to disk
-        self.store.save()?;
+        let json_value: Value = serde_json::to_value(data)
+            .map_err(|err| format!("Failed to serialize expenses: {}", err))?;
 
-        Ok(true)
+        store_data
+            .as_object_mut()
+            .ok_or("store_data is not an object")?
+            .insert(EXPENSES_SUB_KEY.to_string(), json_value);
+
+        self.save_store_data(&store_data)
     }
 
     pub fn add_expense_as_batch(
@@ -150,10 +114,7 @@ impl ExpenseStore {
         expense_batch: Vec<Expense>,
         manual: bool,
     ) -> Result<AddedResult, Box<dyn StdError>> {
-        let mut store_data = match self.load()? {
-            Some(data) => data,
-            None => StoreData::default(), // create default if nothing is saved
-        };
+        let mut data = self.load_expenses()?.unwrap_or_default();
 
         let mut result = AddedResult {
             added_count: 0,
@@ -161,11 +122,11 @@ impl ExpenseStore {
         };
 
         for mut expense in expense_batch {
-            let hash: String = store_data.generate_hash_for_new_entry(&expense, manual)?;
+            let hash: String = generate_hash_for_new_entry(&expense, manual)?;
 
             expense.set_id(&hash);
 
-            if store_data.data.contains_key(&hash) {
+            if data.contains_key(&hash) {
                 println!(
                     "Duplicate expense found for Date: {}, Description: {}, Amount: {}",
                     expense.get_date(),
@@ -176,39 +137,28 @@ impl ExpenseStore {
                 continue;
             }
 
-            store_data.data.insert(hash, expense);
+            data.insert(hash, expense);
             result.added_count += 1;
         }
 
         if result.added_count > 0 {
-            // Save updated store
-            self.save(&store_data)?;
+            self.save_expenses(&data)?;
         }
 
-        return Ok(result);
+        Ok(result)
     }
 
-    /// Add a new expense
     pub fn add_expense(
         &self,
         mut expense: Expense,
         manual: bool,
     ) -> Result<bool, Box<dyn StdError>> {
-        // Load store data
-        let mut store_data = match self.load()? {
-            Some(data) => data,
-            None => StoreData::default(), // create default if nothing is saved
-        };
+        let mut data = self.load_expenses()?.unwrap_or_default();
 
-        // Add the new expense
-        let hash: String = store_data.generate_hash_for_new_entry(&expense, manual)?;
-
-        // Copies the ID into expense
+        let hash: String = generate_hash_for_new_entry(&expense, manual)?;
         expense.set_id(&hash);
 
-        // Duplicate was found, return Ok(false), this is not an error but will
-        // indicate that the expense was not added due to a duplicate entry
-        if store_data.data.contains_key(&hash) {
+        if data.contains_key(&hash) {
             println!(
                 "Duplicate expense found for Date: {}, Description: {}, Amount: {}",
                 expense.get_date(),
@@ -218,43 +168,37 @@ impl ExpenseStore {
             return Ok(false);
         }
 
-        // Add to the header
-        store_data.data.insert(hash, expense);
+        data.insert(hash, expense);
+        self.save_expenses(&data)?;
 
-        // Save updated store
-        self.save(&store_data)?;
-
-        return Ok(true);
+        Ok(true)
     }
 
-    // Removes an expense from store
     pub fn remove_expense(&self, hash: &String) -> Result<bool, Box<dyn StdError>> {
-        let mut store_data = match self.load()? {
+        let mut data = match self.load_expenses()? {
             Some(data) => data,
-            None => return Ok(false), // nothing to remove
+            None => return Ok(false),
         };
 
-        if store_data.data.remove(hash).is_some() {
-            self.save(&store_data)?; // save only if removed
+        if data.remove(hash).is_some() {
+            self.save_expenses(&data)?;
             Ok(true)
         } else {
-            Ok(false) // hash not found
+            Ok(false)
         }
     }
 
     pub fn remove_bulk_expenses(&self, hashes: Vec<String>) -> Result<bool, Box<dyn StdError>> {
-        let mut store_data = match self.load()? {
+        let mut data = match self.load_expenses()? {
             Some(data) => data,
             None => return Err("Store data is null, could not load it to update expense".into()),
         };
 
-        let mut missing_hashes: Vec<String> = Vec::new();
-
-        for hash in hashes.iter() {
-            if !store_data.data.contains_key(hash) {
-                missing_hashes.push(hash.to_string());
-            }
-        }
+        let missing_hashes: Vec<String> = hashes
+            .iter()
+            .filter(|h| !data.contains_key(*h))
+            .cloned()
+            .collect();
 
         if !missing_hashes.is_empty() {
             return Err(format!(
@@ -265,51 +209,31 @@ impl ExpenseStore {
         }
 
         for hash in hashes.iter() {
-            if store_data.data.remove(hash).is_some() {
-                continue;
-            } else {
-                return Err(format!("Failed to remove expense with hash: {}", hash).into());
-            }
+            data.remove(hash)
+                .ok_or_else(|| format!("Failed to remove expense with hash: {}", hash))?;
         }
 
-        self.save(&store_data)?;
+        self.save_expenses(&data)?;
 
         Ok(true)
     }
 
-    pub fn get_all_expense(&self) -> Result<Option<StoreData>, Box<dyn StdError>> {
-        let loaded = self.load()?;
-
-        match loaded {
-            Some(store_data) => Ok(Some(store_data)),
-            None => Ok(None),
-        }
+    pub fn get_all_expense(&self) -> Result<Option<HashMap<String, Expense>>, Box<dyn StdError>> {
+        self.load_expenses()
     }
-
-    /// Get an expense from store data
     pub fn get_expense(&self, hash: &String) -> Result<Option<Expense>, Box<dyn StdError>> {
-        let loaded = self.load()?;
-
-        let store_data = match loaded {
+        let data = match self.load_expenses()? {
             Some(data) => data,
             None => return Ok(None),
         };
 
-        let expense = match store_data.data.get(hash) {
-            Some(e) => e,            // found expense
-            None => return Ok(None), // not found
-        };
-
-        return Ok(Some(expense.clone()));
+        Ok(data.get(hash).cloned())
     }
 
-    /// Check if a hash exists
     pub fn exists(&self, hash: &String) -> Result<bool, Box<dyn StdError>> {
-        if let Some(store_data) = self.load()? {
-            Ok(store_data.data.contains_key(hash))
-        } else {
-            Ok(false)
-        }
+        Ok(self
+            .load_expenses()?
+            .map_or(false, |data| data.contains_key(hash)))
     }
 
     pub fn update_bulk_expenses(
@@ -317,18 +241,16 @@ impl ExpenseStore {
         hashes: Vec<String>,
         expenses: Vec<Expense>,
     ) -> Result<bool, Box<dyn StdError>> {
-        let mut store_data = match self.load()? {
+        let mut data = match self.load_expenses()? {
             Some(data) => data,
             None => return Err("Store data is null, could not load it to update expense".into()),
         };
 
-        let mut missing_hashes: Vec<String> = Vec::new();
-
-        for hash in hashes.iter() {
-            if !store_data.data.contains_key(hash) {
-                missing_hashes.push(hash.to_string());
-            }
-        }
+        let missing_hashes: Vec<String> = hashes
+            .iter()
+            .filter(|h| !data.contains_key(*h))
+            .cloned()
+            .collect();
 
         if !missing_hashes.is_empty() {
             return Err(format!(
@@ -339,52 +261,54 @@ impl ExpenseStore {
         }
 
         for (hash, expense) in hashes.iter().zip(expenses.iter()) {
-            if store_data
-                .data
-                .insert(hash.to_string(), expense.clone())
-                .is_some()
-            {
-                continue;
-            } else {
+            if data.insert(hash.to_string(), expense.clone()).is_none() {
                 return Err(format!("Failed to update expense with hash: {}", hash).into());
             }
         }
 
-        self.save(&store_data)?;
+        self.save_expenses(&data)?;
 
         Ok(true)
     }
 
-    pub fn set_json_value(
-        &self,
-        key: &str,
-        value: serde_json::Value,
-    ) -> Result<(), Box<dyn StdError>> {
-        self.store.set(key, value);
-        self.store.save()?;
+    pub fn set_json_value(&self, key: &str, value: Value) -> Result<(), Box<dyn StdError>> {
+        let mut store_data = self.get_store_data();
+
+        if !store_data.is_object() {
+            store_data = Value::Object(Map::new());
+        }
+
+        store_data
+            .as_object_mut()
+            .ok_or("store_data is not an object")?
+            .insert(key.to_string(), value);
+
+        self.save_store_data(&store_data)?;
         Ok(())
     }
 
-    pub fn get_json_value(
-        &self,
-        key: &str,
-    ) -> Result<Option<serde_json::Value>, Box<dyn StdError>> {
-        Ok(self.store.get(key))
+    pub fn get_json_value(&self, key: &str) -> Result<Option<Value>, Box<dyn StdError>> {
+        let store_data = self.get_store_data();
+
+        if store_data.is_null() {
+            return Ok(None);
+        }
+
+        Ok(store_data.get(key).cloned())
     }
 
-    /// Update an expense in store
     pub fn update_expense(
         &self,
         hash: String,
         expense: Expense,
     ) -> Result<bool, Box<dyn StdError>> {
-        let mut store_data = match self.load()? {
+        let mut data = match self.load_expenses()? {
             Some(data) => data,
             None => return Err("Store data is null, could not load it to update expense".into()),
         };
 
-        if !store_data.data.contains_key(&hash) {
-            return Ok(false); // hash not found
+        if !data.contains_key(&hash) {
+            return Ok(false);
         }
 
         if hash != expense.get_id() {
@@ -393,9 +317,9 @@ impl ExpenseStore {
             );
         }
 
-        store_data.data.insert(hash, expense);
-        self.save(&store_data)?;
+        data.insert(hash, expense);
+        self.save_expenses(&data)?;
 
-        return Ok(true);
+        Ok(true)
     }
 }
