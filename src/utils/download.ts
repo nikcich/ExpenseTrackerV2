@@ -6,7 +6,7 @@ function exportExpensesToCSV(expenses: Expense[]): string {
   const rows = expenses.map((expense) => {
     const firstTag = expense.tags[0] || "";
     const date = expense.date;
-    const description = expense.description.replace(/"/g, '""'); // escape quotes
+    const description = expense.description.replace(/"/g, '""');
     const amount = expense.amount.toString();
 
     const formatValue = (value: string) =>
