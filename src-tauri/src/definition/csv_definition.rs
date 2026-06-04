@@ -1,5 +1,5 @@
 use crate::model::expense::Expense;
-use chrono::NaiveDate;
+use chrono::{NaiveDate, NaiveDateTime};
 use csv::StringRecord;
 use mockall::automock;
 use once_cell::sync::Lazy;
@@ -196,7 +196,8 @@ impl CsvColumnRole {
 pub enum CsvColumnDataType {
     Float(&'static bool), // True if standard, False if inversed sign
     String,
-    DateObject(&'static str), // Format string for parsing dates
+    DateObject(&'static str), // Format string for parsing dates (NaiveDate)
+    DateTimeObject(&'static str), // Format string for parsing datetime (NaiveDateTime)
 }
 
 #[derive(Debug, Clone)]
@@ -428,6 +429,7 @@ pub enum CsvDefinitionKey {
     BankLeumi,
     Max,
     NavyFederal,
+    ExpenseTrackerBackup,
 }
 
 /// Helper function that builds a column map from a list of (role, index, datatype) pairs.
@@ -685,6 +687,35 @@ pub fn build_definitions() -> HashMap<CsvDefinitionKey, CsvDefinition> {
         ),
     );
 
+    map.insert(
+        CsvDefinitionKey::ExpenseTrackerBackup,
+        CsvDefinition::new(
+            "Expense Tracker Backup",
+            true,
+            vec![
+                (
+                    CsvColumnRole::Tag,
+                    CsvColumnInfo::optional_content(0, CsvColumnDataType::String),
+                ),
+                (
+                    CsvColumnRole::Date,
+                    CsvColumnInfo::required_content(
+                        1,
+                        CsvColumnDataType::DateTimeObject("%Y-%m-%dT%H:%M:%S"),
+                    ),
+                ),
+                (
+                    CsvColumnRole::Description,
+                    CsvColumnInfo::required_content(2, CsvColumnDataType::String),
+                ),
+                (
+                    CsvColumnRole::Amount,
+                    CsvColumnInfo::required_content(3, CsvColumnDataType::Float(&STANDARD)),
+                ),
+            ],
+        ),
+    );
+
     return map;
 }
 
@@ -732,6 +763,10 @@ pub fn cast_raw_value(
                 .and_hms_opt(0, 0, 0)
                 .ok_or("Failed to create datetime")?;
             Ok(ParsedValue::Date(date))
+        }
+        CsvColumnDataType::DateTimeObject(format) => {
+            let datetime = NaiveDateTime::parse_from_str(value, format)?;
+            Ok(ParsedValue::Date(datetime))
         }
     }
 }

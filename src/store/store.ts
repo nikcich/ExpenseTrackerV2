@@ -1,17 +1,17 @@
-import { API, ForecastConfigData, KnownStoreKeys, Response, StoreExpenseMap } from "../types/types";
+import { ForecastConfigData, KnownStoreKeys, StoreExpenseMap } from "../types/types";
 import { createTauriApiHooks, createTauriStoreHook } from "../utils/utils";
-import { invoke } from "@tauri-apps/api/core";
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 
 export const {
   useTauriValue: useInstantBrushRange,
   useDebouncedTauriValue: useDebouncedBrushRange,
   value$: instantBrushRange$,
-} = createTauriApiHooks<[number, number]>(API.DateRange);
+} = createTauriApiHooks<[number, number]>("get_date_range");
 
 const [useExpensesStoreInner, expenses$] =
   createTauriStoreHook<StoreExpenseMap>({
     key: KnownStoreKeys.Expenses,
+    defaultValue: {},
   });
 
 const useExpensesStore = () => {
@@ -26,30 +26,27 @@ const useExpensesStore = () => {
 
 export { useExpensesStore, expenses$ };
 
+const [useForecastConfigStore] = createTauriStoreHook<ForecastConfigData | null>({
+  key: KnownStoreKeys.ForecastConfig,
+  defaultValue: null,
+});
+
 export function useForecastConfig() {
-  const [config, setConfig] = useState<ForecastConfigData | null>(null);
+  const { value, setValue } = useForecastConfigStore();
   const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
-    invoke<Response<ForecastConfigData | null>>(API.GetJsonValue, {
-      key: KnownStoreKeys.ForecastConfig,
-    }).then((res) => {
-      if (res.status < 400 && res.message) {
-        setConfig(res.message);
-      }
+    if (value !== null) {
       setLoaded(true);
-    });
-  }, []);
-
-  const saveConfig = useCallback(async (newConfig: ForecastConfigData) => {
-    const res = await invoke<Response<null>>(API.SetJsonValue, {
-      key: KnownStoreKeys.ForecastConfig,
-      value: newConfig,
-    });
-    if (res.status < 400) {
-      setConfig(newConfig);
+    } else {
+      const t = setTimeout(() => setLoaded(true), 500);
+      return () => clearTimeout(t);
     }
-  }, []);
+  }, [value]);
 
-  return { config, loaded, saveConfig };
+  return {
+    config: value ?? null,
+    loaded,
+    saveConfig: setValue,
+  };
 }

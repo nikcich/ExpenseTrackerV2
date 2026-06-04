@@ -42,8 +42,8 @@ pub fn run() {
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
-            api::store::store_set_value,
-            api::store::store_get_value,
+            api::store::store_set_json_value,
+            api::store::store_get_json_value,
             api::window_manager::new_window,
             api::range_state::set_date_range,
             api::range_state::get_date_range,
@@ -54,8 +54,6 @@ pub fn run() {
             api::csv_opener::add_expense_manual,
             api::csv_opener::remove_expense,
             api::csv_opener::remove_bulk_expenses,
-            api::store::store_set_json_value,
-            api::store::store_get_json_value
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

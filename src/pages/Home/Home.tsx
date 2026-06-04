@@ -13,11 +13,10 @@ import {
 import { useState } from "react";
 import logo from "../../assets/logo.png";
 import styles from "./Home.module.scss";
-import { useExpenses } from "@/hooks/expenses";
 import { downloadExpensesCSV } from "@/utils/download";
 
 const FileDownloader = () => {
-  const expenses = useExpenses();
+  const { value: expenses } = useExpensesStore();
   return (
     <Button
       onClick={() => downloadExpensesCSV(expenses)}

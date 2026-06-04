@@ -377,7 +377,19 @@ export function Forecast() {
               </Box>
             </Box>
 
-            <Flex border="1px solid" borderColor="gray.700" borderRadius="md" p={4} gap={8} bg="gray.800">
+            <Flex border="1px solid" borderColor="gray.700" borderRadius="md" p={4} gap={8} bg="gray.800" wrap="wrap">
+              <Box>
+                <Text fontSize="xs" color="gray.400" mb={1}>Total Income</Text>
+                <Text fontSize="xl" fontWeight="bold" fontFamily="mono" color="green.300">
+                  {formatCurrency(result.summary.totalIncome)}
+                </Text>
+              </Box>
+              <Box>
+                <Text fontSize="xs" color="gray.400" mb={1}>Total Expenses</Text>
+                <Text fontSize="xl" fontWeight="bold" fontFamily="mono" color="red.300">
+                  {formatCurrency(result.summary.totalExpenses)}
+                </Text>
+              </Box>
               <Box>
                 <Text fontSize="xs" color="gray.400" mb={1}>Ending Checking</Text>
                 <Text fontSize="xl" fontWeight="bold" fontFamily="mono" color={result.summary.endingChecking >= 0 ? "green.300" : "red.300"}>

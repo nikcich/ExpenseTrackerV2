@@ -1,8 +1,6 @@
 export const POLL_INTERVAL_MS = 2000;
 
 export enum API {
-  GetValue = "store_get_value",
-  SetValue = "store_set_value",
   NewWindow = "new_window",
   DateRange = "get_date_range",
   OpenCSV = "open_csv_from_path",
@@ -37,7 +35,14 @@ export type ForecastConfigData = {
     semimonthlyPayday2: number;
     endDate?: string;
   }[];
-  expenses: { name?: string; day: number; amount: number; period?: string; firstDate?: string; endDate?: string }[];
+  expenses: {
+    name?: string;
+    day: number;
+    amount: number;
+    period?: string;
+    firstDate?: string;
+    endDate?: string;
+  }[];
 };
 
 export type Expense = {

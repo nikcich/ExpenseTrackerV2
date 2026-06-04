@@ -26,7 +26,7 @@ function deepEqual(a: any, b: any): boolean {
 
 export function makeUseStoreValue<T>(
   subject: BehaviorSubject<T>,
-  setter: (newValue: T) => void | Promise<void>
+  setter: (newValue: T) => void | Promise<void>,
 ) {
   return function useStoreValue() {
     const [value, setValueState] = useState<T>(subject.value);
@@ -34,7 +34,7 @@ export function makeUseStoreValue<T>(
     useEffect(() => {
       const sub: Subscription = subject
         .pipe(
-          distinctUntilChanged((a, b) => deepEqual(a, b)) // 👈 prevents duplicates
+          distinctUntilChanged((a, b) => deepEqual(a, b)), // 👈 prevents duplicates
         )
         .subscribe(setValueState);
 
@@ -50,7 +50,7 @@ export function makeUseStoreValue<T>(
 
 export const createTauriInvoker = <T>(
   command: API,
-  args?: Record<string, unknown>
+  args?: Record<string, unknown>,
 ): (() => Promise<Response<T>>) => {
   return async (): Promise<Response<T>> => {
     return await invoke(command, args);
@@ -69,19 +69,19 @@ type PollerArgs<T> = {
 
 export function createTauriPoller<T>(
   command: API,
-  pArgs: PollerArgs<T>
+  pArgs: PollerArgs<T>,
 ): BehaviorSubject<T> {
   interval(POLL_INTERVAL_MS)
     .pipe(
       startWith(0),
-      switchMap(() => invoke<Response<T>>(command, pArgs?.args))
+      switchMap(() => invoke<Response<T>>(command, pArgs?.args)),
     )
     .subscribe({
       next: (val) => {
         if (val.status >= 400 || !val.message) {
           console.error(
             `Polling for "${command}" returned error:`,
-            val?.header
+            val?.header,
           );
           return;
         }
@@ -101,7 +101,7 @@ export function createTauriApiHooks<
   getCommand: string, // Tauri command to get value
   setCommand?: string, // Optional Tauri command to set value
   args?: Args, // Optional args for commands
-  defaultValue?: T // Default value
+  defaultValue?: T, // Default value
 ) {
   // Subject for reactive updates
   const subject = new BehaviorSubject<T | undefined>(defaultValue);
@@ -114,7 +114,7 @@ export function createTauriApiHooks<
       if (val.status >= 400) {
         console.error(
           `Error fetching initial value for "${getCommand}":`,
-          val?.header
+          val?.header,
         );
         return;
       }
@@ -152,7 +152,7 @@ export function createTauriApiHooks<
     ((val: T | undefined) => Promise<void>)?,
   ] {
     const [value, setValueState] = useState<T | undefined>(
-      value$.getValue() ?? defaultValue
+      value$.getValue() ?? defaultValue,
     );
 
     useEffect(() => {
@@ -165,10 +165,10 @@ export function createTauriApiHooks<
 
   // Debounced React hook
   function useDebouncedTauriValue(
-    debounceMs: number = 500
+    debounceMs: number = 500,
   ): [T | undefined, ((val: T | undefined) => Promise<void>)?] {
     const [value, setValueState] = useState<T | undefined>(
-      value$.getValue() ?? defaultValue
+      value$.getValue() ?? defaultValue,
     );
 
     useEffect(() => {
@@ -192,7 +192,7 @@ export function createTauriApiHooks<
 export function createTauriStoreHook<T>(options: TauriStoreOptions<T>) {
   const subject = new BehaviorSubject<T | undefined>(options.defaultValue);
 
-  const value$ = createTauriPoller<T | undefined>(API.GetValue, {
+  const value$ = createTauriPoller<T | undefined>(API.GetJsonValue, {
     subject,
     args: { key: options.key },
   });
@@ -200,7 +200,8 @@ export function createTauriStoreHook<T>(options: TauriStoreOptions<T>) {
   const setValue = async (newVal: T | undefined) => {
     if (newVal === undefined) return;
     try {
-      const res: Response<null> = await invoke(API.SetValue, {
+      const res: Response<null> = await invoke(API.SetJsonValue, {
+        key: options.key,
         value: newVal,
       });
 
@@ -219,25 +220,21 @@ export function createTauriStoreHook<T>(options: TauriStoreOptions<T>) {
 
 export function createDebouncedTauriStoreHook<T>(
   options: TauriStoreOptions<T>,
-  debounceMs: number = 500
+  debounceMs: number = 500,
 ) {
-  // Original subject for reactive updates
   const subject = new BehaviorSubject<T | undefined>(options.defaultValue);
 
-  // Create the observable that polls the backend
-  const value$ = createTauriPoller<T | undefined>(API.GetValue, {
+  const value$ = createTauriPoller<T | undefined>(API.GetJsonValue, {
     subject,
     args: { key: options.key },
   });
 
-  // Debounced version of the observable
   const debounced$ = value$.pipe(debounceTime(debounceMs));
 
-  // Function to set value in the store
   const setValue = async (newVal: T | undefined) => {
     if (newVal === undefined) return;
     try {
-      const res: Response<T> = await invoke(API.SetValue, {
+      const res: Response<T> = await invoke(API.SetJsonValue, {
         key: options.key,
         value: newVal,
       });
@@ -247,16 +244,14 @@ export function createDebouncedTauriStoreHook<T>(
         return;
       }
 
-      value$.next(newVal); // still push immediately so backend stays up-to-date
+      value$.next(newVal);
     } finally {
     }
   };
 
-  // Return a hook that subscribes to the **debounced observable**
-
   function useDebouncedStoreValue() {
     const [value, setValueState] = useState<T | undefined>(
-      options.defaultValue
+      options.defaultValue,
     );
 
     useEffect(() => {
@@ -272,7 +267,7 @@ export function createDebouncedTauriStoreHook<T>(
 
 export function createObservableHook<T>(
   observable: Observable<T>,
-  initialValue?: T
+  initialValue?: T,
 ) {
   return function useObservableValue() {
     const [value, setValue] = useState<T | undefined>(initialValue);
@@ -289,7 +284,7 @@ export function createObservableHook<T>(
 export function createDebouncedObservableHook<T>(
   observable: Observable<T>,
   initialValue?: T,
-  debounceMs: number = 500
+  debounceMs: number = 500,
 ) {
   return function useDebouncedObservableValue() {
     const [value, setValue] = useState<T | undefined>(initialValue);
