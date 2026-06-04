@@ -218,9 +218,6 @@ impl ExpenseStore {
         Ok(true)
     }
 
-    pub fn get_all_expense(&self) -> Result<Option<HashMap<String, Expense>>, Box<dyn StdError>> {
-        self.load_expenses()
-    }
     pub fn get_expense(&self, hash: &String) -> Result<Option<Expense>, Box<dyn StdError>> {
         let data = match self.load_expenses()? {
             Some(data) => data,
