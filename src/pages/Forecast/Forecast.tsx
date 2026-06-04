@@ -72,10 +72,10 @@ const TableHeader = () => (
   </Flex>
 );
 
-const eventColor = (event: string): string => {
-  if (event === "Paycheck") return "green.300";
-  if (event.startsWith("Expense")) return "red.300";
-  if (event === "Savings Transfer") return "yellow.300";
+const eventColor = (event: CashFlowEvent): string => {
+  if (event.type === "income") return "green.300";
+  if (event.type === "expense") return "red.300";
+  if (event.type === "transfer") return "yellow.300";
   return "";
 };
 
@@ -87,7 +87,7 @@ const TableRow = ({ event }: { event: CashFlowEvent }) => (
     borderColor="gray.700"
     fontSize="sm"
     fontFamily="mono"
-    color={eventColor(event.event)}
+    color={eventColor(event)}
   >
     <Box w="120px">{event.date}</Box>
     <Box w="180px">{event.event}</Box>
@@ -106,10 +106,10 @@ const TableRow = ({ event }: { event: CashFlowEvent }) => (
 );
 
 const DEFAULT_CONFIG = {
-  startBalance: 7800,
-  reserve: 8000,
-  startDate: "2026-06-01",
-  endDate: "2026-12-31",
+  startBalance: 0,
+  reserve: 0,
+  startDate: "",
+  endDate: "",
 };
 
 export function Forecast() {
@@ -120,13 +120,8 @@ export function Forecast() {
   const [sections, setSections] = useState({ general: true, income: true, expenses: true });
   const toggleSection = (key: keyof typeof sections) => setSections((prev) => ({ ...prev, [key]: !prev[key] }));
 
-  const [incomeStreams, setIncomeStreams] = useState<IncomeRule[]>([
-    { amount: 4800, payPeriod: "biweekly", firstPaycheckDate: "2026-06-05", semimonthlyPayday1: 1, semimonthlyPayday2: 15 },
-  ]);
-  const [expenses, setExpenses] = useState<ExpenseRule[]>([
-    { day: 12, amount: 1500 },
-    { day: 20, amount: 3500 },
-  ]);
+  const [incomeStreams, setIncomeStreams] = useState<IncomeRule[]>([]);
+  const [expenses, setExpenses] = useState<ExpenseRule[]>([]);
 
   const { config: savedConfig, loaded, saveConfig } = useForecastConfig();
   const initialized = useRef(false);
@@ -146,7 +141,12 @@ export function Forecast() {
         );
       }
       if (savedConfig.expenses) {
-        setExpenses(savedConfig.expenses);
+        setExpenses(
+          savedConfig.expenses.map((e) => ({
+            ...e,
+            period: e.period as PayPeriod,
+          }))
+        );
       }
       initialized.current = true;
     } else if (loaded && !initialized.current) {
@@ -180,12 +180,12 @@ export function Forecast() {
   }, []);
 
   const updateExpense = useCallback(
-    (index: number, field: keyof ExpenseRule, value: number) => {
+    (index: number, field: keyof ExpenseRule, value: string | number) => {
       setExpenses((prev) => {
         const next = [...prev];
         next[index] = {
           ...next[index],
-          [field]: field === "day" ? Math.min(31, Math.max(1, value)) : value,
+          [field]: field === "day" ? Math.min(31, Math.max(1, Number(value))) : value,
         };
         return next;
       });
@@ -239,6 +239,10 @@ export function Forecast() {
             <Flex direction="column" gap={2} mt={2}>
               {incomeStreams.map((stream, i) => (
                 <Flex key={i} gap={2} alignItems="flex-end" wrap="wrap">
+                  <Field.Root maxW="140px">
+                    <Field.Label fontSize="xs">Name</Field.Label>
+                    <Input type="text" value={stream.name || ""} onChange={(e) => updateIncome(i, "name", e.target.value)} size="sm" placeholder="e.g. Salary" />
+                  </Field.Root>
                   <Field.Root maxW="120px">
                     <Field.Label fontSize="xs">Amount</Field.Label>
                     <Input type="number" value={stream.amount} onChange={(e) => updateIncome(i, "amount", Number(e.target.value))} size="sm" />
@@ -251,6 +255,9 @@ export function Forecast() {
                         <option value="weekly">Weekly</option>
                         <option value="semimonthly">Semi-monthly</option>
                         <option value="monthly">Monthly</option>
+                        <option value="quarterly">Quarterly</option>
+                        <option value="semiannual">Semi-annual</option>
+                        <option value="annual">Annual</option>
                       </NativeSelect.Field>
                       <NativeSelect.Indicator />
                     </NativeSelect.Root>
@@ -292,16 +299,47 @@ export function Forecast() {
             <Text fontSize="sm" fontWeight="medium" color="gray.300">Expenses</Text>
           </Flex>
           {sections.expenses && (
-            <Flex direction="column" gap={2} maxW="500px" mt={2}>
+            <Flex direction="column" gap={2} mt={2}>
               {expenses.map((exp, i) => (
-                <Flex key={i} gap={2} alignItems="flex-end">
-                  <Field.Root maxW="70px">
-                    <Field.Label fontSize="xs">Day</Field.Label>
-                    <Input type="number" min={1} max={31} value={exp.day} onChange={(e) => updateExpense(i, "day", Number(e.target.value))} size="sm" />
+                <Flex key={i} gap={2} alignItems="flex-end" wrap="wrap">
+                  <Field.Root maxW="140px">
+                    <Field.Label fontSize="xs">Name</Field.Label>
+                    <Input type="text" value={exp.name || ""} onChange={(e) => updateExpense(i, "name", e.target.value)} size="sm" placeholder="e.g. Rent" />
                   </Field.Root>
-                  <Field.Root flex={1}>
+                  {(!exp.period || exp.period === "monthly") ? (
+                    <Field.Root maxW="70px">
+                      <Field.Label fontSize="xs">Day</Field.Label>
+                      <Input type="number" min={1} max={31} value={exp.day} onChange={(e) => updateExpense(i, "day", Number(e.target.value))} size="sm" />
+                    </Field.Root>
+                  ) : (
+                    <Field.Root maxW="150px">
+                      <Field.Label fontSize="xs">First Date</Field.Label>
+                      <Input type="date" value={exp.firstDate || ""} onChange={(e) => updateExpense(i, "firstDate", e.target.value)} size="sm" />
+                    </Field.Root>
+                  )}
+                  <Field.Root maxW="100px">
                     <Field.Label fontSize="xs">Amount</Field.Label>
                     <Input type="number" value={exp.amount} onChange={(e) => updateExpense(i, "amount", Number(e.target.value))} size="sm" />
+                  </Field.Root>
+                  <Field.Root maxW="140px">
+                    <Field.Label fontSize="xs">Period</Field.Label>
+                    <NativeSelect.Root>
+                      <NativeSelect.Field value={exp.period || "monthly"} onChange={(e) => {
+                        const newPeriod = e.currentTarget.value;
+                        updateExpense(i, "period", newPeriod);
+                        if (newPeriod !== "monthly" && !exp.firstDate) {
+                          updateExpense(i, "firstDate", format(new Date(), "yyyy-MM-dd"));
+                        }
+                      }}>
+                        <option value="monthly">Monthly</option>
+                        <option value="weekly">Weekly</option>
+                        <option value="biweekly">Bi-weekly</option>
+                        <option value="quarterly">Quarterly</option>
+                        <option value="semiannual">Semi-annual</option>
+                        <option value="annual">Annual</option>
+                      </NativeSelect.Field>
+                      <NativeSelect.Indicator />
+                    </NativeSelect.Root>
                   </Field.Root>
                   <Button size="sm" variant="solid" colorPalette="red" flexShrink={0} onClick={() => removeExpense(i)}>
                     &#x2716;
