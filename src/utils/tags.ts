@@ -7,7 +7,7 @@ import {
 import { ALL_TAGS } from "@/types/types";
 import { useMemo, useRef } from "react";
 
-export const useAllTags = () => {
+export const useAllTags = (includeNonExpenseTags?: boolean) => {
   const expenses = useExpenses();
   const savings = useSavings();
   const retirement = useRetirement();
@@ -50,17 +50,19 @@ export const useAllTags = () => {
       }
     }
 
-    next.delete("Income");
-    next.delete("Retirement");
-    next.delete("Savings");
+    if (!includeNonExpenseTags) {
+      next.delete("Income");
+      next.delete("Retirement");
+      next.delete("Savings");
+    }
 
     prevRef.current = next;
     return next;
-  }, [expenses, savings, retirement, income]);
+  }, [expenses, savings, retirement, income, includeNonExpenseTags]);
 };
 
-export const useAllTagsOptions = () => {
-  const tags = useAllTags();
+export const useAllTagsOptions = (includeNonExpenseTags?: boolean) => {
+  const tags = useAllTags(includeNonExpenseTags);
 
   return useMemo(
     () => [...tags].map((tag) => ({ value: tag, label: tag })),

@@ -21,7 +21,7 @@ export const ExpenseForm = ({
   const [description, setDescription] = useState(expense?.description ?? "");
   const [tags, setTags] = useState<string[]>(expense?.tags ?? []);
 
-  const ALL_TAGS_OPTIONS = useAllTagsOptions();
+  const ALL_TAGS_OPTIONS = useAllTagsOptions(true);
 
   const onFormSubmit = useCallback(
     (dt: string, a: number, d: string, t: string[]) => {
