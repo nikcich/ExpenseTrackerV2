@@ -8,6 +8,7 @@ import {
   Field,
   NativeSelect,
   Button,
+  Spinner,
 } from "@chakra-ui/react";
 import {
   CashFlowEvent,
@@ -208,6 +209,16 @@ export function Forecast() {
     () => computeCashFlowForecast({ startBalance, reserve, startDate, endDate, incomeStreams, expenses }),
     [startBalance, reserve, startDate, endDate, incomeStreams, expenses],
   );
+
+  if (!loaded) {
+    return (
+      <GenericPage title="Forecast" hasRange={false} needsData={false}>
+        <Flex align="center" justify="center" height="100%" p={8}>
+          <Spinner size="xl" />
+        </Flex>
+      </GenericPage>
+    );
+  }
 
   return (
     <GenericPage title="Forecast" hasRange={false} needsData={false}>

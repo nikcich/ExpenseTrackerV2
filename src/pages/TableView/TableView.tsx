@@ -6,6 +6,7 @@ import {
   useFilteredRetirement,
   useFilteredSavings,
 } from "@/hooks/expenses";
+import { GenericPage } from "@/components/GenericPage/GenericPage";
 
 export function TableView() {
   const expenses = useFilteredExpenses();
@@ -13,9 +14,13 @@ export function TableView() {
   const savings = useFilteredSavings(false);
   const retirements = useFilteredRetirement();
 
+  const allItems = [...expenses, ...income, ...savings, ...retirements];
+
   return (
     <div className={styles.container}>
-      <DataTable items={[...expenses, ...income, ...savings, ...retirements]} />
+      <GenericPage title="Expenses" hasRange={false} needsData={false}>
+        <DataTable items={allItems} />
+      </GenericPage>
     </div>
   );
 }

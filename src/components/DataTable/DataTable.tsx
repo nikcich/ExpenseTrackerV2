@@ -1,4 +1,4 @@
-import { Button, Input, Text } from "@chakra-ui/react";
+import { Button, Flex, Input, Text } from "@chakra-ui/react";
 import {
   memo,
   useCallback,
@@ -19,6 +19,18 @@ import { setSelection, useSelection } from "@/store/SelectionStore";
 import { enableOverlay, Overlay } from "@/store/OverlayStore";
 import { invoke } from "@tauri-apps/api/core";
 import { debounce } from "lodash";
+import {
+  DialogBackdrop,
+  DialogBody,
+  DialogCloseTrigger,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogPositioner,
+  DialogRoot,
+  DialogTitle,
+  DialogTrigger,
+} from "@chakra-ui/react";
 import { format } from "date-fns";
 
 const TagCell = ({ tags }: { tags: Tag[] }) => {
@@ -64,6 +76,7 @@ const compareDates = (
 
 const DataTableActions = () => {
   const selection = useSelection();
+  const [deleteOpen, setDeleteOpen] = useState(false);
 
   const handleDeleteSelection = useCallback(async (selection: string[]) => {
     await invoke<Response<string>>(API.RemoveBulkExpenses, {
@@ -105,10 +118,46 @@ const DataTableActions = () => {
           <Button
             size={"xs"}
             colorPalette={"red"}
-            onClick={() => handleDeleteSelection(selection)}
+            onClick={() => setDeleteOpen(true)}
           >
             Delete Selection
           </Button>
+
+          <DialogRoot
+            open={deleteOpen}
+            onOpenChange={(e) => setDeleteOpen(e.open)}
+          >
+            <DialogBackdrop />
+            <DialogTrigger />
+            <DialogPositioner>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Delete {selection.length} expense(s)?</DialogTitle>
+                  <DialogCloseTrigger />
+                </DialogHeader>
+                <DialogBody>
+                  <Text>This action cannot be undone.</Text>
+                </DialogBody>
+                <DialogFooter>
+                  <Button
+                    variant="outline"
+                    onClick={() => setDeleteOpen(false)}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    colorPalette="red"
+                    onClick={() => {
+                      handleDeleteSelection(selection);
+                      setDeleteOpen(false);
+                    }}
+                  >
+                    Delete
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </DialogPositioner>
+          </DialogRoot>
         </>
       )}
       <Button
@@ -167,11 +216,16 @@ export const DataTable = ({ items }: { items: Expense[] }) => {
       if (!includeRetirement && isRetirement) return false;
       if (!includeUntagged && isUntagged) return false;
 
-      if (
-        deferredSearch &&
-        !item.description.toLowerCase().includes(deferredSearch)
-      ) {
-        return false;
+      if (deferredSearch) {
+        const searchStr = deferredSearch.toLowerCase();
+        const matchesDescription = item.description.toLowerCase().includes(searchStr);
+        const matchesTags = item.tags.some((t) => t.toLowerCase().includes(searchStr));
+        const matchesAmount = item.amount.toFixed(2).includes(searchStr);
+        const matchesDate = format(new Date(item.date), "MM-dd-yyyy").includes(searchStr) || item.date.includes(searchStr);
+
+        if (!matchesDescription && !matchesTags && !matchesAmount && !matchesDate) {
+          return false;
+        }
       }
 
       return true;
@@ -199,7 +253,6 @@ export const DataTable = ({ items }: { items: Expense[] }) => {
           display: "flex",
           flexDirection: "column",
           alignItems: "center",
-          background: "black",
           padding: "0.5rem",
         }}
       >
@@ -269,6 +322,7 @@ export const DataTable = ({ items }: { items: Expense[] }) => {
             width: "100%",
             overflow: "hidden",
             flexGrow: 1,
+            paddingTop: "0.75rem",
           }}
         >
           <CoreTable items={filteredItems} />
@@ -280,6 +334,38 @@ export const DataTable = ({ items }: { items: Expense[] }) => {
 
 const ROW_HEIGHT = 44;
 const OVERSCAN = 5;
+
+const PaginationIndicator = ({
+  endIndex,
+  total,
+  scrollTop,
+}: {
+  endIndex: number;
+  total: number;
+  scrollTop: number;
+}) => {
+  if (total === 0) return null;
+
+  const firstVisible = Math.max(1, Math.floor(scrollTop / ROW_HEIGHT) + 1);
+  const lastVisible = Math.min(total, endIndex);
+
+  return (
+    <Flex
+      justify="flex-end"
+      px={4}
+      py={1.5}
+      borderTop="1px solid"
+      borderColor="var(--chakra-colors-border-muted)"
+      fontSize="xs"
+      color="fg.subtle"
+      flexShrink={0}
+    >
+      <Text>
+        {firstVisible}–{lastVisible} of {total}
+      </Text>
+    </Flex>
+  );
+};
 
 type RowProps = {
   item: Expense;
@@ -556,6 +642,12 @@ const CoreTable = memo(({ items }: { items: Expense[] }) => {
           </table>
         </div>
       </div>
+
+      <PaginationIndicator
+        endIndex={endIndex}
+        total={sortedItems.length}
+        scrollTop={scrollTop}
+      />
     </div>
   );
 });

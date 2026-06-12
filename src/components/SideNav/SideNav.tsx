@@ -16,41 +16,45 @@ import { BsAlignMiddle } from "react-icons/bs";
 import { BsFillGrid1X2Fill } from "react-icons/bs";
 import { TbChartSankey } from "react-icons/tb";
 import { MdOutlineTrendingUp } from "react-icons/md";
+import { Tooltip } from "@/components/ui/tooltip";
 
-const NavButton = ({ Icon, page }: { Icon: React.FC; page: string }) => {
+const NavButton = ({ Icon, page, label }: { Icon: React.FC; page: string; label: string }) => {
   const navigate = useNavigate();
   const location = useLocation();
   return (
-    <button
-      className={cx(
-        styles.navButton,
-        location.pathname === page ? styles.active : ""
-      )}
-      onClick={() => navigate(page)}
-    >
-      <Icon />
-    </button>
+    <Tooltip content={label} positioning={{ placement: "right" }}>
+      <button
+        className={cx(
+          styles.navButton,
+          location.pathname === page ? styles.active : ""
+        )}
+        onClick={() => navigate(page)}
+      >
+        <Icon />
+      </button>
+    </Tooltip>
   );
 };
 
 export function SideNav() {
   return (
     <div className={styles.navContainer}>
-      <NavButton Icon={AiOutlineHome} page={Pages.Home} />
-      <NavButton Icon={FaSlidersH} page={Pages.Settings} />
-      <NavButton Icon={PiFileCsvBold} page={Pages.FileOpener} />
-      <NavButton Icon={FaTable} page={Pages.TableView} />
-      <NavButton Icon={BsAlignMiddle} page={Pages.AverageSpending} />
+      <NavButton Icon={AiOutlineHome} page={Pages.Home} label="Home" />
+      <NavButton Icon={FaSlidersH} page={Pages.Settings} label="Settings" />
+      <NavButton Icon={PiFileCsvBold} page={Pages.FileOpener} label="Import CSV" />
+      <NavButton Icon={FaTable} page={Pages.TableView} label="Data Table" />
+      <NavButton Icon={BsAlignMiddle} page={Pages.AverageSpending} label="Average Spending" />
       <NavButton
         Icon={RiBarChartHorizontalFill}
         page={Pages.RangeIncomeExpense}
+        label="Income vs Expenses"
       />
-      <NavButton Icon={FaChartBar} page={Pages.BarChart} />
-      <NavButton Icon={LuChartColumnStacked} page={Pages.StackedBarChart} />
-      <NavButton Icon={FaChartLine} page={Pages.YTDChart} />
-      <NavButton Icon={TbChartSankey} page={Pages.Sankey} />
-      <NavButton Icon={MdOutlineTrendingUp} page={Pages.Forecast} />
-      <NavButton Icon={BsFillGrid1X2Fill} page={Pages.Test} />
+      <NavButton Icon={FaChartBar} page={Pages.BarChart} label="Bar Chart" />
+      <NavButton Icon={LuChartColumnStacked} page={Pages.StackedBarChart} label="Stacked Bar Chart" />
+      <NavButton Icon={FaChartLine} page={Pages.YTDChart} label="Year to Date" />
+      <NavButton Icon={TbChartSankey} page={Pages.Sankey} label="Sankey" />
+      <NavButton Icon={MdOutlineTrendingUp} page={Pages.Forecast} label="Forecast" />
+      <NavButton Icon={BsFillGrid1X2Fill} page={Pages.Test} label="Dashboard" />
     </div>
   );
 }
