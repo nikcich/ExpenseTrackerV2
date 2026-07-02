@@ -3,7 +3,7 @@ import { Pages } from "./types/routes";
 import { SideNav } from "./components/SideNav/SideNav";
 import styles from "./App.module.scss";
 import { JSX } from "react";
-import { Test } from "./pages/Test/Test";
+
 import { Home } from "./pages/Home/Home";
 import { TableView } from "./pages/TableView/TableView";
 import { GroupedBarChart } from "./pages/GroupedBarChart/GroupedBarChart";
@@ -17,6 +17,7 @@ import { AverageSpending } from "./pages/AverageSpending/AverageSpending";
 import { ErrorBoundary } from "react-error-boundary";
 import { ExpenseSankey } from "./pages/Sankey/ExpenseSankey";
 import { Forecast } from "./pages/Forecast/Forecast";
+import { Overview } from "./pages/Overview/Overview";
 
 function fallbackRender({ error }: { error: Error }) {
   return (
@@ -67,11 +68,6 @@ export function AppRouter() {
         />
 
         <Route
-          path={Pages.Test}
-          element={<RouteComponent element={<Test />} />}
-        />
-
-        <Route
           path={Pages.TableView}
           element={<RouteComponent element={<TableView />} />}
         />
@@ -114,6 +110,11 @@ export function AppRouter() {
         <Route
           path={Pages.Forecast}
           element={<RouteComponent element={<Forecast />} />}
+        />
+
+        <Route
+          path={Pages.Overview}
+          element={<RouteComponent element={<Overview />} />}
         />
       </Routes>
     </BrowserRouter>

@@ -1,0 +1,279 @@
+.page {
+  padding: 1.5rem 2rem;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  overflow-y: auto;
+}
+
+.monthPills {
+  display: flex;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+}
+
+.monthPill {
+  padding: 0.35rem 0.9rem;
+  border-radius: 9999px;
+  border: 1px solid var(--border-color, #3f3f4b);
+  background: transparent;
+  color: var(--fg-muted, #a0a0ab);
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  line-height: 1.4;
+
+  &:hover {
+    border-color: var(--fg-muted, #a0a0ab);
+    color: var(--fg-default, #e8e8ed);
+  }
+}
+
+.monthPillActive {
+  background: var(--fg-default, #e8e8ed);
+  color: var(--bg-default, #141417);
+  border-color: var(--fg-default, #e8e8ed);
+  font-weight: 600;
+
+  &:hover {
+    color: var(--bg-default, #141417);
+    border-color: var(--fg-default, #e8e8ed);
+  }
+}
+
+.summaryRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.summaryCard {
+  background: var(--bg-panel, #19191e);
+  border: 1px solid var(--border-color, #32323c);
+  border-radius: 0.75rem;
+  padding: 1rem 1.25rem;
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  flex: 1 1 250px;
+  min-width: 250px;
+}
+
+.cardLabel {
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--fg-muted, #a0a0ab);
+  font-weight: 500;
+}
+
+.cardValue {
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: var(--fg-default, #e8e8ed);
+  line-height: 1.2;
+}
+
+.cardCaption {
+  font-size: 0.7rem;
+  color: var(--fg-subtle, #6b6b7b);
+}
+
+.savingsRow {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.85rem;
+  line-height: 1.6;
+}
+
+.savingsLabel {
+  color: var(--fg-muted, #a0a0ab);
+  flex-shrink: 0;
+}
+
+.savingsValue {
+  color: var(--fg-warning, #eab308);
+  font-variant-numeric: tabular-nums;
+  margin-right: auto;
+}
+
+.card {
+  background: var(--bg-panel, #19191e);
+  border: 1px solid var(--border-color, #32323c);
+  border-radius: 0.75rem;
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  min-height: 0;
+}
+
+.donutCard {
+  min-height: 300px;
+}
+
+.emptyState {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  flex: 1;
+  color: var(--fg-muted, #a0a0ab);
+}
+
+.emptyText {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--fg-default, #e8e8ed);
+}
+
+.emptyHint {
+  font-size: 0.85rem;
+  color: var(--fg-subtle, #6b6b7b);
+}
+
+.tableCard {
+  flex: 1;
+  min-height: 400px;
+}
+
+.tableWrapper {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.cardHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.cardTitle {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--fg-default, #e8e8ed);
+}
+
+.donutContainer {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  flex: 1;
+  min-height: 0;
+}
+
+.legendList {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  overflow-y: auto;
+}
+
+.legendItem {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.85rem;
+}
+
+.legendLabel {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  min-width: 0;
+}
+
+.legendSwatch {
+  width: 0.65rem;
+  height: 0.65rem;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.legendName {
+  color: var(--fg-default, #e8e8ed);
+  text-align: left;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.legendAmount {
+  color: var(--fg-muted, #a0a0ab);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  flex-shrink: 0;
+}
+
+.donutSvg {
+  flex-shrink: 0;
+  width: 50%;
+  height: auto;
+  max-height: 100%;
+  max-width: 280px;
+}
+
+.valuePos {
+  color: var(--fg-success, #4ade80);
+}
+
+.valueNeg {
+  color: var(--fg-error, #f87171);
+}
+
+.valueNeutral {
+  color: var(--fg-warning, #eab308);
+}
+
+.delta {
+  font-size: 0.8rem;
+  color: var(--fg-subtle, #6b6b7b);
+  display: inline-flex;
+  align-items: center;
+}
+
+.deltaUp {
+  font-size: 0.8rem;
+  color: var(--fg-success, #4ade80);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+}
+
+.deltaDown {
+  font-size: 0.8rem;
+  color: var(--fg-error, #f87171);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+}
+
+.deltaArrow {
+  line-height: 1;
+  font-size: 0.8rem;
+}
+
+.sparkline {
+  width: 100%;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.sparklineSvg {
+  width: 100%;
+  height: 60px;
+  display: block;
+}
+
+.legendPct {
+  color: var(--fg-subtle, #6b6b7b);
+  font-size: 0.7rem;
+}

@@ -30,12 +30,13 @@ export const GenericModal = ({ children, overlay }: ModalProps) => {
       }}
     >
       <Box
-        bg="black"
-        borderRadius="md"
-        p={6}
-        width={"50%"}
+        bg="bg.panel"
+        borderRadius="xl"
+        p={5}
+        width="50%"
         boxShadow="lg"
-        border="1px solid #999"
+        borderWidth="1px"
+        borderColor="border.DEFAULT"
       >
         {children}
       </Box>

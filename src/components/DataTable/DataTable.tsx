@@ -373,31 +373,38 @@ type RowProps = {
   onToggle: (id: string, index: number, shift: boolean) => void;
   onEdit: (id: string) => void;
   index: number;
+  selectable: boolean;
 };
 
+const GRID_WITH_CHECK = "50px 150px 150px 1fr 100px";
+const GRID_NO_CHECK = "150px 150px 1fr 100px";
+
 const TableRow = memo<RowProps>(
-  ({ item, index, selected, onToggle, onEdit }) => {
+  ({ item, index, selected, onToggle, onEdit, selectable }) => {
     return (
       <tr
         data-selected={selected ? "" : undefined}
         onDoubleClick={() => onEdit(item.id)}
+        style={{ gridTemplateColumns: selectable ? GRID_WITH_CHECK : GRID_NO_CHECK }}
       >
-        <td
-          className={styles.leftCenterContent}
-          onClick={(e) => {
-            e.stopPropagation();
-            onToggle(item.id, index, e.shiftKey);
-          }}
-        >
-          <input
-            type="checkbox"
-            checked={selected}
+        {selectable && (
+          <td
+            className={styles.leftCenterContent}
             onClick={(e) => {
               e.stopPropagation();
               onToggle(item.id, index, e.shiftKey);
             }}
-          />
-        </td>
+          >
+            <input
+              type="checkbox"
+              checked={selected}
+              onClick={(e) => {
+                e.stopPropagation();
+                onToggle(item.id, index, e.shiftKey);
+              }}
+            />
+          </td>
+        )}
 
         <td className={styles.leftCenterContent}>
           <TagCell tags={item.tags} />
@@ -419,7 +426,7 @@ const TableRow = memo<RowProps>(
   }
 );
 
-const CoreTable = memo(({ items }: { items: Expense[] }) => {
+export const CoreTable = memo(({ items, selectable = true }: { items: Expense[]; selectable?: boolean }) => {
   const selection = useSelection();
   const [sortColumn, setSortColumn] = useState<SortKey>("date");
   const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
@@ -527,26 +534,28 @@ const CoreTable = memo(({ items }: { items: Expense[] }) => {
       {/* ===== Sticky Header ===== */}
       <table className={styles.headerTable}>
         <thead>
-          <tr>
-            <th
-              onClick={(e) => {
-                e.stopPropagation();
-                setSelection(
-                  selection.length === 0 ? items.map((i) => i.id) : []
-                );
-              }}
-              className={styles.leftCenterContent}
-            >
-              <input
-                ref={headerCheckboxRef}
-                className={styles.headerCheckbox}
-                type="checkbox"
-                checked={selection.length === items.length}
-                onChange={(e) =>
-                  setSelection(e.target.checked ? items.map((i) => i.id) : [])
-                }
-              />
-            </th>
+          <tr style={{ gridTemplateColumns: selectable ? GRID_WITH_CHECK : GRID_NO_CHECK }}>
+            {selectable && (
+              <th
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setSelection(
+                    selection.length === 0 ? items.map((i) => i.id) : []
+                  );
+                }}
+                className={styles.leftCenterContent}
+              >
+                <input
+                  ref={headerCheckboxRef}
+                  className={styles.headerCheckbox}
+                  type="checkbox"
+                  checked={selection.length === items.length}
+                  onChange={(e) =>
+                    setSelection(e.target.checked ? items.map((i) => i.id) : [])
+                  }
+                />
+              </th>
+            )}
 
             <th
               onClick={() => handleSort("tags")}
@@ -635,6 +644,7 @@ const CoreTable = memo(({ items }: { items: Expense[] }) => {
                     selected={selection.includes(item.id)}
                     onToggle={toggleSelection}
                     onEdit={editRow}
+                    selectable={selectable}
                   />
                 );
               })}
