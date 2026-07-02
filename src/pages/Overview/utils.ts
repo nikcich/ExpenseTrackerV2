@@ -7,7 +7,6 @@ export type MonthData = {
   totalSpent: number;
   net: number;
   savings: number;
-  rsu: number;
   categories: { name: string; amount: number }[];
 };
 
@@ -16,7 +15,6 @@ export const EMPTY_DATA: MonthData = {
   totalSpent: 0,
   net: 0,
   savings: 0,
-  rsu: 0,
   categories: [],
 };
 
@@ -52,7 +50,6 @@ export function computeMonthData(expenses: Expense[], target: Date): MonthData {
   const income: Expense[] = [];
   const spent: Expense[] = [];
   let savings = 0;
-  let rsu = 0;
 
   for (const e of expenses) {
     if (getYear(parseDate(e.date)) !== getYear(target)) continue;
@@ -62,8 +59,6 @@ export function computeMonthData(expenses: Expense[], target: Date): MonthData {
       income.push(e);
     } else if (e.tags.includes(NonExpenseTags.Savings) || e.tags.includes(NonExpenseTags.Retirement)) {
       savings += e.amount;
-    } else if (e.tags.includes(NonExpenseTags.RSU)) {
-      rsu += Math.abs(e.amount);
     } else {
       spent.push(e);
     }
@@ -82,7 +77,7 @@ export function computeMonthData(expenses: Expense[], target: Date): MonthData {
     .map(([name, amount]) => ({ name, amount }))
     .sort((a, b) => b.amount - a.amount);
 
-  return { realIncome, totalSpent, net, savings, rsu, categories };
+  return { realIncome, totalSpent, net, savings, categories };
 }
 
 export function getMonthExpenses(expenses: Expense[], target: Date): Expense[] {

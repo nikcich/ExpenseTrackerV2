@@ -15,7 +15,7 @@ import { FaChartLine } from "react-icons/fa6";
 import { BsAlignMiddle } from "react-icons/bs";
 import { TbChartSankey } from "react-icons/tb";
 import { MdOutlineTrendingUp } from "react-icons/md";
-import { PiCompassLight } from "react-icons/pi";
+import { PiCompassLight, PiChartPieSlice } from "react-icons/pi";
 import { Tooltip } from "@/components/ui/tooltip";
 
 const NavButton = ({ Icon, page, label }: { Icon: React.FC; page: string; label: string }) => {
@@ -43,6 +43,7 @@ export function SideNav() {
       <NavButton Icon={FaSlidersH} page={Pages.Settings} label="Settings" />
       <NavButton Icon={PiFileCsvBold} page={Pages.FileOpener} label="Import CSV" />
       <NavButton Icon={PiCompassLight} page={Pages.Overview} label="Overview" />
+      <NavButton Icon={PiChartPieSlice} page={Pages.Investments} label="Investments" />
       <NavButton Icon={MdOutlineTrendingUp} page={Pages.Forecast} label="Forecast" />
       <NavButton Icon={FaTable} page={Pages.TableView} label="Data Table" />
       <NavButton Icon={BsAlignMiddle} page={Pages.AverageSpending} label="Average Spending" />

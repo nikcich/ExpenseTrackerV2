@@ -40,7 +40,7 @@ const TagCell = ({ tags }: { tags: Tag[] }) => {
         <TagComp.Root
           key={tag}
           colorPalette={
-            tag === NonExpenseTags.Income || tag === NonExpenseTags.RSU
+            tag === NonExpenseTags.Income
               ? "green"
               : tag === NonExpenseTags.Savings
                 ? "yellow"
@@ -202,8 +202,7 @@ export const DataTable = ({ items }: { items: Expense[] }) => {
   const filteredItems = useMemo(() => {
     return items.filter((item) => {
       const isIncome =
-        item.tags.includes(NonExpenseTags.Income) ||
-        item.tags.includes(NonExpenseTags.RSU);
+        item.tags.includes(NonExpenseTags.Income);
 
       const isSavings = item.tags.includes(NonExpenseTags.Savings);
       const isRetirement = item.tags.includes(NonExpenseTags.Retirement);

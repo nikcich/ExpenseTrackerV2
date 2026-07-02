@@ -11,12 +11,8 @@ export const useExpenses = () => {
   const expenses = useMemo(
     () =>
       value?.filter((e) => {
-        const isIncome =
-          e.tags.includes(NonExpenseTags.Income) ||
-          e.tags.includes(NonExpenseTags.RSU);
-        const isSavings =
-          e.tags.includes(NonExpenseTags.Savings) ||
-          e.tags.includes(NonExpenseTags.RSU);
+        const isIncome = e.tags.includes(NonExpenseTags.Income);
+        const isSavings = e.tags.includes(NonExpenseTags.Savings);
         const isRetirement = e.tags.includes(NonExpenseTags.Retirement);
         return !isIncome && !isSavings && !isRetirement;
       }) ?? [],
@@ -47,26 +43,20 @@ export const useFilteredExpenses = () => {
   return filtered;
 };
 
-export const useIncome = (includeRsu: boolean = true) => {
+export const useIncome = () => {
   const { value } = useExpensesStore();
-  const disabledTags = useSettingsStore("disabledTags");
-  const includeRSU = !disabledTags.includes(NonExpenseTags.RSU) && includeRsu;
 
   const expenses = useMemo(
     () =>
-      value?.filter(
-        (e) =>
-          e.tags.includes(NonExpenseTags.Income) ||
-          (e.tags.includes(NonExpenseTags.RSU) && includeRSU)
-      ) ?? [],
+      value?.filter((e) => e.tags.includes(NonExpenseTags.Income)) ?? [],
     [value]
   );
   return expenses;
 };
 
-export const useFilteredIncome = (includeRsu: boolean = true) => {
+export const useFilteredIncome = () => {
   const [range] = useDebouncedBrushRange();
-  const income = useIncome(includeRsu);
+  const income = useIncome();
 
   const filtered = useMemo(() => {
     if (!range) return income;
@@ -79,26 +69,18 @@ export const useFilteredIncome = (includeRsu: boolean = true) => {
   return filtered;
 };
 
-export const useSavings = (rsu: boolean = true) => {
+export const useSavings = () => {
   const { value } = useExpensesStore();
-  const disabledTags = useSettingsStore("disabledTags");
-  const includeRSU = !disabledTags.includes(NonExpenseTags.RSU) && rsu;
 
   const savings = useMemo(() => {
-    const normalSavings =
-      value?.filter((e) => e.tags.includes(NonExpenseTags.Savings)) ?? [];
-    const rsuSavings = includeRSU
-      ? (value?.filter((e) => e.tags.includes(NonExpenseTags.RSU)) ?? [])
-      : [];
-    const invertedRSU = rsuSavings.map((e) => ({ ...e, amount: -e.amount })); // RSU amount needs to be inverted
-    return [...normalSavings, ...invertedRSU];
+    return value?.filter((e) => e.tags.includes(NonExpenseTags.Savings)) ?? [];
   }, [value]);
   return savings;
 };
 
-export const useFilteredSavings = (rsu: boolean = true) => {
+export const useFilteredSavings = () => {
   const [range] = useDebouncedBrushRange();
-  const savings = useSavings(rsu);
+  const savings = useSavings();
   const filtered = useMemo(() => {
     if (!range) return savings;
     return savings.filter((saving) => {
@@ -106,29 +88,6 @@ export const useFilteredSavings = (rsu: boolean = true) => {
       return expenseDate >= range[0] && expenseDate <= range[1];
     });
   }, [range, savings]);
-
-  return filtered;
-};
-
-export const useRsu = () => {
-  const { value } = useExpensesStore();
-  const rsu = useMemo(() => {
-    return value?.filter((e) => e.tags.includes(NonExpenseTags.RSU)) ?? [];
-  }, [value]);
-  return rsu;
-};
-
-export const useFilteredRsu = () => {
-  const [range] = useDebouncedBrushRange();
-  const rsu = useRsu();
-
-  const filtered = useMemo(() => {
-    if (!range) return rsu;
-    return rsu.filter((rsu) => {
-      const expenseDate = parseDate(rsu.date).getTime();
-      return expenseDate >= range[0] && expenseDate <= range[1];
-    });
-  }, [range, rsu]);
 
   return filtered;
 };

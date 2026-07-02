@@ -19,6 +19,8 @@ export enum KnownStoreKeys {
   MyValue = "my_value",
   Expenses = "expenses",
   ForecastConfig = "forecast_config",
+  RsuVests = "rsu_vests",
+  BalanceSnapshots = "balance_snapshots",
 }
 
 export type ForecastConfigData = {
@@ -86,7 +88,6 @@ export enum ExpenseTag {
 export enum NonExpenseTags {
   Income = "Income",
   Savings = "Savings",
-  RSU = "RSU",
   Retirement = "Retirement",
 }
 
@@ -96,6 +97,31 @@ export const ALL_TAGS: Tag[] = [
   ...Object.values(ExpenseTag),
   ...Object.values(NonExpenseTags),
 ];
+
+export type RsuVest = {
+  id: string;
+  vestDate: string;
+  shares: number;
+  price: number;
+  description: string;
+};
+
+export type RsuVestsMap = {
+  [id: string]: RsuVest;
+};
+
+export type BalanceSnapshot = {
+  id: string;
+  accountName: string;
+  date: string;
+  balance: number;
+  notes?: string;
+  type?: "asset" | "debt";
+};
+
+export type BalanceSnapshotsMap = {
+  [id: string]: BalanceSnapshot;
+};
 
 export type Response<T> = {
   status: number;

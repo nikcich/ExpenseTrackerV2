@@ -11,7 +11,7 @@ import { GenericPage } from "@/components/GenericPage/GenericPage";
 export function TableView() {
   const expenses = useFilteredExpenses();
   const income = useFilteredIncome();
-  const savings = useFilteredSavings(false);
+  const savings = useFilteredSavings();
   const retirements = useFilteredRetirement();
 
   const allItems = [...expenses, ...income, ...savings, ...retirements];

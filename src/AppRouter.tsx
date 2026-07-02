@@ -18,6 +18,7 @@ import { ErrorBoundary } from "react-error-boundary";
 import { ExpenseSankey } from "./pages/Sankey/ExpenseSankey";
 import { Forecast } from "./pages/Forecast/Forecast";
 import { Overview } from "./pages/Overview/Overview";
+import { Investments } from "./pages/Investments/Investments";
 
 function fallbackRender({ error }: { error: Error }) {
   return (
@@ -115,6 +116,11 @@ export function AppRouter() {
         <Route
           path={Pages.Overview}
           element={<RouteComponent element={<Overview />} />}
+        />
+
+        <Route
+          path={Pages.Investments}
+          element={<RouteComponent element={<Investments />} />}
         />
       </Routes>
     </BrowserRouter>

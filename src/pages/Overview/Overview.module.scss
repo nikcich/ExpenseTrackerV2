@@ -277,3 +277,169 @@
   color: var(--fg-subtle, #6b6b7b);
   font-size: 0.7rem;
 }
+
+.cardBody {
+  flex: 1;
+  display: flex;
+  align-items: center;
+}
+
+.cardEmpty {
+  color: var(--fg-subtle, #6b6b7b);
+  font-size: 0.85rem;
+}
+
+.statRow {
+  display: flex;
+  gap: 2rem;
+  width: 100%;
+}
+
+.stat {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.statValue {
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: var(--fg-default, #e8e8ed);
+  line-height: 1.2;
+}
+
+.statLabel {
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--fg-muted, #a0a0ab);
+  font-weight: 500;
+}
+
+.accountList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  width: 100%;
+}
+
+.accountRow {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  background: var(--bg-default, #141417);
+  border: 1px solid var(--border-color, #32323c);
+  border-radius: 0.5rem;
+  padding: 0.65rem 0.9rem;
+  flex: 1 1 180px;
+  min-width: 140px;
+}
+
+.accountInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+
+.accountName {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--fg-default, #e8e8ed);
+}
+
+.accountDate {
+  font-size: 0.7rem;
+  color: var(--fg-subtle, #6b6b7b);
+}
+
+.accountBalance {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--fg-default, #e8e8ed);
+  font-variant-numeric: tabular-nums;
+}
+
+.overviewRow {
+  display: flex;
+  gap: 1.25rem;
+  flex-wrap: wrap;
+}
+
+.overviewRow > .card {
+  flex: 1 1 400px;
+  min-width: 300px;
+}
+
+.investCardBody {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  align-items: flex-start;
+  text-align: left;
+}
+
+.investSection {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  width: 100%;
+}
+
+.investSectionTitle {
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--fg-muted, #a0a0ab);
+  font-weight: 500;
+}
+
+.investGrid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  width: 100%;
+}
+
+.investItem {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  background: var(--bg-default, #141417);
+  border: 1px solid var(--border-color, #32323c);
+  border-radius: 0.5rem;
+  padding: 0.6rem 0.85rem;
+  flex: 1 1 140px;
+  min-width: 110px;
+}
+
+.investValue {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--fg-default, #e8e8ed);
+  line-height: 1.2;
+}
+
+.money {
+  color: var(--fg-success, #4ade80);
+}
+
+.investLabel {
+  font-size: 0.6rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--fg-muted, #a0a0ab);
+  font-weight: 500;
+}
+
+.investDate {
+  font-size: 0.65rem;
+  color: var(--fg-subtle, #6b6b7b);
+}
+
+.netWorthBreakdown {
+  font-size: 0.75rem;
+  color: var(--fg-subtle, #6b6b7b);
+  text-align: left;
+  line-height: 1.4;
+}

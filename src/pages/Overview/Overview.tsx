@@ -1,4 +1,4 @@
-import { useExpensesStore } from "@/store/store";
+import { useExpensesStore, useRsuVests, useBalanceSnapshots } from "@/store/store";
 import { useMemo, useState } from "react";
 import { CoreTable } from "@/components/DataTable/DataTable";
 import { AiOutlineInbox } from "react-icons/ai";
@@ -8,6 +8,124 @@ import { NetSparkline } from "./NetSparkline";
 import { DonutChart } from "./DonutChart";
 import { getLast12Months, computeMonthData, getMonthExpenses, EMPTY_DATA } from "./utils";
 import styles from "./Overview.module.scss";
+
+function formatCurrency(n: number): string {
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  }).format(n);
+}
+
+function localDate(iso: string): Date {
+  const [y, m, d] = iso.split("T")[0].split("-").map(Number);
+  return new Date(y, m - 1, d);
+}
+
+function formatDate(iso: string): string {
+  return localDate(iso).toLocaleDateString("en-US", {
+    month: "short", day: "numeric", year: "numeric",
+  });
+}
+
+function endOfMonth(target: Date): Date {
+  return new Date(target.getFullYear(), target.getMonth() + 1, 0, 23, 59, 59);
+}
+
+function InvestmentsCard({ month }: { month: Date }) {
+  const { vests } = useRsuVests();
+  const { snapshots } = useBalanceSnapshots();
+  const cutoff = endOfMonth(month);
+
+  const filteredVests = vests.filter((v) => localDate(v.vestDate) <= cutoff);
+  const filteredSnapshots = snapshots.filter((s) => localDate(s.date) <= cutoff);
+
+  const totalShares = filteredVests.reduce((s, v) => s + v.shares, 0);
+  const totalValue = filteredVests.reduce((s, v) => s + v.shares * v.price, 0);
+
+  const latestByAccount = new Map<string, typeof filteredSnapshots[0]>();
+  for (const s of filteredSnapshots) {
+    const existing = latestByAccount.get(s.accountName);
+    if (!existing || localDate(s.date) > localDate(existing.date)) {
+      latestByAccount.set(s.accountName, s);
+    }
+  }
+
+  let totalAssetsBalance = 0;
+  let totalDebtsBalance = 0;
+  for (const s of latestByAccount.values()) {
+    if ((s.type ?? "asset") === "debt") {
+      totalDebtsBalance += Math.abs(s.balance);
+    } else {
+      totalAssetsBalance += s.balance;
+    }
+  }
+  const netWorth = totalValue + totalAssetsBalance - totalDebtsBalance;
+
+  return (
+    <div className={styles.card}>
+      <div className={styles.cardHeader}>
+        <span className={styles.cardTitle}>Investments</span>
+      </div>
+      <div className={styles.investCardBody}>
+        <div className={styles.investSection}>
+          <span className={styles.investSectionTitle}>RSU</span>
+          {vests.length === 0 ? (
+            <span className={styles.cardEmpty}>No data</span>
+          ) : (
+            <div className={styles.investGrid}>
+              <div className={styles.investItem}>
+                <span className={styles.investValue}>{totalShares.toLocaleString()}</span>
+                <span className={styles.investLabel}>Shares</span>
+              </div>
+              <div className={styles.investItem}>
+                <span className={`${styles.investValue} ${styles.money}`}>{formatCurrency(totalValue)}</span>
+                <span className={styles.investLabel}>Value at Vest</span>
+              </div>
+              <div className={styles.investItem}>
+                <span className={styles.investValue}>{vests.length}</span>
+                <span className={styles.investLabel}>Events</span>
+              </div>
+            </div>
+          )}
+        </div>
+        <div className={styles.investSection}>
+          <span className={styles.investSectionTitle}>Latest Balances</span>
+          {latestByAccount.size === 0 ? (
+            <span className={styles.cardEmpty}>No data</span>
+          ) : (
+            <div className={styles.investGrid}>
+              {[...latestByAccount.entries()].map(([name, snap]) => (
+                <div key={name} className={styles.investItem}>
+                  <span className={styles.investLabel}>{name}</span>
+                  <span className={`${styles.investValue} ${styles.money}`}>{formatCurrency(snap.balance)}</span>
+                  <span className={styles.investDate}>{formatDate(snap.date)}</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+        <div className={styles.investSection}>
+          <span className={styles.investSectionTitle}>Net Worth</span>
+          <div className={styles.investGrid}>
+            <span className={`${styles.investValue} ${netWorth >= 0 ? styles.valuePos : styles.valueNeg}`}>
+              {formatCurrency(netWorth)}
+            </span>
+          </div>
+          <span className={styles.netWorthBreakdown}>
+            <span className={styles.valuePos}>{formatCurrency(totalValue)}</span>
+            {" RSU + "}
+            <span className={styles.valuePos}>{formatCurrency(totalAssetsBalance)}</span>
+            {" assets − "}
+            <span className={styles.valueNeg}>{formatCurrency(totalDebtsBalance)}</span>
+            {" debts"}
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export function Overview() {
   const months = useMemo(() => getLast12Months(), []);
@@ -71,28 +189,29 @@ export function Overview() {
             totalSpent={current.totalSpent}
             net={current.net}
             savings={current.savings}
-            rsu={current.rsu}
             prevRealIncome={prev.realIncome}
             prevTotalSpent={prev.totalSpent}
             prevNet={prev.net}
             prevSavings={prev.savings}
-            prevRsu={prev.rsu}
           />
           <NetSparkline
             data={sparklineData}
             months={months}
             selectedIndex={selectedIndex}
           />
-          <div className={`${styles.card} ${styles.donutCard}`}>
-            <div className={styles.cardHeader}>
-              <span className={styles.cardTitle}>Spending by Category</span>
+          <div className={styles.overviewRow}>
+            <div className={`${styles.card} ${styles.donutCard}`}>
+              <div className={styles.cardHeader}>
+                <span className={styles.cardTitle}>Spending by Category</span>
+              </div>
+              <DonutChart
+                categories={current.categories}
+                totalSpent={current.totalSpent}
+                disabledCategories={disabledCategories}
+                onToggle={toggleCategory}
+              />
             </div>
-            <DonutChart
-              categories={current.categories}
-              totalSpent={current.totalSpent}
-              disabledCategories={disabledCategories}
-              onToggle={toggleCategory}
-            />
+            <InvestmentsCard month={months[selectedIndex]} />
           </div>
           <div className={`${styles.card} ${styles.tableCard}`}>
             <div className={styles.cardHeader}>
