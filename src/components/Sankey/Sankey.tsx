@@ -1,17 +1,17 @@
-type SankeyNode = {
+export type SankeyNode = {
   id: string;
   label: string;
   color?: string;
 };
 
-type SankeyLink = {
+export type SankeyLink = {
   source: string; // node id
   target: string; // node id
   value: number;
   color?: string;
 };
 
-type SankeyData = {
+export type SankeyData = {
   nodes: SankeyNode[];
   links: SankeyLink[];
 };

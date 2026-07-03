@@ -9,7 +9,6 @@ import { FaTable } from "react-icons/fa6";
 import { FaChartBar } from "react-icons/fa";
 import { LuChartColumnStacked } from "react-icons/lu";
 import { FaSlidersH } from "react-icons/fa";
-import { PiFileCsvBold } from "react-icons/pi";
 import { RiBarChartHorizontalFill } from "react-icons/ri";
 import { FaChartLine } from "react-icons/fa6";
 import { BsAlignMiddle } from "react-icons/bs";
@@ -17,6 +16,7 @@ import { TbChartSankey } from "react-icons/tb";
 import { MdOutlineTrendingUp } from "react-icons/md";
 import { PiCompassLight, PiChartPieSlice } from "react-icons/pi";
 import { Tooltip } from "@/components/ui/tooltip";
+import { enableOverlay, Overlay } from "@/store/OverlayStore";
 
 const NavButton = ({ Icon, page, label }: { Icon: React.FC; page: string; label: string }) => {
   const navigate = useNavigate();
@@ -40,8 +40,14 @@ export function SideNav() {
   return (
     <div className={styles.navContainer}>
       <NavButton Icon={AiOutlineHome} page={Pages.Home} label="Home" />
-      <NavButton Icon={FaSlidersH} page={Pages.Settings} label="Settings" />
-      <NavButton Icon={PiFileCsvBold} page={Pages.FileOpener} label="Import CSV" />
+      <Tooltip content="Settings" positioning={{ placement: "right" }}>
+        <button
+          className={styles.navButton}
+          onClick={() => enableOverlay(Overlay.SettingsModal)}
+        >
+          <FaSlidersH />
+        </button>
+      </Tooltip>
       <NavButton Icon={PiCompassLight} page={Pages.Overview} label="Overview" />
       <NavButton Icon={PiChartPieSlice} page={Pages.Investments} label="Investments" />
       <NavButton Icon={MdOutlineTrendingUp} page={Pages.Forecast} label="Forecast" />

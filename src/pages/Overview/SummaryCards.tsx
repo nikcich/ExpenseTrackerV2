@@ -11,6 +11,10 @@ export function SummaryCards({
   prevTotalSpent,
   prevNet,
   prevSavings,
+  ytdIncome,
+  ytdSpent,
+  ytdNet,
+  ytdSavings,
 }: {
   realIncome: number;
   totalSpent: number;
@@ -20,6 +24,10 @@ export function SummaryCards({
   prevTotalSpent: number;
   prevNet: number;
   prevSavings: number;
+  ytdIncome: number;
+  ytdSpent: number;
+  ytdNet: number;
+  ytdSavings: number;
 }) {
   const cards = [
     {
@@ -29,6 +37,7 @@ export function SummaryCards({
       prev: prevRealIncome,
       valueClass: styles.valuePos,
       goodUp: true,
+      ytd: ytdIncome,
     },
     {
       label: "Spent",
@@ -37,6 +46,7 @@ export function SummaryCards({
       prev: prevTotalSpent,
       valueClass: styles.valueNeg,
       goodUp: false,
+      ytd: ytdSpent,
     },
     {
       label: "Net",
@@ -45,14 +55,16 @@ export function SummaryCards({
       prev: prevNet,
       valueClass: net >= 0 ? styles.valuePos : styles.valueNeg,
       goodUp: true,
+      ytd: ytdNet,
     },
     {
-      label: "Savings & Retirement",
+      label: "Savings",
       value: savings,
-      caption: "transfers to savings/retirement",
+      caption: "transfers to savings",
       prev: prevSavings,
       valueClass: styles.valueNeutral,
       goodUp: true,
+      ytd: ytdSavings,
     },
   ];
 
@@ -64,6 +76,7 @@ export function SummaryCards({
           <span className={`${styles.cardValue} ${c.valueClass}`}>
             {formatCurrency(c.value)}
           </span>
+          <span className={styles.cardYtd}>YTD: {formatCurrency(c.ytd)}</span>
           <span className={styles.cardCaption}>{c.caption}</span>
           <Delta current={c.value} previous={c.prev} goodUp={c.goodUp} />
         </div>

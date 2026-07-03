@@ -1,10 +1,8 @@
 import { BrushScrubber } from "@/components/Brush/BrushScrubber";
-import { BarChart } from "../../components/charts/BarChart";
 import { GenericPage } from "@/components/GenericPage/GenericPage";
 import {
   useFilteredExpenses,
   useFilteredIncome,
-  useFilteredRetirement,
   useFilteredSavings,
 } from "@/hooks/expenses";
 import {
@@ -17,6 +15,7 @@ import { useMemo, useState } from "react";
 import { SegmentGroup } from "@chakra-ui/react";
 import { Expense, Mode } from "@/types/types";
 import { chartDateCompare } from "@/utils/utils";
+import { GroupedBarChartCard } from "@/components/charts/GroupedBarChartCard";
 
 const getGroupedData = (mode: Mode, data: Expense[]) => {
   if (mode === Mode.MONTHLY) {
@@ -33,103 +32,65 @@ const getGroupedAndSortedData = (mode: Mode, data: Expense[]) => {
   return groupedData.sort((a, b) => chartDateCompare(a.group, b.group));
 };
 
-export const GroupedBarChartCore = ({
-  mode,
-  legend,
-  legendDirection,
-}: {
-  mode: Mode;
-  legend?: boolean;
-  legendDirection?: "v" | "h";
-}) => {
+export function GroupedBarChart() {
+  const [mode, setMode] = useState<Mode>(Mode.MONTHLY);
   const filteredExpenses = useFilteredExpenses();
   const filteredIncome = useFilteredIncome();
   const filteredSavings = useFilteredSavings();
-  const filteredRetirement = useFilteredRetirement();
 
-  const sortedGroupedExpenses = useMemo(() => {
-    return getGroupedAndSortedData(mode, filteredExpenses);
-  }, [filteredExpenses, mode]);
-
-  const sortedGroupedIncome = useMemo(() => {
-    return getGroupedAndSortedData(mode, filteredIncome);
-  }, [filteredIncome, mode]);
-
-  const sortedGroupedSavings = useMemo(() => {
-    return getGroupedAndSortedData(mode, filteredSavings);
-  }, [filteredSavings, mode]);
-
-  const sortedGroupedRetirement = useMemo(() => {
-    return getGroupedAndSortedData(mode, filteredRetirement);
-  }, [filteredRetirement, mode]);
+  const sortedGroupedExpenses = useMemo(
+    () => getGroupedAndSortedData(mode, filteredExpenses),
+    [filteredExpenses, mode]
+  );
+  const sortedGroupedIncome = useMemo(
+    () => getGroupedAndSortedData(mode, filteredIncome),
+    [filteredIncome, mode]
+  );
+  const sortedGroupedSavings = useMemo(
+    () => getGroupedAndSortedData(mode, filteredSavings),
+    [filteredSavings, mode]
+  );
 
   const groups = useMemo(() => {
     const groupsSet = new Set<string>();
     sortedGroupedExpenses.forEach((e) => groupsSet.add(e.group));
     sortedGroupedIncome.forEach((e) => groupsSet.add(e.group));
     sortedGroupedSavings.forEach((e) => groupsSet.add(e.group));
-    sortedGroupedRetirement.forEach((e) => groupsSet.add(e.group));
     return Array.from(groupsSet).sort((a, b) => chartDateCompare(a, b));
-  }, [
-    sortedGroupedExpenses,
-    sortedGroupedIncome,
-    sortedGroupedSavings,
-    sortedGroupedRetirement,
-  ]);
+  }, [sortedGroupedExpenses, sortedGroupedIncome, sortedGroupedSavings]);
 
-  return (
-    <>
-      <BarChart
-        x={groups}
-        legend={legend}
-        legendDirection={legendDirection}
-        barCharts={[
-          {
-            name: "Expenses",
-            y: groups.map((group) => {
-              const expenseValue =
-                sortedGroupedExpenses.find((e) => e.group === group)?.total ??
-                0;
-              return Math.abs(expenseValue);
-            }),
-            color: "#bb0000ff",
-          },
-          {
-            name: "Income",
-            y: groups.map((group) => {
-              const incomeValue =
-                sortedGroupedIncome.find((e) => e.group === group)?.total ?? 0;
-              return Math.abs(incomeValue);
-            }),
-            color: "#00a100ff",
-          },
-          {
-            name: "Savings",
-            y: groups.map((group) => {
-              const savingsValue =
-                sortedGroupedSavings.find((e) => e.group === group)?.total ?? 0;
-              return Math.abs(savingsValue);
-            }),
-            color: "#ffd000ff",
-          },
-          {
-            name: "Retirement",
-            y: groups.map((group) => {
-              const retirementValue =
-                sortedGroupedRetirement.find((e) => e.group === group)?.total ??
-                0;
-              return Math.abs(retirementValue);
-            }),
-            color: "#ff00c8ff",
-          },
-        ]}
-      />
-    </>
+  const barCharts = useMemo(
+    () => [
+      {
+        name: "Expenses",
+        y: groups.map((group) => {
+          const expenseValue =
+            sortedGroupedExpenses.find((e) => e.group === group)?.total ?? 0;
+          return Math.abs(expenseValue);
+        }),
+        color: "#bb0000ff",
+      },
+      {
+        name: "Income",
+        y: groups.map((group) => {
+          const incomeValue =
+            sortedGroupedIncome.find((e) => e.group === group)?.total ?? 0;
+          return Math.abs(incomeValue);
+        }),
+        color: "#00a100ff",
+      },
+      {
+        name: "Savings",
+        y: groups.map((group) => {
+          const savingsValue =
+            sortedGroupedSavings.find((e) => e.group === group)?.total ?? 0;
+          return Math.abs(savingsValue);
+        }),
+        color: "#ffd000ff",
+      },
+    ],
+    [groups, sortedGroupedExpenses, sortedGroupedIncome, sortedGroupedSavings]
   );
-};
-
-export function GroupedBarChart() {
-  const [mode, setMode] = useState<Mode>(Mode.MONTHLY);
 
   return (
     <GenericPage
@@ -147,7 +108,9 @@ export function GroupedBarChart() {
         </>
       }
     >
-      <GroupedBarChartCore mode={mode} />
+      <div style={{ padding: "1.5rem 2rem", height: "100%", display: "flex", flexDirection: "column" }}>
+        <GroupedBarChartCard barCharts={barCharts} groups={groups} />
+      </div>
     </GenericPage>
   );
 }

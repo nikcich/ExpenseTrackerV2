@@ -1,0 +1,234 @@
+.page {
+  padding: 1.5rem 2rem;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  overflow-y: auto;
+}
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.sectionHeader {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  cursor: pointer;
+  user-select: none;
+}
+
+.chevron {
+  font-size: 0.6rem;
+  color: var(--fg-muted, #a0a0ab);
+  transition: transform 0.2s;
+  line-height: 1;
+}
+
+.chevronOpen {
+  transform: rotate(90deg);
+}
+
+.sectionTitle {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--fg-default, #e8e8ed);
+  text-align: left;
+}
+
+.fieldRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: flex-end;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  flex: 1;
+  min-width: 140px;
+}
+
+.fieldLabel {
+  font-size: 0.65rem;
+  color: var(--fg-subtle, #6b6b7b);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  text-align: left;
+}
+
+.fieldInput {
+  padding: 0.35rem 0.5rem;
+  border-radius: 0.35rem;
+  border: 1px solid var(--border-color, #32323c);
+  background: var(--bg-panel, #19191e);
+  color: var(--fg-default, #e8e8ed);
+  font-size: 0.8rem;
+  outline: none;
+  width: 100%;
+  font-family: inherit;
+
+  &:focus {
+    border-color: var(--fg-muted, #a0a0ab);
+  }
+}
+
+select.fieldInput {
+  appearance: auto;
+  cursor: pointer;
+}
+
+.ruleRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  padding: 0.75rem;
+  background: var(--bg-muted, #23232a);
+  border-radius: 0.5rem;
+  align-items: flex-end;
+}
+
+.addBtn {
+  padding: 0.4rem 0.9rem;
+  border-radius: 0.5rem;
+  border: 1px solid var(--border-color, #32323c);
+  background: transparent;
+  color: var(--fg-muted, #a0a0ab);
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  align-self: flex-start;
+
+  &:hover {
+    border-color: var(--fg-muted, #a0a0ab);
+    color: var(--fg-default, #e8e8ed);
+  }
+}
+
+.deleteBtn {
+  padding: 0.35rem 0.6rem;
+  border-radius: 0.35rem;
+  border: 1px solid var(--border-color, #32323c);
+  background: transparent;
+  color: var(--fg-subtle, #6b6b7b);
+  font-size: 0.75rem;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  flex-shrink: 0;
+  margin-left: auto;
+
+  &:hover {
+    border-color: #ef4444;
+    color: #ef4444;
+  }
+}
+
+.summaryRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.summaryCard {
+  background: var(--bg-panel, #19191e);
+  border: 1px solid var(--border-color, #32323c);
+  border-radius: 0.75rem;
+  padding: 1rem 1.25rem;
+  flex: 1 1 180px;
+  min-width: 140px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  text-align: left;
+}
+
+.summaryCardLabel {
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--fg-muted, #a0a0ab);
+  font-weight: 500;
+  text-align: left;
+}
+
+.summaryCardValue {
+  font-size: 1.3rem;
+  font-weight: 700;
+  line-height: 1.2;
+  font-variant-numeric: tabular-nums;
+}
+
+.valuePos {
+  color: var(--fg-success, #4ade80);
+}
+
+.valueNeg {
+  color: var(--fg-error, #f87171);
+}
+
+.valueNeutral {
+  color: var(--fg-warning, #eab308);
+}
+
+.tableCard {
+  background: var(--bg-panel, #19191e);
+  border: 1px solid var(--border-color, #32323c);
+  border-radius: 0.75rem;
+  padding: 1.25rem;
+  overflow: hidden;
+  max-height: 500px;
+  overflow-y: auto;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--fg-default, #e8e8ed);
+}
+
+.table th {
+  text-align: left;
+  padding: 0.5rem 0.75rem;
+  color: var(--fg-muted, #a0a0ab);
+  font-weight: 500;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border-bottom: 1px solid var(--border-color, #32323c);
+}
+
+.table td {
+  padding: 0.5rem 0.75rem;
+  border-bottom: 1px solid var(--border-color, #32323c);
+  text-align: left;
+}
+
+.table tr:last-child td {
+  border-bottom: none;
+}
+
+.eventIncome {
+  color: var(--fg-success, #4ade80);
+}
+
+.eventExpense {
+  color: var(--fg-error, #f87171);
+}
+
+.eventTransfer {
+  color: var(--fg-warning, #eab308);
+}
+
+.emptyRow {
+  text-align: center;
+  padding: 2rem;
+  color: var(--fg-subtle, #6b6b7b);
+  font-size: 0.85rem;
+}

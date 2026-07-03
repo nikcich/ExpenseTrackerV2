@@ -8,8 +8,6 @@ import { Home } from "./pages/Home/Home";
 import { TableView } from "./pages/TableView/TableView";
 import { GroupedBarChart } from "./pages/GroupedBarChart/GroupedBarChart";
 import { TagStackedBarChart } from "./pages/TagStackedBarChart/TagStackedBarChart";
-import { Settings } from "./pages/Settings/Settings";
-import { FileOpener } from "./pages/FileOpener/FileOpener";
 import { Overlays } from "./Overlays";
 import { RangeIncomeExpenseChart } from "./pages/RangeIncomeExpenseChart/RangeIncomeExpenseChart";
 import { YearToDateChart } from "./pages/YearToDateChart/YearToDateChart";
@@ -64,11 +62,6 @@ export function AppRouter() {
         />
 
         <Route
-          path={Pages.Settings}
-          element={<RouteComponent element={<Settings />} />}
-        />
-
-        <Route
           path={Pages.TableView}
           element={<RouteComponent element={<TableView />} />}
         />
@@ -86,11 +79,6 @@ export function AppRouter() {
         <Route
           path={Pages.StackedBarChart}
           element={<RouteComponent element={<TagStackedBarChart />} />}
-        />
-
-        <Route
-          path={Pages.FileOpener}
-          element={<RouteComponent element={<FileOpener />} />}
         />
 
         <Route

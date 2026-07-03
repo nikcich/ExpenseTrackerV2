@@ -76,9 +76,18 @@
   line-height: 1.2;
 }
 
+
+
 .cardCaption {
   font-size: 0.7rem;
   color: var(--fg-subtle, #6b6b7b);
+}
+
+.cardYtd {
+  font-size: 0.75rem;
+  color: var(--fg-muted, #a0a0ab);
+  font-weight: 500;
+  white-space: nowrap;
 }
 
 .savingsRow {

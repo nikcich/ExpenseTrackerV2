@@ -6,7 +6,8 @@ import { MonthPills } from "./MonthPills";
 import { SummaryCards } from "./SummaryCards";
 import { NetSparkline } from "./NetSparkline";
 import { DonutChart } from "./DonutChart";
-import { getLast12Months, computeMonthData, getMonthExpenses, EMPTY_DATA } from "./utils";
+import { getLast12Months, computeMonthData, getMonthExpenses, computeYtdFromExpenses, EMPTY_DATA } from "./utils";
+import { useSettingsStore } from "@/store/SettingsStore";
 import styles from "./Overview.module.scss";
 
 function formatCurrency(n: number): string {
@@ -131,7 +132,17 @@ export function Overview() {
   const months = useMemo(() => getLast12Months(), []);
   const [selectedIndex, setSelectedIndex] = useState(months.length - 1);
   const { value: allExpenses } = useExpensesStore();
+  const disabledTags = useSettingsStore("disabledTags");
   const [disabledCategories, setDisabledCategories] = useState<Set<string>>(new Set());
+
+  const filteredExpensesRaw = useMemo(() => {
+    if (!allExpenses) return [];
+    return allExpenses.filter(
+      (e) =>
+        !disabledTags.some((tag) => e.tags.includes(tag)) ||
+        e.tags.length === 0
+    );
+  }, [allExpenses, disabledTags]);
 
   const toggleCategory = (name: string) => {
     setDisabledCategories((prev) => {
@@ -143,18 +154,19 @@ export function Overview() {
   };
 
   const allMonthsData = useMemo(() => {
-    if (!allExpenses) return months.map(() => EMPTY_DATA);
-    return months.map((m) => computeMonthData(allExpenses, m));
-  }, [allExpenses, months]);
+    if (!filteredExpensesRaw) return months.map(() => EMPTY_DATA);
+    return months.map((m) => computeMonthData(filteredExpensesRaw, m));
+  }, [filteredExpensesRaw, months]);
 
   const current = allMonthsData[selectedIndex];
   const prev =
     selectedIndex > 0 ? allMonthsData[selectedIndex - 1] : EMPTY_DATA;
+  const ytd = useMemo(() => computeYtdFromExpenses(filteredExpensesRaw, months[selectedIndex]), [filteredExpensesRaw, months, selectedIndex]);
   const sparklineData = allMonthsData.map((d) => d.net);
   const currentExpenses = useMemo(() => {
-    if (!allExpenses) return [];
-    return getMonthExpenses(allExpenses, months[selectedIndex]);
-  }, [allExpenses, months, selectedIndex]);
+    if (!filteredExpensesRaw) return [];
+    return getMonthExpenses(filteredExpensesRaw, months[selectedIndex]);
+  }, [filteredExpensesRaw, months, selectedIndex]);
 
   const filteredExpenses = useMemo(() => {
     if (disabledCategories.size === 0) return currentExpenses;
@@ -193,6 +205,10 @@ export function Overview() {
             prevTotalSpent={prev.totalSpent}
             prevNet={prev.net}
             prevSavings={prev.savings}
+            ytdIncome={ytd.ytdIncome}
+            ytdSpent={ytd.ytdSpent}
+            ytdNet={ytd.ytdNet}
+            ytdSavings={ytd.ytdSavings}
           />
           <NetSparkline
             data={sparklineData}

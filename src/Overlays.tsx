@@ -2,8 +2,9 @@ import { CreateExpenseModal } from "./components/CreateExpenseModal/CreateExpens
 import { DateRangeModal } from "./components/DateRangeModal/DateRangeModal";
 import { EditModal } from "./components/EditModal/EditModal";
 import { TagModal } from "./components/TagModal/TagModal";
+import { SettingsModal } from "./pages/Settings/SettingsModal";
 
-const Modals = [DateRangeModal, EditModal, CreateExpenseModal, TagModal];
+const Modals = [DateRangeModal, EditModal, CreateExpenseModal, TagModal, SettingsModal];
 
 export const Overlays = () => {
   return (

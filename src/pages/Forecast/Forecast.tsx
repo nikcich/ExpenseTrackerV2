@@ -1,15 +1,4 @@
-import { GenericPage } from "@/components/GenericPage/GenericPage";
 import { useMemo, useState, useCallback, useRef, useEffect } from "react";
-import {
-  Box,
-  Text,
-  Input,
-  Flex,
-  Field,
-  NativeSelect,
-  Button,
-  Spinner,
-} from "@chakra-ui/react";
 import {
   CashFlowEvent,
   PayPeriod,
@@ -19,7 +8,8 @@ import {
 } from "@/utils/cash-flow-forecast";
 import { useForecastConfig } from "@/store/store";
 import { format } from "date-fns";
-import { FaChevronRight } from "react-icons/fa";
+import styles from "./Forecast.module.scss";
+import { GenericPage } from "@/components/GenericPage/GenericPage";
 
 const formatCurrency = (amount: number) =>
   new Intl.NumberFormat("en-US", {
@@ -28,85 +18,6 @@ const formatCurrency = (amount: number) =>
   }).format(amount);
 
 const cleanNum = (v: string) => String(Number(v));
-
-const CFGroup = ({
-  label,
-  value,
-  onChange,
-  type = "number",
-}: {
-  label: string;
-  value: string | number;
-  onChange: (v: string) => void;
-  type?: string;
-}) => (
-  <Field.Root flex="1" minW="180px">
-    <Field.Label fontSize="sm">{label}</Field.Label>
-    <Input
-      type={type === "number" ? "text" : type}
-      inputMode={type === "number" ? "decimal" : undefined}
-      value={value}
-      onChange={(e) => {
-        if (type !== "number") { onChange(e.target.value); return; }
-        const num = Number(e.target.value);
-        if (!isNaN(num)) onChange(e.target.value);
-      }}
-      onBlur={type === "number" ? (e) => onChange(cleanNum(e.target.value)) : undefined}
-      size="sm"
-    />
-  </Field.Root>
-);
-
-const TableHeader = () => (
-  <Flex
-    py={2}
-    px={4}
-    fontWeight="bold"
-    borderBottom="1px solid"
-    borderColor="gray.600"
-    bg="gray.800"
-    fontSize="sm"
-  >
-    <Box w="120px" textAlign="left">Date</Box>
-    <Box w="180px" textAlign="left">Event</Box>
-    <Box w="130px" textAlign="left">Change</Box>
-    <Box w="130px" textAlign="left">Checking</Box>
-    <Box w="130px" textAlign="left">Savings</Box>
-  </Flex>
-);
-
-const eventColor = (event: CashFlowEvent): string => {
-  if (event.type === "income") return "green.300";
-  if (event.type === "expense") return "red.300";
-  if (event.type === "transfer") return "yellow.300";
-  return "";
-};
-
-const TableRow = ({ event }: { event: CashFlowEvent }) => (
-  <Flex
-    py={1.5}
-    px={4}
-    borderBottom="1px solid"
-    borderColor="gray.700"
-    fontSize="sm"
-    fontFamily="mono"
-    color={eventColor(event)}
-  >
-    <Box w="120px" textAlign="left">{event.date}</Box>
-    <Box w="180px" textAlign="left">{event.event}</Box>
-    <Box w="130px" textAlign="left">
-      {event.change !== null
-        ? (event.change >= 0 ? "+" : "") + formatCurrency(event.change)
-        : ""}
-    </Box>
-    <Box w="130px" textAlign="left">
-      {formatCurrency(event.checking)}
-    </Box>
-    <Box w="130px" textAlign="left">
-      {formatCurrency(event.savings)}
-    </Box>
-  </Flex>
-);
 
 const DEFAULT_CONFIG = {
   startBalance: 0,
@@ -210,219 +121,261 @@ export function Forecast() {
     [startBalance, reserve, startDate, endDate, incomeStreams, expenses],
   );
 
+  const eventColorClass = (event: CashFlowEvent): string => {
+    if (event.type === "income") return styles.eventIncome;
+    if (event.type === "expense") return styles.eventExpense;
+    if (event.type === "transfer") return styles.eventTransfer;
+    return "";
+  };
+
   if (!loaded) {
     return (
       <GenericPage title="Forecast" hasRange={false} needsData={false}>
-        <Flex align="center" justify="center" height="100%" p={8}>
-          <Spinner size="xl" />
-        </Flex>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100%", padding: "2rem" }}>
+          <span style={{ color: "var(--fg-muted, #a0a0ab)" }}>Loading...</span>
+        </div>
       </GenericPage>
     );
   }
 
   return (
     <GenericPage title="Forecast" hasRange={false} needsData={false}>
-      <Flex direction="column" p={4} gap={4}>
-        <Box>
-          <Flex align="center" gap={2} cursor="pointer" onClick={() => toggleSection("general")}>
-            <Box transition="transform 0.2s" transform={sections.general ? "rotate(90deg)" : undefined}>
-              <FaChevronRight size={12} />
-            </Box>
-            <Text fontSize="sm" fontWeight="medium" color="gray.300">General</Text>
-          </Flex>
+      <div className={styles.page}>
+        <div className={styles.section}>
+          <div className={styles.sectionHeader} onClick={() => toggleSection("general")}>
+            <span className={`${styles.chevron} ${sections.general ? styles.chevronOpen : ""}`}>▶</span>
+            <span className={styles.sectionTitle}>General</span>
+          </div>
           {sections.general && (
-            <Flex direction="column" gap={2} w="100%" mt={2}>
-              <Flex wrap="wrap" gap={4} alignItems="flex-end">
-                <CFGroup label="Starting Balance" value={startBalance} onChange={(v) => setStartBalance(Number(v))} />
-                <CFGroup label="Reserve Amount" value={reserve} onChange={(v) => setReserve(Number(v))} />
-                <CFGroup label="Start Date" value={startDate} onChange={setStartDate} type="date" />
-                <CFGroup label="End Date" value={endDate} onChange={setEndDate} type="date" />
-              </Flex>
-            </Flex>
+            <div className={styles.fieldRow}>
+              <div className={styles.field}>
+                <span className={styles.fieldLabel}>Starting Balance</span>
+                <input
+                  className={styles.fieldInput}
+                  type="text"
+                  inputMode="decimal"
+                  value={startBalance}
+                  onChange={(e) => {
+                    const num = Number(e.target.value);
+                    if (!isNaN(num)) setStartBalance(num);
+                  }}
+                  onBlur={(e) => setStartBalance(Number(cleanNum(e.target.value)))}
+                />
+              </div>
+              <div className={styles.field}>
+                <span className={styles.fieldLabel}>Reserve Amount</span>
+                <input
+                  className={styles.fieldInput}
+                  type="text"
+                  inputMode="decimal"
+                  value={reserve}
+                  onChange={(e) => {
+                    const num = Number(e.target.value);
+                    if (!isNaN(num)) setReserve(num);
+                  }}
+                  onBlur={(e) => setReserve(Number(cleanNum(e.target.value)))}
+                />
+              </div>
+              <div className={styles.field}>
+                <span className={styles.fieldLabel}>Start Date</span>
+                <input className={styles.fieldInput} type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
+              </div>
+              <div className={styles.field}>
+                <span className={styles.fieldLabel}>End Date</span>
+                <input className={styles.fieldInput} type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
+              </div>
+            </div>
           )}
-        </Box>
+        </div>
 
-        <Box>
-          <Flex align="center" gap={2} cursor="pointer" onClick={() => toggleSection("income")}>
-            <Box transition="transform 0.2s" transform={sections.income ? "rotate(90deg)" : undefined}>
-              <FaChevronRight size={12} />
-            </Box>
-            <Text fontSize="sm" fontWeight="medium" color="gray.300">Income</Text>
-          </Flex>
+        <div className={styles.section}>
+          <div className={styles.sectionHeader} onClick={() => toggleSection("income")}>
+            <span className={`${styles.chevron} ${sections.income ? styles.chevronOpen : ""}`}>▶</span>
+            <span className={styles.sectionTitle}>Income</span>
+          </div>
           {sections.income && (
-            <Flex direction="column" gap={2} mt={2}>
+            <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
               {incomeStreams.map((stream, i) => (
-                <Flex key={i} gap={2} alignItems="flex-end" wrap="wrap">
-                  <Field.Root maxW="140px">
-                    <Field.Label fontSize="xs">Name</Field.Label>
-                    <Input type="text" value={stream.name || ""} onChange={(e) => updateIncome(i, "name", e.target.value)} size="sm" placeholder="e.g. Salary" />
-                  </Field.Root>
-                  <Field.Root maxW="120px">
-                    <Field.Label fontSize="xs">Amount</Field.Label>
-                    <Input type="text" inputMode="decimal" value={stream.amount} onChange={(e) => {
+                <div key={i} className={styles.ruleRow}>
+                  <div className={styles.field} style={{ minWidth: "120px", flex: "0.8" }}>
+                    <span className={styles.fieldLabel}>Name</span>
+                    <input className={styles.fieldInput} type="text" value={stream.name || ""} onChange={(e) => updateIncome(i, "name", e.target.value)} placeholder="e.g. Salary" />
+                  </div>
+                  <div className={styles.field} style={{ minWidth: "100px", flex: "0.6" }}>
+                    <span className={styles.fieldLabel}>Amount</span>
+                    <input className={styles.fieldInput} type="text" inputMode="decimal" value={stream.amount} onChange={(e) => {
                       const num = Number(e.target.value);
                       if (!isNaN(num)) updateIncome(i, "amount", num);
-                    }} size="sm" />
-                  </Field.Root>
-                  <Field.Root maxW="160px">
-                    <Field.Label fontSize="xs">Period</Field.Label>
-                    <NativeSelect.Root>
-                      <NativeSelect.Field value={stream.payPeriod} onChange={(e) => updateIncome(i, "payPeriod", e.currentTarget.value)}>
-                        <option value="biweekly">Bi-weekly</option>
-                        <option value="weekly">Weekly</option>
-                        <option value="semimonthly">Semi-monthly</option>
-                        <option value="monthly">Monthly</option>
-                        <option value="quarterly">Quarterly</option>
-                        <option value="semiannual">Semi-annual</option>
-                        <option value="annual">Annual</option>
-                      </NativeSelect.Field>
-                      <NativeSelect.Indicator />
-                    </NativeSelect.Root>
-                  </Field.Root>
-                  <Field.Root maxW="150px">
-                    <Field.Label fontSize="xs">First Date</Field.Label>
-                    <Input type="date" value={stream.firstPaycheckDate} onChange={(e) => updateIncome(i, "firstPaycheckDate", e.target.value)} size="sm" />
-                  </Field.Root>
+                    }} />
+                  </div>
+                  <div className={styles.field} style={{ minWidth: "130px", flex: "0.7" }}>
+                    <span className={styles.fieldLabel}>Period</span>
+                    <select className={styles.fieldInput} value={stream.payPeriod} onChange={(e) => updateIncome(i, "payPeriod", e.currentTarget.value)}>
+                      <option value="biweekly">Bi-weekly</option>
+                      <option value="weekly">Weekly</option>
+                      <option value="semimonthly">Semi-monthly</option>
+                      <option value="monthly">Monthly</option>
+                      <option value="quarterly">Quarterly</option>
+                      <option value="semiannual">Semi-annual</option>
+                      <option value="annual">Annual</option>
+                    </select>
+                  </div>
+                  <div className={styles.field} style={{ minWidth: "130px", flex: "0.7" }}>
+                    <span className={styles.fieldLabel}>First Date</span>
+                    <input className={styles.fieldInput} type="date" value={stream.firstPaycheckDate} onChange={(e) => updateIncome(i, "firstPaycheckDate", e.target.value)} />
+                  </div>
                   {stream.payPeriod === "semimonthly" && (
                     <>
-                      <Field.Root maxW="70px">
-                        <Field.Label fontSize="xs">Day 1</Field.Label>
-                        <Input type="text" inputMode="numeric" value={stream.semimonthlyPayday1} onChange={(e) => {
+                      <div className={styles.field} style={{ minWidth: "50px", flex: "0.3" }}>
+                        <span className={styles.fieldLabel}>Day 1</span>
+                        <input className={styles.fieldInput} type="text" inputMode="numeric" value={stream.semimonthlyPayday1} onChange={(e) => {
                           const num = Number(e.target.value);
                           if (!isNaN(num)) updateIncome(i, "semimonthlyPayday1", Math.min(31, Math.max(1, num)));
-                        }} size="sm" />
-                      </Field.Root>
-                      <Field.Root maxW="70px">
-                        <Field.Label fontSize="xs">Day 2</Field.Label>
-                        <Input type="text" inputMode="numeric" value={stream.semimonthlyPayday2} onChange={(e) => {
+                        }} />
+                      </div>
+                      <div className={styles.field} style={{ minWidth: "50px", flex: "0.3" }}>
+                        <span className={styles.fieldLabel}>Day 2</span>
+                        <input className={styles.fieldInput} type="text" inputMode="numeric" value={stream.semimonthlyPayday2} onChange={(e) => {
                           const num = Number(e.target.value);
                           if (!isNaN(num)) updateIncome(i, "semimonthlyPayday2", Math.min(31, Math.max(1, num)));
-                        }} size="sm" />
-                      </Field.Root>
+                        }} />
+                      </div>
                     </>
                   )}
-                  <Field.Root maxW="150px">
-                    <Field.Label fontSize="xs">End Date</Field.Label>
-                    <Input type="date" value={stream.endDate || ""} onChange={(e) => updateIncome(i, "endDate", e.target.value)} size="sm" />
-                  </Field.Root>
-                  <Button size="sm" variant="solid" colorPalette="red" flexShrink={0} marginLeft="auto" onClick={() => removeIncome(i)}>
-                    &#x2716;
-                  </Button>
-                </Flex>
+                  <div className={styles.field} style={{ minWidth: "130px", flex: "0.7" }}>
+                    <span className={styles.fieldLabel}>End Date</span>
+                    <input className={styles.fieldInput} type="date" value={stream.endDate || ""} onChange={(e) => updateIncome(i, "endDate", e.target.value)} />
+                  </div>
+                  <button className={styles.deleteBtn} onClick={() => removeIncome(i)}>✖</button>
+                </div>
               ))}
-              <Button size="sm" variant="solid" colorPalette="green" alignSelf="start" onClick={addIncome}>
-                + Add Income
-              </Button>
-            </Flex>
+              <button className={styles.addBtn} onClick={addIncome}>+ Add Income</button>
+            </div>
           )}
-        </Box>
+        </div>
 
-        <Box>
-          <Flex align="center" gap={2} cursor="pointer" onClick={() => toggleSection("expenses")}>
-            <Box transition="transform 0.2s" transform={sections.expenses ? "rotate(90deg)" : undefined}>
-              <FaChevronRight size={12} />
-            </Box>
-            <Text fontSize="sm" fontWeight="medium" color="gray.300">Expenses</Text>
-          </Flex>
+        <div className={styles.section}>
+          <div className={styles.sectionHeader} onClick={() => toggleSection("expenses")}>
+            <span className={`${styles.chevron} ${sections.expenses ? styles.chevronOpen : ""}`}>▶</span>
+            <span className={styles.sectionTitle}>Expenses</span>
+          </div>
           {sections.expenses && (
-            <Flex direction="column" gap={2} mt={2}>
+            <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
               {expenses.map((exp, i) => (
-                <Flex key={i} gap={2} alignItems="flex-end" wrap="wrap">
-                  <Field.Root maxW="140px">
-                    <Field.Label fontSize="xs">Name</Field.Label>
-                    <Input type="text" value={exp.name || ""} onChange={(e) => updateExpense(i, "name", e.target.value)} size="sm" placeholder="e.g. Rent" />
-                  </Field.Root>
-                  <Field.Root maxW="150px">
-                    <Field.Label fontSize="xs">First Date</Field.Label>
-                    <Input type="date" value={exp.firstDate || ""} onChange={(e) => updateExpense(i, "firstDate", e.target.value)} size="sm" />
-                  </Field.Root>
-                  <Field.Root maxW="100px">
-                    <Field.Label fontSize="xs">Amount</Field.Label>
-                    <Input type="text" inputMode="decimal" value={exp.amount} onChange={(e) => {
+                <div key={i} className={styles.ruleRow}>
+                  <div className={styles.field} style={{ minWidth: "120px", flex: "0.8" }}>
+                    <span className={styles.fieldLabel}>Name</span>
+                    <input className={styles.fieldInput} type="text" value={exp.name || ""} onChange={(e) => updateExpense(i, "name", e.target.value)} placeholder="e.g. Rent" />
+                  </div>
+                  <div className={styles.field} style={{ minWidth: "130px", flex: "0.7" }}>
+                    <span className={styles.fieldLabel}>First Date</span>
+                    <input className={styles.fieldInput} type="date" value={exp.firstDate || ""} onChange={(e) => updateExpense(i, "firstDate", e.target.value)} />
+                  </div>
+                  <div className={styles.field} style={{ minWidth: "80px", flex: "0.5" }}>
+                    <span className={styles.fieldLabel}>Amount</span>
+                    <input className={styles.fieldInput} type="text" inputMode="decimal" value={exp.amount} onChange={(e) => {
                       const num = Number(e.target.value);
                       if (!isNaN(num)) updateExpense(i, "amount", num);
-                    }} size="sm" />
-                  </Field.Root>
-                  <Field.Root maxW="140px">
-                    <Field.Label fontSize="xs">Period</Field.Label>
-                    <NativeSelect.Root>
-                      <NativeSelect.Field value={exp.period || "monthly"} onChange={(e) => {
-                        const newPeriod = e.currentTarget.value;
-                        updateExpense(i, "period", newPeriod);
-                        if (!exp.firstDate) {
-                          updateExpense(i, "firstDate", format(new Date(), "yyyy-MM-dd"));
-                        }
-                      }}>
-                        <option value="monthly">Monthly</option>
-                        <option value="weekly">Weekly</option>
-                        <option value="biweekly">Bi-weekly</option>
-                        <option value="quarterly">Quarterly</option>
-                        <option value="semiannual">Semi-annual</option>
-                        <option value="annual">Annual</option>
-                      </NativeSelect.Field>
-                      <NativeSelect.Indicator />
-                    </NativeSelect.Root>
-                  </Field.Root>
-                  <Field.Root maxW="150px">
-                    <Field.Label fontSize="xs">End Date</Field.Label>
-                    <Input type="date" value={exp.endDate || ""} onChange={(e) => updateExpense(i, "endDate", e.target.value)} size="sm" />
-                  </Field.Root>
-                  <Button size="sm" variant="solid" colorPalette="red" flexShrink={0} marginLeft="auto" onClick={() => removeExpense(i)}>
-                    &#x2716;
-                  </Button>
-                </Flex>
+                    }} />
+                  </div>
+                  <div className={styles.field} style={{ minWidth: "120px", flex: "0.6" }}>
+                    <span className={styles.fieldLabel}>Period</span>
+                    <select className={styles.fieldInput} value={exp.period || "monthly"} onChange={(e) => {
+                      const newPeriod = e.currentTarget.value;
+                      updateExpense(i, "period", newPeriod);
+                      if (!exp.firstDate) {
+                        updateExpense(i, "firstDate", format(new Date(), "yyyy-MM-dd"));
+                      }
+                    }}>
+                      <option value="monthly">Monthly</option>
+                      <option value="weekly">Weekly</option>
+                      <option value="biweekly">Bi-weekly</option>
+                      <option value="quarterly">Quarterly</option>
+                      <option value="semiannual">Semi-annual</option>
+                      <option value="annual">Annual</option>
+                    </select>
+                  </div>
+                  <div className={styles.field} style={{ minWidth: "130px", flex: "0.7" }}>
+                    <span className={styles.fieldLabel}>End Date</span>
+                    <input className={styles.fieldInput} type="date" value={exp.endDate || ""} onChange={(e) => updateExpense(i, "endDate", e.target.value)} />
+                  </div>
+                  <button className={styles.deleteBtn} onClick={() => removeExpense(i)}>✖</button>
+                </div>
               ))}
-              <Button size="sm" variant="solid" colorPalette="green" alignSelf="start" onClick={addExpense}>
-                + Add Expense
-              </Button>
-            </Flex>
+              <button className={styles.addBtn} onClick={addExpense}>+ Add Expense</button>
+            </div>
           )}
-        </Box>
+        </div>
 
         {result.events.length > 0 && (
           <>
-            <Box h="500px" border="1px solid" borderColor="gray.700" borderRadius="md" overflow="hidden" display="flex" flexDirection="column">
-              <Box overflowY="auto" flex={1}>
-                <TableHeader />
-                {result.events.map((ev, i) => <TableRow key={i} event={ev} />)}
-              </Box>
-            </Box>
+            <div className={styles.tableCard}>
+              <table className={styles.table}>
+                <thead>
+                  <tr>
+                    <th>Date</th>
+                    <th>Event</th>
+                    <th>Change</th>
+                    <th>Checking</th>
+                    <th>Savings</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {result.events.map((ev, i) => (
+                    <tr key={i}>
+                      <td>{ev.date}</td>
+                      <td>{ev.event}</td>
+                      <td className={eventColorClass(ev)}>
+                        {ev.change !== null
+                          ? (ev.change >= 0 ? "+" : "") + formatCurrency(ev.change)
+                          : ""}
+                      </td>
+                      <td>{formatCurrency(ev.checking)}</td>
+                      <td>{formatCurrency(ev.savings)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              {result.events.length === 0 && (
+                <div className={styles.emptyRow}>No forecast events</div>
+              )}
+            </div>
 
-            <Flex border="1px solid" borderColor="gray.700" borderRadius="md" p={4} gap={8} bg="gray.800" wrap="wrap">
-              <Box>
-                <Text fontSize="xs" color="gray.400" mb={1}>Total Income</Text>
-                <Text fontSize="xl" fontWeight="bold" fontFamily="mono" color="green.300">
+            <div className={styles.summaryRow}>
+              <div className={styles.summaryCard}>
+                <span className={styles.summaryCardLabel}>Total Income</span>
+                <span className={`${styles.summaryCardValue} ${styles.valuePos}`}>
                   {formatCurrency(result.summary.totalIncome)}
-                </Text>
-              </Box>
-              <Box>
-                <Text fontSize="xs" color="gray.400" mb={1}>Total Expenses</Text>
-                <Text fontSize="xl" fontWeight="bold" fontFamily="mono" color="red.300">
+                </span>
+              </div>
+              <div className={styles.summaryCard}>
+                <span className={styles.summaryCardLabel}>Total Expenses</span>
+                <span className={`${styles.summaryCardValue} ${styles.valueNeg}`}>
                   {formatCurrency(result.summary.totalExpenses)}
-                </Text>
-              </Box>
-              <Box>
-                <Text fontSize="xs" color="gray.400" mb={1}>Ending Checking</Text>
-                <Text fontSize="xl" fontWeight="bold" fontFamily="mono" color={result.summary.endingChecking >= 0 ? "green.300" : "red.300"}>
+                </span>
+              </div>
+              <div className={styles.summaryCard}>
+                <span className={styles.summaryCardLabel}>Ending Checking</span>
+                <span className={`${styles.summaryCardValue} ${result.summary.endingChecking >= 0 ? styles.valuePos : styles.valueNeg}`}>
                   {formatCurrency(result.summary.endingChecking)}
-                </Text>
-              </Box>
-              <Box>
-                <Text fontSize="xs" color="gray.400" mb={1}>Ending Savings</Text>
-                <Text fontSize="xl" fontWeight="bold" fontFamily="mono" color="yellow.300">
+                </span>
+              </div>
+              <div className={styles.summaryCard}>
+                <span className={styles.summaryCardLabel}>Ending Savings</span>
+                <span className={`${styles.summaryCardValue} ${styles.valueNeutral}`}>
                   {formatCurrency(result.summary.endingSavings)}
-                </Text>
-              </Box>
-              <Box>
-                <Text fontSize="xs" color="gray.400" mb={1}>Lowest Checking</Text>
-                <Text fontSize="xl" fontWeight="bold" fontFamily="mono" color={result.summary.lowestChecking >= 0 ? "green.300" : "red.300"}>
+                </span>
+              </div>
+              <div className={styles.summaryCard}>
+                <span className={styles.summaryCardLabel}>Lowest Checking</span>
+                <span className={`${styles.summaryCardValue} ${result.summary.lowestChecking >= 0 ? styles.valuePos : styles.valueNeg}`}>
                   {formatCurrency(result.summary.lowestChecking)}
-                </Text>
-              </Box>
-            </Flex>
+                </span>
+              </div>
+            </div>
           </>
         )}
-      </Flex>
+      </div>
     </GenericPage>
   );
 }

@@ -3,19 +3,17 @@ import {
   useExpenses,
   useFilteredExpenses,
   useFilteredIncome,
-  useFilteredRetirement,
   useFilteredSavings,
   useIncome,
-  useRetirement,
   useSavings,
 } from "@/hooks/expenses";
 import { Expense } from "@/types/types";
-import { Sankey } from "@/components/Sankey/Sankey";
 import { BrushScrubber } from "@/components/Brush/BrushScrubber";
 import { useMemo, useState } from "react";
 import { SegmentGroup } from "@chakra-ui/react";
-
 import { useAllTags } from "@/utils/tags";
+import { SankeyCard } from "@/components/charts/SankeyCard";
+import { SankeyData } from "@/components/Sankey/Sankey";
 
 const filterYear = (data: Expense[], beforeNow: number = 0) => {
   const now = new Date();
@@ -33,23 +31,6 @@ const sumAmounts = (expenses: Expense[]): number => {
   return parseFloat(num.toFixed(2));
 };
 
-type SankeyNode = {
-  id: string;
-  label: string;
-  color?: string;
-};
-
-type SankeyLink = {
-  source: string;
-  target: string;
-  value: number;
-};
-
-type SankeyData = {
-  nodes: SankeyNode[];
-  links: SankeyLink[];
-};
-
 const formatMoney = (value: number) => {
   const abs = Math.abs(value);
 
@@ -64,13 +45,11 @@ function buildCashFlowSankey(
   income: Expense[],
   savings: Expense[],
   trueExpenses: Expense[],
-  retirement: Expense[],
   tags: string[]
 ): SankeyData {
   const incomeTotal = sumAmounts(income);
   const savingsTotal = sumAmounts(savings);
   const expensesTotal = sumAmounts(trueExpenses);
-  const retirementTotal = sumAmounts(retirement);
 
   const expensesByTag: Record<string, number> = Object.fromEntries(
     tags.map((tag) => [tag, 0])
@@ -88,17 +67,7 @@ function buildCashFlowSankey(
   const spending = expensesTotal + savingsTotal;
   const excessTotal = incomeTotal - spending;
 
-  const nodes: SankeyNode[] = [
-    {
-      id: "retirementded",
-      label: `Retirement Deductions – ${formatMoney(Math.abs(retirementTotal))}`,
-      color: "#3498db",
-    },
-    {
-      id: "retirement",
-      label: `Retirement – ${formatMoney(Math.abs(retirementTotal))}`,
-      color: "#3498db",
-    },
+  const nodes = [
     {
       id: "income",
       label: `Income (After tax & Deductions) – ${formatMoney(Math.abs(incomeTotal))}`,
@@ -126,12 +95,7 @@ function buildCashFlowSankey(
     },
   ];
 
-  const links: SankeyLink[] = [
-    {
-      source: "retirementded",
-      target: "retirement",
-      value: Math.abs(retirementTotal),
-    },
+  const links = [
     {
       source: "income",
       target: "savings",
@@ -176,45 +140,34 @@ const filterExpenseMode = (
   return filterYear(rawData);
 };
 
-export const SankeyCore = ({ mode }: { mode: Mode }) => {
+export function ExpenseSankey() {
+  const [mode, setMode] = useState<Mode>(Mode.RANGE);
+
   const rawExpenses = useExpenses();
   const rawIncome = useIncome();
   const rawSavings = useSavings();
-  const rawRetirement = useRetirement();
-
   const filteredIncome = useFilteredIncome();
   const filteredExpenses = useFilteredExpenses();
   const filteredSavings = useFilteredSavings();
-  const filteredRetirement = useFilteredRetirement();
   const tags = useAllTags();
 
-  const income = useMemo(() => {
-    return filterExpenseMode(mode, rawIncome, filteredIncome);
-  }, [mode, filteredIncome, rawIncome]);
+  const income = useMemo(
+    () => filterExpenseMode(mode, rawIncome, filteredIncome),
+    [mode, filteredIncome, rawIncome]
+  );
+  const expense = useMemo(
+    () => filterExpenseMode(mode, rawExpenses, filteredExpenses),
+    [mode, filteredExpenses, rawExpenses]
+  );
+  const savings = useMemo(
+    () => filterExpenseMode(mode, rawSavings, filteredSavings),
+    [mode, filteredSavings, rawSavings]
+  );
 
-  const expense = useMemo(() => {
-    return filterExpenseMode(mode, rawExpenses, filteredExpenses);
-  }, [mode, filteredExpenses, rawExpenses]);
-
-  const savings = useMemo(() => {
-    return filterExpenseMode(mode, rawSavings, filteredSavings);
-  }, [mode, filteredSavings, rawSavings]);
-
-  const retirement = useMemo(() => {
-    return filterExpenseMode(mode, rawRetirement, filteredRetirement);
-  }, [mode, filteredRetirement, rawRetirement]);
-
-  const sankeyData = useMemo(() => {
-    return buildCashFlowSankey(income, savings, expense, retirement, [
-      ...tags,
-    ]);
-  }, [income, expense, savings, retirement, tags]);
-
-  return <Sankey data={sankeyData} />;
-};
-
-export function ExpenseSankey() {
-  const [mode, setMode] = useState<Mode>(Mode.RANGE);
+  const sankeyData = useMemo(
+    () => buildCashFlowSankey(income, savings, expense, [...tags]),
+    [income, expense, savings, tags]
+  );
 
   return (
     <GenericPage
@@ -233,7 +186,9 @@ export function ExpenseSankey() {
         </>
       }
     >
-      <SankeyCore mode={mode} />
+      <div style={{ padding: "1.5rem 2rem", height: "100%", display: "flex", flexDirection: "column" }}>
+        <SankeyCard data={sankeyData} />
+      </div>
     </GenericPage>
   );
 }

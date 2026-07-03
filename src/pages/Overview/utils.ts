@@ -57,7 +57,7 @@ export function computeMonthData(expenses: Expense[], target: Date): MonthData {
 
     if (e.tags.includes(NonExpenseTags.Income)) {
       income.push(e);
-    } else if (e.tags.includes(NonExpenseTags.Savings) || e.tags.includes(NonExpenseTags.Retirement)) {
+    } else if (e.tags.includes(NonExpenseTags.Savings)) {
       savings += e.amount;
     } else {
       spent.push(e);
@@ -78,6 +78,31 @@ export function computeMonthData(expenses: Expense[], target: Date): MonthData {
     .sort((a, b) => b.amount - a.amount);
 
   return { realIncome, totalSpent, net, savings, categories };
+}
+
+export function computeYtdFromExpenses(expenses: Expense[], selectedMonth: Date) {
+  const year = selectedMonth.getFullYear();
+  const cutoff = new Date(selectedMonth.getFullYear(), selectedMonth.getMonth() + 1, 0, 23, 59, 59);
+  let ytdIncome = 0;
+  let ytdSpent = 0;
+  let ytdSavings = 0;
+
+  for (const e of expenses) {
+    const d = parseDate(e.date);
+    if (d.getFullYear() !== year) continue;
+    if (d > cutoff) continue;
+
+    if (e.tags.includes(NonExpenseTags.Income)) {
+      ytdIncome += Math.abs(e.amount);
+    } else if (e.tags.includes(NonExpenseTags.Savings)) {
+      ytdSavings += e.amount;
+    } else {
+      ytdSpent += e.amount;
+    }
+  }
+
+  const ytdNet = ytdIncome - ytdSpent;
+  return { ytdIncome, ytdSpent, ytdNet, ytdSavings };
 }
 
 export function getMonthExpenses(expenses: Expense[], target: Date): Expense[] {

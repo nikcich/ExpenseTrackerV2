@@ -3,14 +3,13 @@ import {
   useDateExtents,
   useExpenses,
   useIncome,
-  useRetirement,
   useSavings,
 } from "@/hooks/expenses";
 import { useMemo, useState } from "react";
 import { Expense } from "@/types/types";
-import { LineChart } from "@/components/charts/LineChart";
 import { chartDateCompare } from "@/utils/utils";
 import { SegmentGroup } from "@chakra-ui/react";
+import { YearToDateChartCard } from "@/components/charts/YearToDateChartCard";
 
 const filterYear = (data: Expense[], beforeNow: number = 0) => {
   const now = new Date();
@@ -27,20 +26,13 @@ const filterAllExpensesYear = (
   income: Expense[],
   expenses: Expense[],
   savings: Expense[],
-  retirement: Expense[],
   beforeNow: number = 0
-): [Expense[], Expense[], Expense[], Expense[]] => {
+): [Expense[], Expense[], Expense[]] => {
   const filteredIncome = filterYear(income, beforeNow);
   const filteredExpenses = filterYear(expenses, beforeNow);
   const filteredSavings = filterYear(savings, beforeNow);
-  const filteredRetirement = filterYear(retirement, beforeNow);
 
-  return [
-    filteredIncome,
-    filteredExpenses,
-    filteredSavings,
-    filteredRetirement,
-  ];
+  return [filteredIncome, filteredExpenses, filteredSavings];
 };
 
 const getMonthKey = (i: number) => {
@@ -55,7 +47,6 @@ const groupAndSum = (data: Expense[]) => {
     .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
   for (let i = 1; i <= 12; i++) {
-    // const monthKey = `${i}`;
     const monthKey = getMonthKey(i);
     monthlyTotals[monthKey] = 0;
   }
@@ -120,96 +111,6 @@ const createChart = (
   };
 };
 
-export const YearToDateChartCore = ({
-  legend = true,
-  legendDirection = "v",
-  years = [0, 1],
-}: {
-  legend?: boolean;
-  legendDirection?: "v" | "h";
-  years?: [number, number];
-}) => {
-  const rawExpenses = useExpenses();
-  const rawIncome = useIncome();
-  const rawSavings = useSavings();
-  const rawRetirement = useRetirement();
-
-  const { charts, groups } = useMemo(() => {
-    const groups = years.map((year) => {
-      const currentYearFiltered = filterAllExpensesYear(
-        rawIncome,
-        rawExpenses,
-        rawSavings,
-        rawRetirement,
-        year
-      );
-
-      const currYearGrouped = currentYearFiltered.map((curr) =>
-        groupAndSum(curr)
-      );
-      return currYearGrouped;
-    });
-
-    const groupsSet = new Set(groups.flat(2).map((item) => item.group));
-    const finalGroups = Array.from(groupsSet).sort((a, b) =>
-      chartDateCompare(a, b)
-    );
-
-    const charts = years
-      .map((year, index) => {
-        const [yearIncome, yearExpenses, yearSavings, yearRetirement] =
-          groups[index];
-        const thisYear = new Date(
-          new Date().getFullYear() - year,
-          0,
-          1
-        ).getFullYear();
-
-        return [
-          createChart(
-            `${thisYear} Income`,
-            withTransparency("#00a100ff", year, years),
-            yearIncome,
-            finalGroups
-          ),
-          createChart(
-            `${thisYear} Expenses`,
-            withTransparency("#bb0000ff", year, years),
-            yearExpenses,
-            finalGroups
-          ),
-          createChart(
-            `${thisYear} Savings`,
-            withTransparency("#ffd000ff", year, years),
-            yearSavings,
-            finalGroups
-          ),
-          createChart(
-            `${thisYear} Retirement`,
-            withTransparency("#ff00c8ff", year, years),
-            yearRetirement,
-            finalGroups
-          ),
-        ];
-      })
-      .flat();
-
-    return {
-      charts,
-      groups: finalGroups,
-    };
-  }, [rawExpenses, rawIncome, rawSavings]);
-
-  return (
-    <LineChart
-      legend={legend}
-      legendDirection={legendDirection}
-      x={groups}
-      barCharts={charts}
-    />
-  );
-};
-
 const getYearsInRange = (range: [Date, Date]): number[] => {
   const start = range[0];
   const end = range[1];
@@ -253,6 +154,65 @@ export function YearToDateChart() {
   const currentSelection =
     yearSelection !== null ? yearGroups[Number(yearSelection)] : yearGroups[0];
 
+  const rawExpenses = useExpenses();
+  const rawIncome = useIncome();
+  const rawSavings = useSavings();
+
+  const { charts, groups } = useMemo(() => {
+    const groups = currentSelection.map((year) => {
+      const currentYearFiltered = filterAllExpensesYear(
+        rawIncome,
+        rawExpenses,
+        rawSavings,
+        year
+      );
+
+      const currYearGrouped = currentYearFiltered.map((curr) =>
+        groupAndSum(curr)
+      );
+      return currYearGrouped;
+    });
+
+    const groupsSet = new Set(groups.flat(2).map((item) => item.group));
+    const finalGroups = Array.from(groupsSet).sort((a, b) =>
+      chartDateCompare(a, b)
+    );
+
+    const charts = currentSelection
+      .map((year, index) => {
+        const [yearIncome, yearExpenses, yearSavings] = groups[index];
+        const thisYear = new Date(
+          new Date().getFullYear() - year,
+          0,
+          1
+        ).getFullYear();
+
+        return [
+          createChart(
+            `${thisYear} Income`,
+            withTransparency("#00a100ff", year, currentSelection),
+            yearIncome,
+            finalGroups
+          ),
+          createChart(
+            `${thisYear} Expenses`,
+            withTransparency("#bb0000ff", year, currentSelection),
+            yearExpenses,
+            finalGroups
+          ),
+          createChart(
+            `${thisYear} Savings`,
+            withTransparency("#ffd000ff", year, currentSelection),
+            yearSavings,
+            finalGroups
+          ),
+        ];
+      })
+      .flat();
+
+    return { charts, groups: finalGroups };
+  }, [rawExpenses, rawIncome, rawSavings, currentSelection]);
+
   return (
     <GenericPage
       title="Year To Date"
@@ -274,7 +234,9 @@ export function YearToDateChart() {
         </>
       }
     >
-      <YearToDateChartCore years={currentSelection} />
+      <div style={{ padding: "1.5rem 2rem", height: "100%", display: "flex", flexDirection: "column" }}>
+        <YearToDateChartCard charts={charts} groups={groups} />
+      </div>
     </GenericPage>
   );
 }

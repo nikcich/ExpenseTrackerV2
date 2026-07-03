@@ -44,9 +44,7 @@ const TagCell = ({ tags }: { tags: Tag[] }) => {
               ? "green"
               : tag === NonExpenseTags.Savings
                 ? "yellow"
-                : tag === NonExpenseTags.Retirement
-                  ? "pink"
-                  : "orange"
+                : "orange"
           }
         >
           <TagComp.Label>{tag}</TagComp.Label>
@@ -176,7 +174,6 @@ export const DataTable = ({ items }: { items: Expense[] }) => {
 
   const [includeIncome, setIncludeIncome] = useState(true);
   const [includeExpenses, setIncludeExpenses] = useState(true);
-  const [includeRetirement, setIncludeRetirement] = useState(true);
   const [includeSavings, setIncludeSavings] = useState(true);
   const [includeUntagged, setIncludeUntagged] = useState(true);
 
@@ -205,14 +202,12 @@ export const DataTable = ({ items }: { items: Expense[] }) => {
         item.tags.includes(NonExpenseTags.Income);
 
       const isSavings = item.tags.includes(NonExpenseTags.Savings);
-      const isRetirement = item.tags.includes(NonExpenseTags.Retirement);
       const isUntagged = item.tags.length === 0;
-      const isExpense = !isIncome && !isSavings && !isUntagged && !isRetirement;
+      const isExpense = !isIncome && !isSavings && !isUntagged;
 
       if (!includeIncome && isIncome) return false;
       if (!includeSavings && isSavings) return false;
       if (!includeExpenses && isExpense) return false;
-      if (!includeRetirement && isRetirement) return false;
       if (!includeUntagged && isUntagged) return false;
 
       if (deferredSearch) {
@@ -235,7 +230,6 @@ export const DataTable = ({ items }: { items: Expense[] }) => {
     includeIncome,
     includeExpenses,
     includeSavings,
-    includeRetirement,
     includeUntagged,
   ]);
 
@@ -286,14 +280,6 @@ export const DataTable = ({ items }: { items: Expense[] }) => {
             onClick={() => setIncludeSavings((v) => !v)}
           >
             Savings {includeSavings ? "Included" : "Excluded"}
-          </Button>
-
-          <Button
-            variant={includeRetirement ? "solid" : "outline"}
-            colorPalette="pink"
-            onClick={() => setIncludeRetirement((v) => !v)}
-          >
-            Retirement {includeRetirement ? "Included" : "Excluded"}
           </Button>
 
           <Button

@@ -88,7 +88,6 @@ export enum ExpenseTag {
 export enum NonExpenseTags {
   Income = "Income",
   Savings = "Savings",
-  Retirement = "Retirement",
 }
 
 export type Tag = ExpenseTag | NonExpenseTags | string;

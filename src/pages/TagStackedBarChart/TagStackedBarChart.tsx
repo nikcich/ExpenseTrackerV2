@@ -13,46 +13,25 @@ import { SegmentGroup } from "@chakra-ui/react";
 import { Mode } from "@/types/types";
 import {
   parseStackedFormat,
-  StackedBarChart,
 } from "@/components/charts/StackedBarChart";
-
-export const TagStackedBarChartCore = ({
-  mode,
-  legend = true,
-  legendDirection = "v",
-}: {
-  mode: Mode;
-  legend?: boolean;
-  legendDirection?: "v" | "h";
-}) => {
-  const filteredExpenses = useFilteredExpenses();
-
-  const groupedExpenses = useMemo(() => {
-    if (mode === Mode.MONTHLY) {
-      return groupAndSumExpenses(filteredExpenses, byTag, byMonth);
-    } else if (mode === Mode.YEARLY) {
-      return groupAndSumExpenses(filteredExpenses, byTag, byYear);
-    } else {
-      return groupAndSumExpenses(filteredExpenses, byTag, byDay);
-    }
-  }, [filteredExpenses, mode]);
-
-  const traces = useMemo(
-    () => parseStackedFormat(groupedExpenses),
-    [groupedExpenses]
-  );
-
-  return (
-    <StackedBarChart
-      data={traces}
-      legend={legend}
-      legendDirection={legendDirection}
-    />
-  );
-};
+import { TagStackedBarChartCard } from "@/components/charts/TagStackedBarChartCard";
 
 export function TagStackedBarChart() {
   const [mode, setMode] = useState<Mode>(Mode.MONTHLY);
+  const filteredExpenses = useFilteredExpenses();
+
+  const traces = useMemo(() => {
+    const grouped = (() => {
+      if (mode === Mode.MONTHLY) {
+        return groupAndSumExpenses(filteredExpenses, byTag, byMonth);
+      } else if (mode === Mode.YEARLY) {
+        return groupAndSumExpenses(filteredExpenses, byTag, byYear);
+      } else {
+        return groupAndSumExpenses(filteredExpenses, byTag, byDay);
+      }
+    })();
+    return parseStackedFormat(grouped);
+  }, [filteredExpenses, mode]);
 
   return (
     <GenericPage
@@ -70,7 +49,9 @@ export function TagStackedBarChart() {
         </>
       }
     >
-      <TagStackedBarChartCore mode={mode} />
+      <div style={{ padding: "1.5rem 2rem", height: "100%", display: "flex", flexDirection: "column" }}>
+        <TagStackedBarChartCard traces={traces} />
+      </div>
     </GenericPage>
   );
 }

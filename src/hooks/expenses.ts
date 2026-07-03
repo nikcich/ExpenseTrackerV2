@@ -13,8 +13,7 @@ export const useExpenses = () => {
       value?.filter((e) => {
         const isIncome = e.tags.includes(NonExpenseTags.Income);
         const isSavings = e.tags.includes(NonExpenseTags.Savings);
-        const isRetirement = e.tags.includes(NonExpenseTags.Retirement);
-        return !isIncome && !isSavings && !isRetirement;
+        return !isIncome && !isSavings;
       }) ?? [],
     [value]
   );
@@ -92,31 +91,6 @@ export const useFilteredSavings = () => {
   return filtered;
 };
 
-export const useRetirement = () => {
-  const { value } = useExpensesStore();
-  const retirement = useMemo(() => {
-    return (
-      value?.filter((e) => e.tags.includes(NonExpenseTags.Retirement)) ?? []
-    );
-  }, [value]);
-  return retirement;
-};
-
-export const useFilteredRetirement = () => {
-  const [range] = useDebouncedBrushRange();
-  const retirement = useRetirement();
-
-  const filtered = useMemo(() => {
-    if (!range) return retirement;
-    return retirement.filter((retirement) => {
-      const expenseDate = parseDate(retirement.date).getTime();
-      return expenseDate >= range[0] && expenseDate <= range[1];
-    });
-  }, [range, retirement]);
-
-  return filtered;
-};
-
 export const useGetExpenseById = (): ((id: string) => Expense | undefined) => {
   const { value } = useExpensesStore();
   return (id: string) => value?.find((e) => e.id === id);
@@ -126,18 +100,15 @@ export const useDateExtents = () => {
   const expenses = useExpenses();
   const income = useIncome();
   const savings = useSavings();
-  const retirement = useRetirement();
 
   const extent = useMemo(() => {
     const expDates = expenses.map((e) => new Date(e.date));
     const incomeDates = income.map((e) => new Date(e.date));
     const savingsDates = savings.map((s) => new Date(s.date));
-    const retirementDates = retirement.map((r) => new Date(r.date));
     const allDates = [
       ...expDates,
       ...incomeDates,
       ...savingsDates,
-      ...retirementDates,
     ];
 
     const rawExtent = d3.extent(allDates) as [Date, Date];
@@ -146,7 +117,7 @@ export const useDateExtents = () => {
       d3.timeMonth.ceil(rawExtent[1]),
     ];
     return snappedExtent;
-  }, [expenses, income, savings, retirement]);
+  }, [expenses, income, savings]);
 
   return extent;
 };

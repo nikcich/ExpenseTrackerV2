@@ -12,7 +12,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { useLocation } from "react-router-dom";
 import { FiInbox } from "react-icons/fi";
 
-const LOADING_DURATION_MS = 800;
+const LOADING_DURATION_MS = 100;
 
 const useHasDisplayData = () => {
   const filteredExpenses = useFilteredExpenses();
@@ -45,40 +45,49 @@ const useInitialLoading = () => {
   return loading;
 };
 
-const emptyStateConfig: Record<string, { title: string; description: string }> = {
-  "/table-view": {
-    title: "No transactions yet",
-    description: "Import a CSV file or create an expense manually to populate the table.",
-  },
-  "/bar-chart": {
-    title: "No data to chart",
-    description: "Add some expenses or adjust the date range to see your bar chart.",
-  },
-  "/stacked-bar-chart": {
-    title: "No data to chart",
-    description: "Add some expenses or adjust the date range to see your stacked bar chart.",
-  },
-  "/range-income-expense": {
-    title: "No data to display",
-    description: "Add income or expenses in the selected date range to see the comparison.",
-  },
-  "/year-to-date-chart": {
-    title: "No data for year-over-year",
-    description: "Add expenses across multiple years to see the year-to-date comparison.",
-  },
-  "/average-spending": {
-    title: "No spending data",
-    description: "Add some expenses to see your average monthly spending breakdown.",
-  },
-  "/Sankey": {
-    title: "No cash flow data",
-    description: "Add income and expenses to see your cash flow Sankey diagram.",
-  },
-  "/settings": {
-    title: "No tags available",
-    description: "Add expenses with tags to customize which tags appear in charts.",
-  },
-};
+const emptyStateConfig: Record<string, { title: string; description: string }> =
+  {
+    "/table-view": {
+      title: "No transactions yet",
+      description:
+        "Import a CSV file or create an expense manually to populate the table.",
+    },
+    "/bar-chart": {
+      title: "No data to chart",
+      description:
+        "Add some expenses or adjust the date range to see your bar chart.",
+    },
+    "/stacked-bar-chart": {
+      title: "No data to chart",
+      description:
+        "Add some expenses or adjust the date range to see your stacked bar chart.",
+    },
+    "/range-income-expense": {
+      title: "No data to display",
+      description:
+        "Add income or expenses in the selected date range to see the comparison.",
+    },
+    "/year-to-date-chart": {
+      title: "No data for year-over-year",
+      description:
+        "Add expenses across multiple years to see the year-to-date comparison.",
+    },
+    "/average-spending": {
+      title: "No spending data",
+      description:
+        "Add some expenses to see your average monthly spending breakdown.",
+    },
+    "/Sankey": {
+      title: "No cash flow data",
+      description:
+        "Add income and expenses to see your cash flow Sankey diagram.",
+    },
+    "/settings": {
+      title: "No tags available",
+      description:
+        "Add expenses with tags to customize which tags appear in charts.",
+    },
+  };
 
 export const GenericPage = ({
   actions,
@@ -140,7 +149,10 @@ export const GenericPage = ({
             <EmptyState
               icon={<FiInbox />}
               title={config?.title ?? "No data to display"}
-              description={config?.description ?? "Import a CSV file or adjust the date range to see data here."}
+              description={
+                config?.description ??
+                "Import a CSV file or adjust the date range to see data here."
+              }
             />
           </div>
         )}

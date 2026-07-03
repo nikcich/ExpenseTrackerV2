@@ -1,17 +1,16 @@
 import { GenericPage } from "@/components/GenericPage/GenericPage";
 import {
   useFilteredExpenses,
-  useFilteredRetirement,
   useFilteredSavings,
 } from "@/hooks/expenses";
 import { byTag, groupAndSumExpenses } from "@/utils/expense-utils";
 import { useMemo } from "react";
 import {
   parseStackedFormat,
-  StackedBarChart,
 } from "@/components/charts/StackedBarChart";
 import { BrushScrubber } from "@/components/Brush/BrushScrubber";
 import { useDebouncedBrushRange } from "@/store/store";
+import { AverageSpendingCard } from "@/components/charts/AverageSpendingCard";
 
 const addTopLevelGroup = (
   data: {
@@ -48,46 +47,26 @@ const averageSums = (
   }));
 };
 
-export const AverageSpendingCore = ({
-  legend = true,
-  legendDirection = "v",
-}: {
-  legend?: boolean;
-  legendDirection?: "v" | "h";
-}) => {
+export function AverageSpending() {
   const filteredExpenses = useFilteredExpenses();
   const filteredSavings = useFilteredSavings();
-  const filteredRetirement = useFilteredRetirement();
   const [range] = useDebouncedBrushRange();
 
-  const groupedExpenses = useMemo(() => {
+  const traces = useMemo(() => {
     const tagGrouped = groupAndSumExpenses(
-      [...filteredExpenses, ...filteredSavings, ...filteredRetirement],
+      [...filteredExpenses, ...filteredSavings],
       byTag
     );
-
     const topLevelGrouped = addTopLevelGroup(tagGrouped, "Range Average");
-    return averageSums(topLevelGrouped, range);
-  }, [filteredExpenses, filteredSavings, filteredRetirement, range]);
+    const averaged = averageSums(topLevelGrouped, range);
+    return parseStackedFormat(averaged);
+  }, [filteredExpenses, filteredSavings, range]);
 
-  const traces = useMemo(
-    () => parseStackedFormat(groupedExpenses),
-    [groupedExpenses]
-  );
-
-  return (
-    <StackedBarChart
-      data={traces}
-      legend={legend}
-      legendDirection={legendDirection}
-    />
-  );
-};
-
-export function AverageSpending() {
   return (
     <GenericPage title="Average Monthly Spending" footer={<BrushScrubber />}>
-      <AverageSpendingCore />
+      <div style={{ padding: "1.5rem 2rem", height: "100%", display: "flex", flexDirection: "column" }}>
+        <AverageSpendingCard traces={traces} />
+      </div>
     </GenericPage>
   );
 }

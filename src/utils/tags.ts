@@ -1,7 +1,6 @@
 import {
   useExpenses,
   useIncome,
-  useRetirement,
   useSavings,
 } from "@/hooks/expenses";
 import { ALL_TAGS } from "@/types/types";
@@ -10,7 +9,6 @@ import { useMemo, useRef } from "react";
 export const useAllTags = (includeNonExpenseTags?: boolean) => {
   const expenses = useExpenses();
   const savings = useSavings();
-  const retirement = useRetirement();
   const income = useIncome();
 
   const prevRef = useRef<Set<string> | null>(null);
@@ -22,9 +20,6 @@ export const useAllTags = (includeNonExpenseTags?: boolean) => {
       for (const t of e.tags) next.add(t);
     }
     for (const e of savings) {
-      for (const t of e.tags) next.add(t);
-    }
-    for (const e of retirement) {
       for (const t of e.tags) next.add(t);
     }
     for (const e of income) {
@@ -52,13 +47,12 @@ export const useAllTags = (includeNonExpenseTags?: boolean) => {
 
     if (!includeNonExpenseTags) {
       next.delete("Income");
-      next.delete("Retirement");
       next.delete("Savings");
     }
 
     prevRef.current = next;
     return next;
-  }, [expenses, savings, retirement, income, includeNonExpenseTags]);
+  }, [expenses, savings, income, includeNonExpenseTags]);
 };
 
 export const useAllTagsOptions = (includeNonExpenseTags?: boolean) => {
