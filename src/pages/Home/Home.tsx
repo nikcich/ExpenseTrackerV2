@@ -1,5 +1,4 @@
 import { useExpensesStore } from "@/store/store";
-import { MOCK_EXPENSES } from "@/types/mockExpenses";
 import { API } from "@/types/types";
 import { createTauriInvoker } from "@/utils/utils";
 import {
@@ -28,8 +27,7 @@ const FileDownloader = () => {
 };
 
 export function Home() {
-  const { value: expenses, setValue: setExpenses } = useExpensesStore();
-  const setExpensesMock = async () => setExpenses(MOCK_EXPENSES);
+  const { value: expenses } = useExpensesStore();
 
   return (
     <div
@@ -65,9 +63,6 @@ export function Home() {
           Open new window
         </Button>
         <ResetExpensesDialog />
-        <Button onClick={setExpensesMock} colorPalette={"green"}>
-          Mock expenses list
-        </Button>
       </div>
 
       <p>There are {expenses?.length} expenses</p>

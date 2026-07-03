@@ -17,6 +17,5 @@
 
 .content {
   flex-grow: 1;
-  height: 100%;
-  width: calc(100% - 4rem);
+  min-height: 0;
 }

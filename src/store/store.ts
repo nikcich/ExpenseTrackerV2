@@ -1,17 +1,19 @@
 import { BalanceSnapshot, BalanceSnapshotsMap, ForecastConfigData, KnownStoreKeys, RsuVest, RsuVestsMap, StoreExpenseMap } from "../types/types";
 import { createTauriApiHooks, createTauriStoreHook } from "../utils/utils";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { MOCK_BRUSH_RANGE, MOCK_DATA_MAP } from "@/types/mockExpenses";
 
 export const {
   useTauriValue: useInstantBrushRange,
   useDebouncedTauriValue: useDebouncedBrushRange,
   value$: instantBrushRange$,
-} = createTauriApiHooks<[number, number]>("get_date_range");
+} = createTauriApiHooks<[number, number]>("get_date_range", undefined, undefined, undefined, MOCK_BRUSH_RANGE);
 
 const [useExpensesStoreInner, expenses$] =
   createTauriStoreHook<StoreExpenseMap>({
     key: KnownStoreKeys.Expenses,
     defaultValue: {},
+    mockData: MOCK_DATA_MAP[KnownStoreKeys.Expenses] as StoreExpenseMap | undefined,
   });
 
 const useExpensesStore = () => {
@@ -29,11 +31,13 @@ export { useExpensesStore, expenses$ };
 const [useForecastConfigStore] = createTauriStoreHook<ForecastConfigData | null>({
   key: KnownStoreKeys.ForecastConfig,
   defaultValue: null,
+  mockData: MOCK_DATA_MAP[KnownStoreKeys.ForecastConfig] as ForecastConfigData | undefined,
 });
 
 const [useRsuVestsStore] = createTauriStoreHook<RsuVestsMap>({
   key: KnownStoreKeys.RsuVests,
   defaultValue: {},
+  mockData: MOCK_DATA_MAP[KnownStoreKeys.RsuVests] as RsuVestsMap | undefined,
 });
 
 export function useRsuVests() {
@@ -63,6 +67,7 @@ export function useRsuVests() {
 const [useBalanceSnapshotsStore] = createTauriStoreHook<BalanceSnapshotsMap>({
   key: KnownStoreKeys.BalanceSnapshots,
   defaultValue: {},
+  mockData: MOCK_DATA_MAP[KnownStoreKeys.BalanceSnapshots] as BalanceSnapshotsMap | undefined,
 });
 
 export function useBalanceSnapshots() {

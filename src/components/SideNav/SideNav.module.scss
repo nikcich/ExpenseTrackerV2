@@ -1,5 +1,6 @@
 .navContainer {
   width: 2.75rem;
+  flex-shrink: 0;
   background: var(--chakra-colors-bg-panel);
   display: flex;
   flex-direction: column;

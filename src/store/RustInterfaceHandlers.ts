@@ -4,8 +4,11 @@ import { getCurrentWindow } from "@tauri-apps/api/window";
 import { debounce } from "lodash";
 import { instantBrushRange$ } from "./store";
 import { API } from "@/types/types";
+import { mockMode$ } from "@/utils/utils";
 
 export const updateDateRange = debounce(async (start: Date, end: Date) => {
+  if (mockMode$.getValue()) return;
+
   await invoke(API.SetDateRange, {
     start: start.getTime(),
     end: end.getTime(),

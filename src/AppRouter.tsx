@@ -2,7 +2,8 @@ import { BrowserRouter, Route, Routes } from "react-router-dom";
 import { Pages } from "./types/routes";
 import { SideNav } from "./components/SideNav/SideNav";
 import styles from "./App.module.scss";
-import { JSX } from "react";
+import { JSX, useSyncExternalStore } from "react";
+import { mockMode$ } from "./utils/utils";
 
 import { Home } from "./pages/Home/Home";
 import { TableView } from "./pages/TableView/TableView";
@@ -17,6 +18,29 @@ import { ExpenseSankey } from "./pages/Sankey/ExpenseSankey";
 import { Forecast } from "./pages/Forecast/Forecast";
 import { Overview } from "./pages/Overview/Overview";
 import { Investments } from "./pages/Investments/Investments";
+
+const MockBanner = () => {
+  const enabled = useSyncExternalStore(
+    (cb) => { const s = mockMode$.subscribe(cb); return () => s.unsubscribe(); },
+    () => mockMode$.getValue(),
+  );
+  if (!enabled) return null;
+  return (
+    <div style={{
+      background: "#f59e0b",
+      color: "#1a1a1a",
+      textAlign: "center",
+      padding: "0.3rem 1rem",
+      fontSize: "0.75rem",
+      fontWeight: 600,
+      letterSpacing: "0.05em",
+      textTransform: "uppercase",
+      flexShrink: 0,
+    }}>
+      ⚡ Mock Data Mode — all data is simulated
+    </div>
+  );
+};
 
 function fallbackRender({ error }: { error: Error }) {
   return (
@@ -43,10 +67,13 @@ const RouteComponent = ({ element }: { element: JSX.Element }) => {
     <div className={styles.routeContainer}>
       <Overlays />
       <SideNav />
-      <div className={styles.content}>
-        <ErrorBoundary FallbackComponent={fallbackRender}>
-          {element}
-        </ErrorBoundary>
+      <div style={{ display: "flex", flexDirection: "column", flexGrow: 1, minWidth: 0, height: "100%" }}>
+        <MockBanner />
+        <div className={styles.content}>
+          <ErrorBoundary FallbackComponent={fallbackRender}>
+            {element}
+          </ErrorBoundary>
+        </div>
       </div>
     </div>
   );

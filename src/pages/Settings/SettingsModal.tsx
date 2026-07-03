@@ -1,9 +1,9 @@
 import { GenericModal } from "@/components/GenericModal/GenericModal";
-import { Overlay } from "@/store/OverlayStore";
-import { CheckboxCard, Heading, Switch } from "@chakra-ui/react";
+import { Overlay, closeAllOverlays } from "@/store/OverlayStore";
+import { CheckboxCard, Heading, Switch, Separator, Text } from "@chakra-ui/react";
 import { setSettingsStore, useSettingsStore } from "@/store/SettingsStore";
+import { setMockMode } from "@/utils/utils";
 import { useAllTags } from "@/utils/tags";
-import { closeAllOverlays } from "@/store/OverlayStore";
 import styles from "./Settings.module.scss";
 
 const CustomCheckBox = ({
@@ -37,6 +37,7 @@ const CustomCheckBox = ({
 
 export function SettingsModal() {
   const disabledTags = useSettingsStore("disabledTags");
+  const mockDataEnabled = useSettingsStore("mockDataEnabled");
   const allTagsSet = useAllTags();
 
   const isAll = disabledTags.length === 0;
@@ -45,7 +46,7 @@ export function SettingsModal() {
     <GenericModal overlay={Overlay.SettingsModal}>
       <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <Heading size="md">Enabled Tags</Heading>
+          <Heading size="md">Settings</Heading>
           <button
             onClick={closeAllOverlays}
             style={{
@@ -61,45 +62,80 @@ export function SettingsModal() {
             Close
           </button>
         </div>
-        <div className={styles.switchContainer}>
-          <CustomCheckBox
-            checked={isAll}
-            label={"All"}
-            onChange={(checked) => {
-              if (checked) {
-                setSettingsStore((prev) => ({
-                  ...prev,
-                  disabledTags: [],
-                }));
-              } else {
-                setSettingsStore((prev) => ({
-                  ...prev,
-                  disabledTags: [...allTagsSet],
-                }));
-              }
-            }}
-          />
-          {[...allTagsSet].map((tag) => (
-            <CustomCheckBox
-              key={tag}
-              checked={!disabledTags.includes(tag)}
-              onChange={(checked) => {
-                setSettingsStore((prev) => {
-                  const tagsArr = !checked
-                    ? prev.disabledTags.includes(tag)
-                      ? prev.disabledTags
-                      : [...prev.disabledTags, tag]
-                    : prev.disabledTags.filter((t) => t !== tag);
 
-                  return {
+        <div>
+          <Heading size="sm" mb={2}>Mock Data</Heading>
+          <CheckboxCard.Root>
+            <CheckboxCard.Control>
+              <CheckboxCard.Content>
+                <Switch.Root
+                  colorPalette={"blue"}
+                  checked={mockDataEnabled}
+                  onCheckedChange={(changes) => {
+                    const enabled = changes.checked;
+                    setMockMode(enabled);
+                    setSettingsStore((prev) => ({
+                      ...prev,
+                      mockDataEnabled: enabled,
+                    }));
+                  }}
+                >
+                  <Switch.HiddenInput />
+                  <Switch.Control />
+                  <Switch.Label>Enable mock data</Switch.Label>
+                </Switch.Root>
+              </CheckboxCard.Content>
+            </CheckboxCard.Control>
+          </CheckboxCard.Root>
+          <Text fontSize="sm" color="fg.muted" mt={1}>
+            When enabled, all charts and pages show fake sample data instead of real stored expenses. Useful for screenshots and demos.
+          </Text>
+        </div>
+
+        <Separator />
+
+        <div>
+          <Heading size="sm" mb={2}>Enabled Tags</Heading>
+          <div className={styles.switchContainer}>
+            <CustomCheckBox
+              checked={isAll}
+              label={"All"}
+              onChange={(checked) => {
+                if (checked) {
+                  setSettingsStore((prev) => ({
                     ...prev,
-                    disabledTags: tagsArr,
-                  };
-                });
+                    disabledTags: [],
+                  }));
+                } else {
+                  setSettingsStore((prev) => ({
+                    ...prev,
+                    disabledTags: [...allTagsSet],
+                  }));
+                }
               }}
-              label={tag}
             />
-          ))}
+            {[...allTagsSet].map((tag) => (
+              <CustomCheckBox
+                key={tag}
+                checked={!disabledTags.includes(tag)}
+                onChange={(checked) => {
+                  setSettingsStore((prev) => {
+                    const tagsArr = !checked
+                      ? prev.disabledTags.includes(tag)
+                        ? prev.disabledTags
+                        : [...prev.disabledTags, tag]
+                      : prev.disabledTags.filter((t) => t !== tag);
+
+                    return {
+                      ...prev,
+                      disabledTags: tagsArr,
+                    };
+                  });
+                }}
+                label={tag}
+              />
+            ))}
+          </div>
         </div>
       </div>
     </GenericModal>

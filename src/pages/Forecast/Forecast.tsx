@@ -39,39 +39,46 @@ export function Forecast() {
 
   const { config: savedConfig, loaded, saveConfig } = useForecastConfig();
   const initialized = useRef(false);
+  const lastSavedRef = useRef<string>("");
 
   useEffect(() => {
-    if (savedConfig && !initialized.current) {
-      setStartBalance(savedConfig.startBalance);
-      setReserve(savedConfig.reserve);
-      setStartDate(savedConfig.startDate);
-      setEndDate(savedConfig.endDate);
-      if (savedConfig.incomeStreams) {
-        setIncomeStreams(
-          savedConfig.incomeStreams.map((s) => ({
-            ...s,
-            payPeriod: s.payPeriod as PayPeriod,
-          }))
-        );
-      }
-      if (savedConfig.expenses) {
-        setExpenses(
-          savedConfig.expenses.map((e) => ({
-            ...e,
-            period: e.period as PayPeriod,
-          }))
-        );
-      }
+    if (!loaded) return;
+    if (!initialized.current) {
       initialized.current = true;
-    } else if (loaded && !initialized.current) {
-      initialized.current = true;
+    }
+    if (!savedConfig) return;
+    const key = JSON.stringify(savedConfig);
+    if (key === lastSavedRef.current) return;
+    lastSavedRef.current = key;
+    setStartBalance(savedConfig.startBalance);
+    setReserve(savedConfig.reserve);
+    setStartDate(savedConfig.startDate);
+    setEndDate(savedConfig.endDate);
+    if (savedConfig.incomeStreams) {
+      setIncomeStreams(
+        savedConfig.incomeStreams.map((s) => ({
+          ...s,
+          payPeriod: s.payPeriod as PayPeriod,
+        }))
+      );
+    }
+    if (savedConfig.expenses) {
+      setExpenses(
+        savedConfig.expenses.map((e) => ({
+          ...e,
+          period: e.period as PayPeriod,
+        }))
+      );
     }
   }, [savedConfig, loaded]);
 
   useEffect(() => {
     if (!initialized.current) return;
+    const key = JSON.stringify({ startBalance, reserve, startDate, endDate, incomeStreams, expenses });
+    if (key === lastSavedRef.current) return;
     saveConfig({ startBalance, reserve, startDate, endDate, incomeStreams, expenses });
-  }, [startBalance, reserve, startDate, endDate, incomeStreams, expenses]);
+    lastSavedRef.current = key;
+  }, [startBalance, reserve, startDate, endDate, incomeStreams, expenses, saveConfig]);
 
   const updateIncome = useCallback((index: number, field: string, value: string | number) => {
     setIncomeStreams((prev) => {

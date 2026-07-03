@@ -95,13 +95,45 @@ Mode enum: MONTHLY, DAILY, YEARLY
 
 Note: "Retirement" was removed from NonExpenseTags and is now treated as a normal expense tag. The `useRetirement`/`useFilteredRetirement` hooks were removed.
 
+### Mock Data System
+
+A global mock mode exists for screenshots/demos. When enabled via Settings modal, **all data** is replaced with fake data at the lowest possible layer — no page/hook-level mock awareness needed.
+
+**How it works:**
+- `mockMode$` (a `BehaviorSubject<boolean>`) in `src/utils/utils.ts` is the single source of truth
+- `setMockMode(enabled)` toggles it. Settings modal calls this when the switch is flipped.
+- `createTauriPoller` (used by `createTauriStoreHook` for expenses, RSU, snapshots, forecast config) accepts an optional `mockData` param. Inside, it checks `mockMode$.getValue()` before deciding to return mock data or call Tauri `invoke`.
+- `createTauriApiHooks` (used for brush range) has the same pattern.
+- Both poller and API hooks subscribe to `mockMode$` (via `merge` / `.subscribe`) so toggling mock mode triggers an **immediate re-fetch** rather than waiting for the next poll interval.
+
+**Write protection:** When mock mode is on, every setter (`setValue` in store hooks, `updateDateRange` in RustInterfaceHandlers) checks `mockMode$.getValue()` and returns early without calling Tauri `invoke`. Local state is still updated for UI responsiveness, but nothing is persisted.
+
+**Adding mock data for a new store/hook:**
+1. Add a generator function in `src/types/mockExpenses.ts`
+2. Create a module-level `MOCK_*` constant calling the generator with `startDate`/`endDate`
+3. Add an entry to `MOCK_DATA_MAP` keyed by `KnownStoreKeys.*`
+4. Pass `mockData: MOCK_DATA_MAP[KnownStoreKeys.*]` to the `createTauriStoreHook` or `createTauriApiHooks` call in `src/store/store.ts`
+
+**Important:** Always use `startDate` (12 months ago) and `endDate` (today) for dynamic date ranges. Never hardcode dates in mock data generators.
+
+**MockBanner:** A yellow banner at the top of every page (in `AppRouter.tsx`) shows "⚡ Mock Data Mode — all data is simulated" when mock mode is active. Uses `useSyncExternalStore` to react to `mockMode$` changes.
+
+**Files involved:**
+- `src/types/mockExpenses.ts` — All mock generators and `MOCK_DATA_MAP`
+- `src/utils/utils.ts` — `mockMode$`, `setMockMode()`, mock-aware pollers/setters
+- `src/store/store.ts` — Each `createTauriStoreHook` passes `mockData`
+- `src/store/RustInterfaceHandlers.ts` — `updateDateRange` skips invoke in mock mode
+- `src/store/SettingsStore.ts` — `mockDataEnabled` boolean
+- `src/pages/Settings/SettingsModal.tsx` — Toggle switch + `setMockMode()` call
+- `src/AppRouter.tsx` — `MockBanner` component
+
 ### Key Utilities
 
 - `src/utils/expense-utils.ts`: `groupAndSumExpenses(expenses, ...keyFns)`, `byMonth`, `byYear`, `byDay`, `byTag`
 - `src/utils/utils.ts`: `chartDateCompare(a, b)` — sorts date-group strings, `parseDate()` — date-fns parser, `createTauriApiHooks<T>()` — creates BehaviorSubject-backed hooks for Tauri commands, `createTauriStoreHook<T>()` — polling-based store hooks
 - `src/utils/cash-flow-forecast.ts`: `computeCashFlowForecast()` — forecast engine (daily cash flow events from config)
 - `src/utils/download.ts`: `downloadExpensesCSV()` — exports expenses to CSV blob
-- `src/types/mockExpenses.ts`: generates 300 sample expenses for development
+- `src/types/mockExpenses.ts`: All mock data generators for the mock system (expenses, RSU, snapshots, forecast config, brush range) and `MOCK_DATA_MAP`
 
 ### Segment Controls
 
