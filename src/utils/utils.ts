@@ -117,6 +117,9 @@ export function createTauriPoller<T>(
     .subscribe({
       next: (val) => {
         if (val.status >= 400 || !val.message) {
+          if (val.status === 404 && !mockMode$.getValue()) {
+            pArgs.subject.next(undefined as T);
+          }
           console.error(
             `Polling for "${command}" returned error:`,
             val?.header,
