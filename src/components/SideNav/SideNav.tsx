@@ -1,6 +1,5 @@
 import React from "react";
 import styles from "./SideNav.module.scss";
-import { AiOutlineHome } from "react-icons/ai";
 import { Pages } from "../../types/routes";
 import { useNavigate } from "react-router-dom";
 import { useLocation } from "react-router-dom";
@@ -39,7 +38,23 @@ const NavButton = ({ Icon, page, label }: { Icon: React.FC; page: string; label:
 export function SideNav() {
   return (
     <div className={styles.navContainer}>
-      <NavButton Icon={AiOutlineHome} page={Pages.Home} label="Home" />
+      <div className={styles.navItems}>
+        <NavButton Icon={PiCompassLight} page={Pages.Overview} label="Overview" />
+        <NavButton Icon={PiChartPieSlice} page={Pages.Investments} label="Investments" />
+        <NavButton Icon={MdOutlineTrendingUp} page={Pages.Forecast} label="Forecast" />
+        <NavButton Icon={FaTable} page={Pages.TableView} label="Data Table" />
+        <NavButton Icon={BsAlignMiddle} page={Pages.AverageSpending} label="Average Spending" />
+        <NavButton
+          Icon={RiBarChartHorizontalFill}
+          page={Pages.RangeIncomeExpense}
+          label="Income vs Expenses"
+        />
+        <NavButton Icon={FaChartBar} page={Pages.BarChart} label="Bar Chart" />
+        <NavButton Icon={LuChartColumnStacked} page={Pages.StackedBarChart} label="Stacked Bar Chart" />
+        <NavButton Icon={FaChartLine} page={Pages.YTDChart} label="Year to Date" />
+        <NavButton Icon={TbChartSankey} page={Pages.Sankey} label="Sankey" />
+      </div>
+      <div className={styles.spacer} />
       <Tooltip content="Settings" positioning={{ placement: "right" }}>
         <button
           className={styles.navButton}
@@ -48,20 +63,6 @@ export function SideNav() {
           <FaSlidersH />
         </button>
       </Tooltip>
-      <NavButton Icon={PiCompassLight} page={Pages.Overview} label="Overview" />
-      <NavButton Icon={PiChartPieSlice} page={Pages.Investments} label="Investments" />
-      <NavButton Icon={MdOutlineTrendingUp} page={Pages.Forecast} label="Forecast" />
-      <NavButton Icon={FaTable} page={Pages.TableView} label="Data Table" />
-      <NavButton Icon={BsAlignMiddle} page={Pages.AverageSpending} label="Average Spending" />
-      <NavButton
-        Icon={RiBarChartHorizontalFill}
-        page={Pages.RangeIncomeExpense}
-        label="Income vs Expenses"
-      />
-      <NavButton Icon={FaChartBar} page={Pages.BarChart} label="Bar Chart" />
-      <NavButton Icon={LuChartColumnStacked} page={Pages.StackedBarChart} label="Stacked Bar Chart" />
-      <NavButton Icon={FaChartLine} page={Pages.YTDChart} label="Year to Date" />
-      <NavButton Icon={TbChartSankey} page={Pages.Sankey} label="Sankey" />
     </div>
   );
 }

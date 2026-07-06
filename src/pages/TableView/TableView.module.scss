@@ -158,6 +158,12 @@
   opacity: 0.8;
 }
 
+.actionRow {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
 .loadingText {
   color: var(--fg-muted, #a0a0ab);
   font-size: 0.85rem;

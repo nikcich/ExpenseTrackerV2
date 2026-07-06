@@ -60,6 +60,14 @@ export function Investments() {
   const totalRsuValue = vests.reduce((s, v) => s + v.shares * v.price, 0);
   const totalAssets = [...latestByAccount(assets).values()].reduce((s, a) => s + a.balance, 0) + totalRsuValue;
   const totalDebts = [...latestByAccount(debts).values()].reduce((s, d) => s + Math.abs(d.balance), 0);
+  const activeDebts = [...Array.from(new Set(debts.map((s) => s.accountName)))]
+    .map((name) => {
+      const accountSnapshots = debts
+        .filter((s) => s.accountName === name)
+        .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+      return { name, snapshots: accountSnapshots };
+    })
+    .filter(({ snapshots }) => snapshots[0]?.balance !== 0);
 
   const handleSaveRsu = () => {
     if (!rsuForm.vestDate || !rsuForm.shares || !rsuForm.price) return;
@@ -129,42 +137,45 @@ export function Investments() {
       <div className={styles.netWorthRow}>
         <div className={styles.netWorthCard}>
           <span className={styles.summaryCardTitle}>Net Worth</span>
-          <span className={styles.netWorthValue}>{formatCurrency(totalAssets - totalDebts)}</span>
+          <span className={`${styles.netWorthValue} ${totalAssets - totalDebts >= 0 ? styles.money : styles.debtColor}`}>{formatCurrency(totalAssets - totalDebts)}</span>
           <span className={styles.netWorthBreakdown}>
-            <span className={styles.money}>{formatCurrency(totalRsuValue)}</span>
-            {" RSU + "}
-            <span className={styles.money}>{formatCurrency(totalAssets - totalRsuValue)}</span>
-            {" accounts – "}
-            <span className={styles.debtColor}>{formatCurrency(totalDebts)}</span>
-            {" debts"}
+            {totalRsuValue > 0 && (
+              <><span className={styles.money}>{formatCurrency(totalRsuValue)}</span>{" RSU"}</>
+            )}
+            {totalRsuValue > 0 && totalAssets - totalRsuValue > 0 && <span className={styles.money}>{" + "}</span>}
+            {totalAssets - totalRsuValue > 0 && (
+              <><span className={styles.money}>{formatCurrency(totalAssets - totalRsuValue)}</span>{" accounts"}</>
+            )}
+            {(totalRsuValue > 0 || totalAssets - totalRsuValue > 0) && totalDebts > 0 && <span className={styles.debtColor}>{" – "}</span>}
+            {totalDebts > 0 && (
+              <><span className={styles.debtColor}>{formatCurrency(totalDebts)}</span>{" debts"}</>
+            )}
           </span>
         </div>
       </div>
 
       <div className={styles.summaryRow}>
-        <div className={styles.summaryCard}>
-          <span className={styles.summaryCardTitle}>RSU Summary</span>
-          {vests.length === 0 ? (
-            <span className={styles.summaryEmpty}>No data</span>
-          ) : (
-              <div className={styles.summaryStats}>
-                <div className={styles.summaryStat}>
-                  <span className={styles.summaryStatLabel}>Total Shares</span>
-                  <span className={styles.summaryStatValue}>{vests.reduce((s, v) => s + v.shares, 0).toLocaleString()}</span>
-                </div>
-                <div className={styles.summaryStat}>
-                  <span className={styles.summaryStatLabel}>Value at Vest</span>
-                  <span className={`${styles.summaryStatValue} ${styles.money}`}>
-                    {formatCurrency(vests.reduce((s, v) => s + v.shares * v.price, 0))}
-                  </span>
-                </div>
-                <div className={styles.summaryStat}>
-                  <span className={styles.summaryStatLabel}>Events</span>
-                  <span className={styles.summaryStatValue}>{vests.length}</span>
-                </div>
+        {vests.length > 0 && (
+          <div className={styles.summaryCard}>
+            <span className={styles.summaryCardTitle}>RSU Summary</span>
+            <div className={styles.summaryStats}>
+              <div className={styles.summaryStat}>
+                <span className={styles.summaryStatLabel}>Total Shares</span>
+                <span className={styles.summaryStatValue}>{vests.reduce((s, v) => s + v.shares, 0).toLocaleString()}</span>
               </div>
-          )}
-        </div>
+              <div className={styles.summaryStat}>
+                <span className={styles.summaryStatLabel}>Value at Vest</span>
+                <span className={`${styles.summaryStatValue} ${styles.money}`}>
+                  {formatCurrency(vests.reduce((s, v) => s + v.shares * v.price, 0))}
+                </span>
+              </div>
+              <div className={styles.summaryStat}>
+                <span className={styles.summaryStatLabel}>Events</span>
+                <span className={styles.summaryStatValue}>{vests.length}</span>
+              </div>
+            </div>
+          </div>
+        )}
         <div className={styles.summaryCard}>
           <span className={styles.summaryCardTitle}>Assets</span>
           {assets.length === 0 ? (
@@ -203,78 +214,63 @@ export function Investments() {
             </div>
           )}
         </div>
-        <div className={styles.summaryCard}>
-          <span className={styles.summaryCardTitle}>Debts</span>
-          {debts.length === 0 ? (
-            <span className={styles.summaryEmpty}>No debt data</span>
-          ) : (
-            (() => {
-              const activeDebts = [...Array.from(new Set(debts.map((s) => s.accountName)))]
-                .map((name) => {
-                  const accountSnapshots = debts
-                    .filter((s) => s.accountName === name)
-                    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-                  return { name, snapshots: accountSnapshots };
-                })
-                .filter(({ snapshots }) => snapshots[0]?.balance !== 0);
-
-              return activeDebts.length === 0 ? (
-                <span className={styles.summaryEmpty}>All paid off!</span>
-              ) : (
-                <div className={styles.summaryBalances}>
-                {activeDebts.map(({ name, snapshots: accountSnapshots }) => {
-                const latest = accountSnapshots[0];
-                const prev = accountSnapshots[1];
-                let delta: { isUp: boolean; pct: number } | null = null;
-                if (prev && prev.balance !== 0) {
-                  const pct = ((latest.balance - prev.balance) / Math.abs(prev.balance)) * 100;
-                  delta = { isUp: latest.balance > prev.balance, pct };
-                }
-                return (
-                  <div key={name} className={styles.summaryStat}>
-                    <span className={styles.summaryStatLabel}>{name}</span>
-                    <span className={`${styles.summaryStatValue} ${styles.debtColor}`}>
-                      {formatCurrency(Math.abs(latest.balance))}
-                    </span>
-                    <span className={styles.balanceMeta}>
-                      {delta && (
-                        <span className={delta.isUp ? styles.deltaDown : styles.deltaUp}>
-                          <span className={styles.deltaArrow}>{delta.isUp ? "↓" : "↑"}</span>
-                          {Math.round(Math.abs(delta.pct))}%
-                        </span>
-                      )}
-                      <span className={styles.summaryBalanceDate}>{formatDate(latest.date)}</span>
-                    </span>
-                  </div>
-                );
-              })}
-            </div>
-          );
-        })())
-      }
-        </div>
+        {activeDebts.length > 0 && (
+          <div className={styles.summaryCard}>
+            <span className={styles.summaryCardTitle}>Debts</span>
+            <div className={styles.summaryBalances}>
+              {activeDebts.map(({ name, snapshots: accountSnapshots }) => {
+              const latest = accountSnapshots[0];
+              const prev = accountSnapshots[1];
+              let delta: { isUp: boolean; pct: number } | null = null;
+              if (prev && prev.balance !== 0) {
+                const pct = ((latest.balance - prev.balance) / Math.abs(prev.balance)) * 100;
+                delta = { isUp: latest.balance > prev.balance, pct };
+              }
+              return (
+                <div key={name} className={styles.summaryStat}>
+                  <span className={styles.summaryStatLabel}>{name}</span>
+                  <span className={`${styles.summaryStatValue} ${styles.debtColor}`}>
+                    {formatCurrency(Math.abs(latest.balance))}
+                  </span>
+                  <span className={styles.balanceMeta}>
+                    {delta && (
+                      <span className={delta.isUp ? styles.deltaDown : styles.deltaUp}>
+                        <span className={styles.deltaArrow}>{delta.isUp ? "↑" : "↓"}</span>
+                        {Math.round(Math.abs(delta.pct))}%
+                      </span>
+                    )}
+                    <span className={styles.summaryBalanceDate}>{formatDate(latest.date)}</span>
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+          </div>
+        )}
       </div>
 
       <div className={styles.sparklineRow}>
-        <div className={styles.sparklineCard}>
-          <span className={styles.sparklineTitle}>Total RSU Value</span>
-          {vests.length < 2 ? (
-            <span className={styles.summaryEmpty}>Need at least 2 vesting events</span>
-          ) : (
-            <Sparkline
-              data={(() => {
-                let running = 0;
-                return [...vests]
-                  .sort((a, b) => new Date(a.vestDate).getTime() - new Date(b.vestDate).getTime())
-                  .map((v) => {
-                    running += v.shares * v.price;
-                    return { label: formatShortDate(v.vestDate), value: running };
-                  });
-              })()}
-              color="var(--fg-success, #4ade80)"
-            />
-          )}
-        </div>
+        {vests.length > 0 && (
+          <div className={styles.sparklineCard}>
+            <span className={styles.sparklineTitle}>Total RSU Value</span>
+            {vests.length < 2 ? (
+              <span className={styles.summaryEmpty}>Need at least 2 vesting events</span>
+            ) : (
+              <Sparkline
+                data={(() => {
+                  let running = 0;
+                  return [...vests]
+                    .sort((a, b) => new Date(a.vestDate).getTime() - new Date(b.vestDate).getTime())
+                    .map((v) => {
+                      running += v.shares * v.price;
+                      return { label: formatShortDate(v.vestDate), value: running };
+                    });
+                })()}
+                color="var(--fg-success, #4ade80)"
+              />
+            )}
+          </div>
+        )}
         <div className={styles.sparklineCard}>
           <span className={styles.sparklineTitle}>Total Portfolio Balance</span>
           {snapshots.length < 2 ? (
@@ -354,37 +350,37 @@ export function Investments() {
           </div>
         )}
 
-        <div className={styles.tableCard}>
-          <table className={styles.table}>
-            <thead>
-              <tr>
-                <th>Date</th>
-                <th>Shares</th>
-                <th>Price/Share</th>
-                <th className={styles.num}>Total Value</th>
-                <th>Description</th>
-                <th className={styles.actionsCell}></th>
-              </tr>
-            </thead>
-            <tbody>
-              {sortedVests.length === 0 ? (
-                <tr><td colSpan={6} className={styles.emptyRow}>No RSU vests recorded yet</td></tr>
-              ) : sortedVests.map((v) => (
-                <tr key={v.id}>
-                  <td>{formatDate(v.vestDate)}</td>
-                  <td>{v.shares.toLocaleString()}</td>
-                  <td>{formatCurrency(v.price)}</td>
-                  <td className={styles.num}>{formatCurrency(v.shares * v.price)}</td>
-                  <td>{v.description}</td>
-                  <td className={styles.actionsCell}>
-                    <button className={styles.actionBtn} onClick={() => handleEditRsu(v)}>Edit</button>
-                    <button className={`${styles.actionBtn} ${styles.deleteBtn}`} onClick={() => removeVest(v.id)}>Delete</button>
-                  </td>
+        {sortedVests.length > 0 && (
+          <div className={styles.tableCard}>
+            <table className={styles.table}>
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>Shares</th>
+                  <th>Price/Share</th>
+                  <th className={styles.num}>Total Value</th>
+                  <th>Description</th>
+                  <th className={styles.actionsCell}></th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody>
+                {sortedVests.map((v) => (
+                  <tr key={v.id}>
+                    <td>{formatDate(v.vestDate)}</td>
+                    <td>{v.shares.toLocaleString()}</td>
+                    <td>{formatCurrency(v.price)}</td>
+                    <td className={styles.num}>{formatCurrency(v.shares * v.price)}</td>
+                    <td>{v.description}</td>
+                    <td className={styles.actionsCell}>
+                      <button className={styles.actionBtn} onClick={() => handleEditRsu(v)}>Edit</button>
+                      <button className={`${styles.actionBtn} ${styles.deleteBtn}`} onClick={() => removeVest(v.id)}>Delete</button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
 
       <div className={styles.section}>
@@ -454,37 +450,37 @@ export function Investments() {
           </div>
         )}
 
-        <div className={styles.tableCard}>
-          <table className={styles.table}>
-            <thead>
-              <tr>
-                <th>Account</th>
-                <th>Date</th>
-                <th className={styles.num}>Balance</th>
-                <th>Notes</th>
-                <th>Type</th>
-                <th className={styles.actionsCell}></th>
-              </tr>
-            </thead>
-            <tbody>
-              {sortedSnapshots.length === 0 ? (
-                <tr><td colSpan={6} className={styles.emptyRow}>No balance snapshots recorded yet</td></tr>
-              ) : sortedSnapshots.map((s) => (
-                <tr key={s.id}>
-                  <td>{s.accountName}</td>
-                  <td>{formatDate(s.date)}</td>
-                  <td className={`${styles.num} ${s.balance >= 0 ? styles.money : styles.debtMoney}`}>{formatCurrency(s.balance)}</td>
-                  <td>{s.notes ?? ""}</td>
-                  <td><span className={s.type === "debt" ? styles.typeDebt : styles.typeAsset}>{(s.type ?? "asset").toUpperCase()}</span></td>
-                  <td className={styles.actionsCell}>
-                    <button className={styles.actionBtn} onClick={() => handleEditSnapshot(s)}>Edit</button>
-                    <button className={`${styles.actionBtn} ${styles.deleteBtn}`} onClick={() => removeSnapshot(s.id)}>Delete</button>
-                  </td>
+        {sortedSnapshots.length > 0 && (
+          <div className={styles.tableCard}>
+            <table className={styles.table}>
+              <thead>
+                <tr>
+                  <th>Account</th>
+                  <th>Date</th>
+                  <th className={styles.num}>Balance</th>
+                  <th>Notes</th>
+                  <th>Type</th>
+                  <th className={styles.actionsCell}></th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody>
+                {sortedSnapshots.map((s) => (
+                  <tr key={s.id}>
+                    <td>{s.accountName}</td>
+                    <td>{formatDate(s.date)}</td>
+                    <td className={`${styles.num} ${s.balance >= 0 ? styles.money : styles.debtMoney}`}>{formatCurrency(s.balance)}</td>
+                    <td>{s.notes ?? ""}</td>
+                    <td><span className={s.type === "debt" ? styles.typeDebt : styles.typeAsset}>{(s.type ?? "asset").toUpperCase()}</span></td>
+                    <td className={styles.actionsCell}>
+                      <button className={styles.actionBtn} onClick={() => handleEditSnapshot(s)}>Edit</button>
+                      <button className={`${styles.actionBtn} ${styles.deleteBtn}`} onClick={() => removeSnapshot(s.id)}>Delete</button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -521,15 +517,16 @@ function Sparkline({ data, color }: { data: { label: string; value: number }[]; 
   const pathD = data.map((d, i) => `${i === 0 ? "M" : "L"}${xScale(i)},${yScale(d.value)}`).join("");
   const areaD = `${pathD}L${xScale(data.length - 1)},${yScale(0)}L${xScale(0)},${yScale(0)}Z`;
 
-  const labelInterval = Math.max(1, Math.floor(data.length / 10));
-
   return (
     <div ref={containerRef} style={{ width: "100%" }}>
       <svg width={width} height={height} className={styles.sparklineSvg}>
         <path d={areaD} fill={color} opacity={0.1} />
         <path d={pathD} fill="none" stroke={color} strokeWidth={2} strokeLinejoin="round" strokeLinecap="round" />
-        {data.map((d, i) =>
-          i % labelInterval === 0 || i === data.length - 1 ? (
+        {data.map((d, i) => {
+          const isFirst = i === 0;
+          const isLast = i === data.length - 1;
+          const isMid = data.length > 2 && i === Math.floor((data.length - 1) / 2);
+          return isFirst || isLast || isMid ? (
             <text
               key={i}
               x={xScale(i)}
@@ -540,8 +537,8 @@ function Sparkline({ data, color }: { data: { label: string; value: number }[]; 
             >
               {d.label}
             </text>
-          ) : null
-        )}
+          ) : null;
+        })}
       </svg>
     </div>
   );

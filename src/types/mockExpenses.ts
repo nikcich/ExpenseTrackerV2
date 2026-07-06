@@ -17,8 +17,19 @@ const startDate = subMonths(now, 12);
 const endDate = now;
 
 const descriptions: Partial<Record<string, string[]>> = {
-  [ExpenseTag.Food]: ["Groceries", "Restaurant", "Coffee Shop", "Lunch", "Dinner"],
-  [ExpenseTag.Entertainment]: ["Movie Tickets", "Streaming", "Concert", "Games"],
+  [ExpenseTag.Food]: [
+    "Groceries",
+    "Restaurant",
+    "Coffee Shop",
+    "Lunch",
+    "Dinner",
+  ],
+  [ExpenseTag.Entertainment]: [
+    "Movie Tickets",
+    "Streaming",
+    "Concert",
+    "Games",
+  ],
   [ExpenseTag.Shopping]: ["Amazon", "Clothing", "Home Goods", "Electronics"],
   [ExpenseTag.Transportation]: ["Uber", "Bus Pass", "Parking"],
   [ExpenseTag.Health_Med]: ["Pharmacy", "Doctor Copay", "Dental"],
@@ -60,23 +71,65 @@ const generateRealisticExpenses = (from: Date, to: Date): StoreExpenseMap => {
     const daysInMonth = new Date(year, month + 1, 0).getDate();
 
     // Semimonthly salary (15th + last day) — ~$4,600/month after tax on $80k/yr
-    addExpense(map, new Date(year, month, 15), 2300, [NonExpenseTags.Income], "Salary");
-    addExpense(map, new Date(year, month, daysInMonth), 2300, [NonExpenseTags.Income], "Salary");
+    addExpense(
+      map,
+      new Date(year, month, 15),
+      2300,
+      [NonExpenseTags.Income],
+      "Salary",
+    );
+    addExpense(
+      map,
+      new Date(year, month, daysInMonth),
+      2300,
+      [NonExpenseTags.Income],
+      "Salary",
+    );
 
     // Rent — 1st
-    addExpense(map, new Date(year, month, 1), 2000, [ExpenseTag.Rent_Mortgage], "Rent");
+    addExpense(
+      map,
+      new Date(year, month, 1),
+      2000,
+      [ExpenseTag.Rent_Mortgage],
+      "Rent",
+    );
 
     // Utilities — 5th
-    addExpense(map, new Date(year, month, 5), 300, [ExpenseTag.Utilities], "Electric & Internet");
+    addExpense(
+      map,
+      new Date(year, month, 5),
+      300,
+      [ExpenseTag.Utilities],
+      "Electric & Internet",
+    );
 
     // Insurance — 1st
-    addExpense(map, new Date(year, month, 1), 150, [ExpenseTag.Insurance], "Health Insurance");
+    addExpense(
+      map,
+      new Date(year, month, 1),
+      150,
+      [ExpenseTag.Insurance],
+      "Health Insurance",
+    );
 
     // Car loan — 15th
-    addExpense(map, new Date(year, month, 15), 400, [ExpenseTag.Debt], "Car Loan Payment");
+    addExpense(
+      map,
+      new Date(year, month, 15),
+      400,
+      [ExpenseTag.Debt],
+      "Car Loan Payment",
+    );
 
     // Student loan — 10th
-    addExpense(map, new Date(year, month, 10), 300, [ExpenseTag.Debt], "Student Loan Payment");
+    addExpense(
+      map,
+      new Date(year, month, 10),
+      300,
+      [ExpenseTag.Debt],
+      "Student Loan Payment",
+    );
 
     // Food — ~$500/month spread across 6-8 transactions
     let foodTotal = 0;
@@ -84,35 +137,82 @@ const generateRealisticExpenses = (from: Date, to: Date): StoreExpenseMap => {
       const day = 1 + Math.floor(Math.random() * daysInMonth);
       const amt = Math.min(500 - foodTotal, 15 + Math.random() * 55);
       if (amt < 5) break;
-      addExpense(map, new Date(year, month, day), amt, [ExpenseTag.Food], descFor(ExpenseTag.Food));
+      addExpense(
+        map,
+        new Date(year, month, day),
+        amt,
+        [ExpenseTag.Food],
+        descFor(ExpenseTag.Food),
+      );
       foodTotal += amt;
     }
 
     // Gas — 2x per month
-    addExpense(map, new Date(year, month, 8 + Math.floor(Math.random() * 5)), 35 + Math.random() * 15, [ExpenseTag.Gas], "Gas");
-    addExpense(map, new Date(year, month, 20 + Math.floor(Math.random() * 7)), 35 + Math.random() * 15, [ExpenseTag.Gas], "Gas");
+    addExpense(
+      map,
+      new Date(year, month, 8 + Math.floor(Math.random() * 5)),
+      35 + Math.random() * 15,
+      [ExpenseTag.Gas],
+      "Gas",
+    );
+    addExpense(
+      map,
+      new Date(year, month, 20 + Math.floor(Math.random() * 7)),
+      35 + Math.random() * 15,
+      [ExpenseTag.Gas],
+      "Gas",
+    );
 
     // Entertainment — 1-2x per month
     const entCount = 1 + Math.floor(Math.random() * 2);
     for (let i = 0; i < entCount; i++) {
       const day = 1 + Math.floor(Math.random() * daysInMonth);
-      addExpense(map, new Date(year, month, day), 15 + Math.random() * 50, [ExpenseTag.Entertainment], descFor(ExpenseTag.Entertainment));
+      addExpense(
+        map,
+        new Date(year, month, day),
+        15 + Math.random() * 50,
+        [ExpenseTag.Entertainment],
+        descFor(ExpenseTag.Entertainment),
+      );
     }
 
     // Shopping — once per month
-    addExpense(map, new Date(year, month, 1 + Math.floor(Math.random() * daysInMonth)), 50 + Math.random() * 150, [ExpenseTag.Shopping], descFor(ExpenseTag.Shopping));
+    addExpense(
+      map,
+      new Date(year, month, 1 + Math.floor(Math.random() * daysInMonth)),
+      50 + Math.random() * 150,
+      [ExpenseTag.Shopping],
+      descFor(ExpenseTag.Shopping),
+    );
 
     // Misc / Health / Transport / Gifts — 2-3 smaller items
     const miscCount = 2 + Math.floor(Math.random() * 2);
-    const miscPools = [ExpenseTag.Misc, ExpenseTag.Health_Med, ExpenseTag.Gifts, ExpenseTag.Transportation];
+    const miscPools = [
+      ExpenseTag.Misc,
+      ExpenseTag.Health_Med,
+      ExpenseTag.Gifts,
+      ExpenseTag.Transportation,
+    ];
     for (let i = 0; i < miscCount; i++) {
       const day = 1 + Math.floor(Math.random() * daysInMonth);
       const tag = pick(miscPools);
-      addExpense(map, new Date(year, month, day), 10 + Math.random() * 80, [tag], descFor(tag));
+      addExpense(
+        map,
+        new Date(year, month, day),
+        10 + Math.random() * 80,
+        [tag],
+        descFor(tag),
+      );
     }
 
     // Savings transfer — last day
-    addExpense(map, new Date(year, month, daysInMonth), 600, [NonExpenseTags.Savings], "Monthly Savings");
+    addExpense(
+      map,
+      new Date(year, month, daysInMonth),
+      600,
+      [NonExpenseTags.Savings],
+      "Monthly Savings",
+    );
 
     current = new Date(year, month + 1, 1);
   }
@@ -120,7 +220,10 @@ const generateRealisticExpenses = (from: Date, to: Date): StoreExpenseMap => {
   return map;
 };
 
-export const MOCK_EXPENSES: StoreExpenseMap = generateRealisticExpenses(startDate, endDate);
+export const MOCK_EXPENSES: StoreExpenseMap = generateRealisticExpenses(
+  startDate,
+  endDate,
+);
 
 const generateMockRsuVests = (from: Date): RsuVestsMap => {
   const map: RsuVestsMap = {};
@@ -140,13 +243,23 @@ const generateMockRsuVests = (from: Date): RsuVestsMap => {
 
 export const MOCK_RSU_VESTS: RsuVestsMap = generateMockRsuVests(startDate);
 
-const generateMockBalanceSnapshots = (from: Date, to: Date): BalanceSnapshotsMap => {
+const generateMockBalanceSnapshots = (
+  from: Date,
+  to: Date,
+): BalanceSnapshotsMap => {
   const map: BalanceSnapshotsMap = {};
   const cursor = new Date(from.getFullYear(), from.getMonth(), 15);
-  const monthsCount = ((to.getFullYear() - from.getFullYear()) * 12 + to.getMonth() - from.getMonth()) + 1;
+  const monthsCount =
+    (to.getFullYear() - from.getFullYear()) * 12 +
+    to.getMonth() -
+    from.getMonth() +
+    1;
 
   while (cursor <= to) {
-    const i = ((cursor.getFullYear() - from.getFullYear()) * 12 + cursor.getMonth() - from.getMonth());
+    const i =
+      (cursor.getFullYear() - from.getFullYear()) * 12 +
+      cursor.getMonth() -
+      from.getMonth();
     const progress = monthsCount > 1 ? i / (monthsCount - 1) : 0;
 
     const id1 = uuidv4();
@@ -154,7 +267,9 @@ const generateMockBalanceSnapshots = (from: Date, to: Date): BalanceSnapshotsMap
       id: id1,
       accountName: "Checking",
       date: format(cursor, "yyyy-MM-dd"),
-      balance: Math.round((5000 + progress * 1000 + Math.random() * 500 - 250) * 100) / 100,
+      balance:
+        Math.round((5000 + progress * 1000 + Math.random() * 500 - 250) * 100) /
+        100,
       type: "asset",
     };
 
@@ -163,7 +278,10 @@ const generateMockBalanceSnapshots = (from: Date, to: Date): BalanceSnapshotsMap
       id: id2,
       accountName: "Savings",
       date: format(cursor, "yyyy-MM-dd"),
-      balance: Math.round((10000 + progress * 7200 + Math.random() * 1000 - 500) * 100) / 100,
+      balance:
+        Math.round(
+          (10000 + progress * 7200 + Math.random() * 1000 - 500) * 100,
+        ) / 100,
       type: "asset",
     };
 
@@ -172,7 +290,7 @@ const generateMockBalanceSnapshots = (from: Date, to: Date): BalanceSnapshotsMap
       id: id3,
       accountName: "Credit Card",
       date: format(cursor, "yyyy-MM-dd"),
-      balance: Math.round((-2000 + Math.random() * 1000 - 500) * 100) / 100,
+      balance: Math.round((2000 + Math.random() * 1000 - 500) * 100) / 100,
       type: "debt",
     };
 
@@ -183,7 +301,14 @@ const generateMockBalanceSnapshots = (from: Date, to: Date): BalanceSnapshotsMap
       id: id4,
       accountName: "Car Loan",
       date: format(cursor, "yyyy-MM-dd"),
-      balance: Math.round((-carLoanStart + progress * (carLoanStart - carLoanEnd) + Math.random() * 200 - 100) * 100) / 100,
+      balance:
+        Math.round(
+          (-carLoanStart +
+            progress * (carLoanStart - carLoanEnd) +
+            Math.random() * 200 -
+            100) *
+            100,
+        ) / 100,
       type: "debt",
     };
 
@@ -194,7 +319,14 @@ const generateMockBalanceSnapshots = (from: Date, to: Date): BalanceSnapshotsMap
       id: id5,
       accountName: "Student Loan",
       date: format(cursor, "yyyy-MM-dd"),
-      balance: Math.round((-studentLoanStart + progress * (studentLoanStart - studentLoanEnd) + Math.random() * 200 - 100) * 100) / 100,
+      balance:
+        Math.round(
+          (-studentLoanStart +
+            progress * (studentLoanStart - studentLoanEnd) +
+            Math.random() * 200 -
+            100) *
+            100,
+        ) / 100,
       type: "debt",
     };
 
@@ -203,9 +335,14 @@ const generateMockBalanceSnapshots = (from: Date, to: Date): BalanceSnapshotsMap
   return map;
 };
 
-export const MOCK_BALANCE_SNAPSHOTS: BalanceSnapshotsMap = generateMockBalanceSnapshots(startDate, endDate);
+export const MOCK_BALANCE_SNAPSHOTS: BalanceSnapshotsMap =
+  generateMockBalanceSnapshots(startDate, endDate);
 
-const forecastStartMonth = new Date(startDate.getFullYear(), startDate.getMonth(), 1);
+const forecastStartMonth = new Date(
+  startDate.getFullYear(),
+  startDate.getMonth(),
+  1,
+);
 
 export const MOCK_FORECAST_CONFIG: ForecastConfigData = {
   startBalance: 10000,
@@ -213,7 +350,14 @@ export const MOCK_FORECAST_CONFIG: ForecastConfigData = {
   startDate: format(forecastStartMonth, "yyyy-MM-dd"),
   endDate: format(endDate, "yyyy-MM-dd"),
   incomeStreams: [
-    { name: "Salary", amount: 2300, payPeriod: "semimonthly", firstPaycheckDate: format(forecastStartMonth, "yyyy-MM-15"), semimonthlyPayday1: 15, semimonthlyPayday2: 31 },
+    {
+      name: "Salary",
+      amount: 2300,
+      payPeriod: "semimonthly",
+      firstPaycheckDate: format(forecastStartMonth, "yyyy-MM-15"),
+      semimonthlyPayday1: 15,
+      semimonthlyPayday2: 31,
+    },
   ],
   expenses: [
     { name: "Rent", day: 1, amount: 2000, period: "monthly" },

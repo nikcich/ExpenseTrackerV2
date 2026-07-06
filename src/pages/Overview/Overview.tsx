@@ -70,11 +70,9 @@ function InvestmentsCard({ month }: { month: Date }) {
         <span className={styles.cardTitle}>Investments</span>
       </div>
       <div className={styles.investCardBody}>
-        <div className={styles.investSection}>
-          <span className={styles.investSectionTitle}>RSU</span>
-          {vests.length === 0 ? (
-            <span className={styles.cardEmpty}>No data</span>
-          ) : (
+        {filteredVests.length > 0 && (
+          <div className={styles.investSection}>
+            <span className={styles.investSectionTitle}>RSU</span>
             <div className={styles.investGrid}>
               <div className={styles.investItem}>
                 <span className={styles.investValue}>{totalShares.toLocaleString()}</span>
@@ -89,8 +87,8 @@ function InvestmentsCard({ month }: { month: Date }) {
                 <span className={styles.investLabel}>Events</span>
               </div>
             </div>
-          )}
-        </div>
+          </div>
+        )}
         <div className={styles.investSection}>
           <span className={styles.investSectionTitle}>Latest Balances</span>
           {latestByAccount.size === 0 ? (
@@ -100,7 +98,7 @@ function InvestmentsCard({ month }: { month: Date }) {
               {[...latestByAccount.entries()].map(([name, snap]) => (
                 <div key={name} className={styles.investItem}>
                   <span className={styles.investLabel}>{name}</span>
-                  <span className={`${styles.investValue} ${styles.money}`}>{formatCurrency(snap.balance)}</span>
+                  <span className={`${styles.investValue} ${(snap.type ?? "asset") === "debt" ? styles.valueNeg : styles.money}`}>{formatCurrency(snap.balance)}</span>
                   <span className={styles.investDate}>{formatDate(snap.date)}</span>
                 </div>
               ))}
@@ -115,12 +113,17 @@ function InvestmentsCard({ month }: { month: Date }) {
             </span>
           </div>
           <span className={styles.netWorthBreakdown}>
-            <span className={styles.valuePos}>{formatCurrency(totalValue)}</span>
-            {" RSU + "}
-            <span className={styles.valuePos}>{formatCurrency(totalAssetsBalance)}</span>
-            {" assets − "}
-            <span className={styles.valueNeg}>{formatCurrency(totalDebtsBalance)}</span>
-            {" debts"}
+            {totalValue > 0 && (
+              <><span className={styles.valuePos}>{formatCurrency(totalValue)}</span>{" RSU"}</>
+            )}
+            {totalValue > 0 && totalAssetsBalance > 0 && <span className={styles.valuePos}>{" + "}</span>}
+            {totalAssetsBalance > 0 && (
+              <><span className={styles.valuePos}>{formatCurrency(totalAssetsBalance)}</span>{" assets"}</>
+            )}
+            {(totalValue > 0 || totalAssetsBalance > 0) && totalDebtsBalance > 0 && <span className={styles.valueNeg}>{" − "}</span>}
+            {totalDebtsBalance > 0 && (
+              <><span className={styles.valueNeg}>{formatCurrency(totalDebtsBalance)}</span>{" debts"}</>
+            )}
           </span>
         </div>
       </div>

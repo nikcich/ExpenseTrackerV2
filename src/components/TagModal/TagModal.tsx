@@ -17,7 +17,7 @@ export const TagModal = () => {
     closeAllOverlays();
   }, []);
 
-  const ALL_TAGS_OPTIONS = useAllTagsOptions();
+  const ALL_TAGS_OPTIONS = useAllTagsOptions(true);
 
   const selection = useSelection();
   const [result, setResult] = useState<
