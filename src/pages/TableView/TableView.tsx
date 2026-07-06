@@ -5,10 +5,19 @@ import {
   useFilteredIncome,
   useFilteredSavings,
 } from "@/hooks/expenses";
+import { useExpensesStore } from "@/store/store";
 import { API, Response } from "@/types/types";
+import { createTauriInvoker } from "@/utils/utils";
+import { downloadExpensesCSV } from "@/utils/download";
 import { invoke } from "@tauri-apps/api/core";
 import { open } from "@tauri-apps/plugin-dialog";
 import { useCallback, useState } from "react";
+import {
+  Button,
+  CloseButton,
+  Dialog,
+  Portal,
+} from "@chakra-ui/react";
 
 const useFileOpener = () => {
   const [loading, setLoading] = useState(false);
@@ -69,10 +78,68 @@ const useFileOpener = () => {
   };
 };
 
+const ResetExpensesDialog = () => {
+  const { setValue: setExpenses } = useExpensesStore();
+  const clearExpenses = async () => setExpenses({});
+  const [open, setOpen] = useState(false);
+
+  return (
+    <Dialog.Root role="alertdialog" open={open}>
+      <Dialog.Trigger asChild>
+        <Button size="sm" colorPalette={"red"} onClick={() => setOpen(true)}>
+          Delete All
+        </Button>
+      </Dialog.Trigger>
+      <Portal>
+        <Dialog.Backdrop />
+        <Dialog.Positioner>
+          <Dialog.Content>
+            <Dialog.Header>
+              <Dialog.Title>Are you sure?</Dialog.Title>
+            </Dialog.Header>
+            <Dialog.Body>
+              <p>
+                This action cannot be undone. This will permanently delete all
+                entries
+              </p>
+            </Dialog.Body>
+            <Dialog.Footer>
+              <Dialog.ActionTrigger asChild>
+                <Button
+                  variant="outline"
+                  onClick={() => { setOpen(false); }}
+                >
+                  Cancel
+                </Button>
+              </Dialog.ActionTrigger>
+              <Button
+                colorPalette="red"
+                onClick={() => {
+                  setOpen(false);
+                  clearExpenses();
+                }}
+              >
+                Delete
+              </Button>
+            </Dialog.Footer>
+            <Dialog.CloseTrigger asChild>
+              <CloseButton
+                size="sm"
+                onClick={() => { setOpen(false); }}
+              />
+            </Dialog.CloseTrigger>
+          </Dialog.Content>
+        </Dialog.Positioner>
+      </Portal>
+    </Dialog.Root>
+  );
+};
+
 export function TableView() {
   const expenses = useFilteredExpenses();
   const income = useFilteredIncome();
   const savings = useFilteredSavings();
+  const { value: allStoreExpenses } = useExpensesStore();
   const {
     loading,
     result,
@@ -154,6 +221,23 @@ export function TableView() {
           <span className={styles.cardTitle}>
             All Items ({allItems.length})
           </span>
+          <div className={styles.actionRow}>
+            <Button
+              size="sm"
+              colorPalette={"green"}
+              onClick={() => downloadExpensesCSV(allStoreExpenses)}
+            >
+              Download CSV
+            </Button>
+            <Button
+              size="sm"
+              colorPalette={"blue"}
+              onClick={createTauriInvoker(API.NewWindow)}
+            >
+              New Window
+            </Button>
+            <ResetExpensesDialog />
+          </div>
         </div>
         <DataTable items={allItems} />
       </div>

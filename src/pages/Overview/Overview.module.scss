@@ -230,18 +230,6 @@
   max-width: 280px;
 }
 
-.valuePos {
-  color: var(--fg-success, #4ade80);
-}
-
-.valueNeg {
-  color: var(--fg-error, #f87171);
-}
-
-.valueNeutral {
-  color: var(--fg-warning, #eab308);
-}
-
 .delta {
   font-size: 0.8rem;
   color: var(--fg-subtle, #6b6b7b);
@@ -427,6 +415,18 @@
   font-weight: 700;
   color: var(--fg-default, #e8e8ed);
   line-height: 1.2;
+}
+
+.valuePos {
+  color: var(--fg-success, #4ade80);
+}
+
+.valueNeg {
+  color: var(--fg-error, #f87171);
+}
+
+.valueNeutral {
+  color: var(--fg-warning, #eab308);
 }
 
 .money {

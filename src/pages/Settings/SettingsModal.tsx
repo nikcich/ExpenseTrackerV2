@@ -16,7 +16,7 @@ const CustomCheckBox = ({
   label: string;
 }) => {
   return (
-    <CheckboxCard.Root>
+    <CheckboxCard.Root className={styles.switchItem}>
       <CheckboxCard.Control>
         <CheckboxCard.Content>
           <Switch.Root

@@ -5,7 +5,6 @@ import styles from "./App.module.scss";
 import { JSX, useSyncExternalStore } from "react";
 import { mockMode$ } from "./utils/utils";
 
-import { Home } from "./pages/Home/Home";
 import { TableView } from "./pages/TableView/TableView";
 import { GroupedBarChart } from "./pages/GroupedBarChart/GroupedBarChart";
 import { TagStackedBarChart } from "./pages/TagStackedBarChart/TagStackedBarChart";
@@ -83,11 +82,6 @@ export function AppRouter() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route
-          path={Pages.Home}
-          element={<RouteComponent element={<Home />} />}
-        />
-
         <Route
           path={Pages.TableView}
           element={<RouteComponent element={<TableView />} />}
