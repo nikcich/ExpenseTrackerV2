@@ -1,3 +1,4 @@
+use crate::api::events::notify_store_changed;
 use crate::definition::csv_definition::{CsvDefinitionKey, CSV_DEFINITIONS};
 use crate::model::expense::Expense;
 use crate::model::response::{Response, Status};
@@ -7,6 +8,7 @@ use crate::service::csv_file_service::{
 };
 use crate::store::app_store::ExpenseStore;
 use std::error::Error as StdError;
+use tauri::AppHandle;
 use tauri::State;
 
 /// Opens a CSV file from a given path.
@@ -62,6 +64,7 @@ pub fn open_csv_from_path(file: String) -> Response {
 
 #[tauri::command]
 pub fn parse_csv_from_path(
+    app_handle: AppHandle,
     expense_store_state: State<'_, ExpenseStore>,
     path: String,
     csv_definition_key: CsvDefinitionKey,
@@ -72,6 +75,7 @@ pub fn parse_csv_from_path(
         csv_definition_key,
     ) {
         Ok((added_count, duplicate_count)) => {
+            notify_store_changed(&app_handle, "expenses");
             return Response::new(
                 Status::Created,
                 String::from("CSV parsed successfully"),
@@ -92,12 +96,14 @@ pub fn parse_csv_from_path(
 
 #[tauri::command]
 pub fn add_expense_manual(
+    app_handle: AppHandle,
     expense_store_state: State<'_, ExpenseStore>,
     expense: Expense,
 ) -> Response {
     match expense_store_state.add_expense(expense, true) {
         Ok(added) => {
             if added {
+                notify_store_changed(&app_handle, "expenses");
                 return Response::new(
                     Status::Created,
                     String::from("Expense added successfully"),
@@ -122,12 +128,14 @@ pub fn add_expense_manual(
 
 #[tauri::command]
 pub fn remove_bulk_expenses(
+    app_handle: AppHandle,
     expense_store_state: State<'_, ExpenseStore>,
     hashes: Vec<String>,
 ) -> Response {
     match expense_store_state.remove_bulk_expenses(hashes) {
         Ok(updated) => {
             if updated {
+                notify_store_changed(&app_handle, "expenses");
                 return Response::ok(
                     String::from("Expenses removed successfully"),
                     Option::<String>::None,
@@ -150,10 +158,15 @@ pub fn remove_bulk_expenses(
 }
 
 #[tauri::command]
-pub fn remove_expense(expense_store_state: State<'_, ExpenseStore>, hash: String) -> Response {
+pub fn remove_expense(
+    app_handle: AppHandle,
+    expense_store_state: State<'_, ExpenseStore>,
+    hash: String,
+) -> Response {
     match expense_store_state.remove_expense(&hash) {
         Ok(updated) => {
             if updated {
+                notify_store_changed(&app_handle, "expenses");
                 return Response::ok(
                     String::from("Expense removed successfully"),
                     Option::<String>::None,
@@ -177,6 +190,7 @@ pub fn remove_expense(expense_store_state: State<'_, ExpenseStore>, hash: String
 
 #[tauri::command]
 pub fn update_bulk_expenses(
+    app_handle: AppHandle,
     expense_store_state: State<'_, ExpenseStore>,
     hashes: Vec<String>,
     expenses: Vec<Expense>,
@@ -184,6 +198,7 @@ pub fn update_bulk_expenses(
     match expense_store_state.update_bulk_expenses(hashes, expenses) {
         Ok(updated) => {
             if updated {
+                notify_store_changed(&app_handle, "expenses");
                 return Response::ok(
                     String::from("Expenses updated successfully"),
                     Option::<String>::None,
@@ -207,6 +222,7 @@ pub fn update_bulk_expenses(
 
 #[tauri::command]
 pub fn update_expense(
+    app_handle: AppHandle,
     expense_store_state: State<'_, ExpenseStore>,
     hash: String,
     expense: Expense,
@@ -214,6 +230,7 @@ pub fn update_expense(
     match expense_store_state.update_expense(hash, expense) {
         Ok(updated) => {
             if updated {
+                notify_store_changed(&app_handle, "expenses");
                 return Response::ok(
                     String::from("Expense updated successfully"),
                     Option::<String>::None,

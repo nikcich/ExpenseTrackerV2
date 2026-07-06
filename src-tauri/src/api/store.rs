@@ -1,16 +1,22 @@
+use crate::api::events::notify_store_changed;
 use crate::model::response::{Response, Status};
 use crate::store::app_store::ExpenseStore;
 use serde_json::Value;
 use tauri::State;
+use tauri::AppHandle;
 
 #[tauri::command]
 pub fn store_set_json_value(
+    app_handle: AppHandle,
     expense_store_state: State<'_, ExpenseStore>,
     key: String,
     value: Value,
 ) -> Response {
     match expense_store_state.inner().set_json_value(&key, value) {
-        Ok(_) => Response::ok("Value saved".to_string(), Option::<String>::None),
+        Ok(_) => {
+            notify_store_changed(&app_handle, &key);
+            Response::ok("Value saved".to_string(), Option::<String>::None)
+        }
         Err(e) => Response::err(
             format!("Failed to save value: {}", e),
             Option::<String>::None,
