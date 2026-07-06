@@ -317,7 +317,7 @@ export const DataTable = ({ items }: { items: Expense[] }) => {
   );
 };
 
-const ROW_HEIGHT = 44;
+const ROW_HEIGHT = 70;
 const OVERSCAN = 5;
 
 const PaginationIndicator = ({
@@ -459,11 +459,23 @@ export const CoreTable = memo(({ items, selectable = true }: { items: Expense[];
     });
   }, [items, sortColumn, sortDirection]);
 
+  const bodyRef = useRef<HTMLDivElement>(null);
+  const [viewportHeight, setViewportHeight] = useState(600);
+
+  useEffect(() => {
+    const el = bodyRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver(([entry]) => {
+      setViewportHeight(entry.contentRect.height);
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
   const onScroll = useCallback((e: React.UIEvent<HTMLDivElement>) => {
     setScrollTop(e.currentTarget.scrollTop);
   }, []);
 
-  const viewportHeight = 600; // adjust or measure with ref
   const visibleCount = Math.ceil(viewportHeight / ROW_HEIGHT);
 
   const startIndex = Math.max(0, Math.floor(scrollTop / ROW_HEIGHT) - OVERSCAN);
@@ -606,7 +618,7 @@ export const CoreTable = memo(({ items, selectable = true }: { items: Expense[];
       </table>
 
       {/* ===== Scrollable Virtualized Body ===== */}
-      <div className={styles.bodyScroll} onScroll={onScroll}>
+      <div className={styles.bodyScroll} ref={bodyRef} onScroll={onScroll}>
         <div
           className={styles.spacer}
           style={{ height: sortedItems.length * ROW_HEIGHT }}
