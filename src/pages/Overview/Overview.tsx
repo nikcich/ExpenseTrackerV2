@@ -1,5 +1,6 @@
 import { useExpensesStore, useRsuVests, useBalanceSnapshots } from "@/store/store";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useDeferredValue } from "react";
+import { Spinner } from "@chakra-ui/react";
 import { CoreTable } from "@/components/DataTable/DataTable";
 import { AiOutlineInbox } from "react-icons/ai";
 import { MonthPills } from "./MonthPills";
@@ -132,6 +133,26 @@ function InvestmentsCard({ month }: { month: Date }) {
 }
 
 export function Overview() {
+  const [ready, setReady] = useState(false);
+
+  useEffect(() => {
+    setReady(true);
+  }, []);
+
+  if (!ready) {
+    return (
+      <div className={styles.page}>
+        <div className={styles.loadingState}>
+          <Spinner color="var(--fg-muted, #a0a0ab)" />
+        </div>
+      </div>
+    );
+  }
+
+  return <OverviewContent />;
+}
+
+function OverviewContent() {
   const months = useMemo(() => getLast12Months(), []);
   const [selectedIndex, setSelectedIndex] = useState(months.length - 1);
   const { value: allExpenses } = useExpensesStore();
@@ -147,6 +168,8 @@ export function Overview() {
     );
   }, [allExpenses, disabledTags]);
 
+  const deferredExpenses = useDeferredValue(filteredExpensesRaw);
+
   const toggleCategory = (name: string) => {
     setDisabledCategories((prev) => {
       const next = new Set(prev);
@@ -157,19 +180,19 @@ export function Overview() {
   };
 
   const allMonthsData = useMemo(() => {
-    if (!filteredExpensesRaw) return months.map(() => EMPTY_DATA);
-    return months.map((m) => computeMonthData(filteredExpensesRaw, m));
-  }, [filteredExpensesRaw, months]);
+    if (!deferredExpenses) return months.map(() => EMPTY_DATA);
+    return months.map((m) => computeMonthData(deferredExpenses, m));
+  }, [deferredExpenses, months]);
 
   const current = allMonthsData[selectedIndex];
   const prev =
     selectedIndex > 0 ? allMonthsData[selectedIndex - 1] : EMPTY_DATA;
-  const ytd = useMemo(() => computeYtdFromExpenses(filteredExpensesRaw, months[selectedIndex]), [filteredExpensesRaw, months, selectedIndex]);
+  const ytd = useMemo(() => computeYtdFromExpenses(deferredExpenses, months[selectedIndex]), [deferredExpenses, months, selectedIndex]);
   const sparklineData = allMonthsData.map((d) => d.net);
   const currentExpenses = useMemo(() => {
-    if (!filteredExpensesRaw) return [];
-    return getMonthExpenses(filteredExpensesRaw, months[selectedIndex]);
-  }, [filteredExpensesRaw, months, selectedIndex]);
+    if (!deferredExpenses) return [];
+    return getMonthExpenses(deferredExpenses, months[selectedIndex]);
+  }, [deferredExpenses, months, selectedIndex]);
 
   const filteredExpenses = useMemo(() => {
     if (disabledCategories.size === 0) return currentExpenses;

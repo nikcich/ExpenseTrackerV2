@@ -124,6 +124,13 @@
   min-height: 300px;
 }
 
+.loadingState {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+}
+
 .emptyState {
   display: flex;
   flex-direction: column;
