@@ -1,16 +1,18 @@
 import { useEffect, useRef, useState } from "react";
 import * as d3 from "d3";
-import { formatMonthShort } from "./utils";
+import { formatMonthShort } from "@/utils/utils";
 import styles from "./Overview.module.scss";
 
 export function NetSparkline({
   data,
   months,
   selectedIndex,
+  formatLabel,
 }: {
   data: number[];
   months: Date[];
   selectedIndex: number;
+  formatLabel?: (date: Date) => string;
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [width, setWidth] = useState(400);
@@ -46,6 +48,8 @@ export function NetSparkline({
     .range([innerH, 0]);
 
   const allZero = data.every((d) => d === 0);
+
+  const fmt = formatLabel ?? formatMonthShort;
 
   if (allZero) {
     return (
@@ -120,7 +124,7 @@ export function NetSparkline({
               fill="var(--fg-subtle, #6b6b7b)"
               fontSize="8"
             >
-              {formatMonthShort(m)}
+              {fmt(m)}
             </text>
           ))}
         </g>

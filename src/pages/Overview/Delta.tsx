@@ -1,4 +1,4 @@
-import { formatPercent } from "./utils";
+import { formatPercent } from "@/utils/utils";
 import styles from "./Overview.module.scss";
 
 export function Delta({

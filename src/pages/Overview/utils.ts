@@ -27,24 +27,16 @@ export function getLast12Months(): Date[] {
   return months;
 }
 
-export function formatMonthShort(date: Date): string {
-  return date.toLocaleString("default", { month: "short" });
+export function getLastNYears(n: number = 5): Date[] {
+  const now = new Date();
+  const years: Date[] = [];
+  for (let i = n - 1; i >= 0; i--) {
+    years.push(new Date(now.getFullYear() - i, 0, 1));
+  }
+  return years;
 }
 
-export function formatCurrency(n: number): string {
-  const abs = Math.abs(n);
-  const s = new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "USD",
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  }).format(abs);
-  return n < 0 ? `-${s}` : s;
-}
 
-export function formatPercent(pct: number): string {
-  return `${Math.round(pct)}%`;
-}
 
 export function computeMonthData(expenses: Expense[], target: Date): MonthData {
   const income: Expense[] = [];
@@ -55,6 +47,71 @@ export function computeMonthData(expenses: Expense[], target: Date): MonthData {
     if (getYear(parseDate(e.date)) !== getYear(target)) continue;
     if (getMonth(parseDate(e.date)) !== getMonth(target)) continue;
 
+    if (e.tags.includes(NonExpenseTags.Income)) {
+      income.push(e);
+    } else if (e.tags.includes(NonExpenseTags.Savings)) {
+      savings += e.amount;
+    } else {
+      spent.push(e);
+    }
+  }
+
+  const realIncome = income.reduce((sum, e) => sum + Math.abs(e.amount), 0);
+  const totalSpent = spent.reduce((sum, e) => sum + e.amount, 0);
+  const net = realIncome - totalSpent;
+
+  const catMap = new Map<string, number>();
+  for (const e of spent) {
+    const tag = e.tags[0] || "Untagged";
+    catMap.set(tag, (catMap.get(tag) || 0) + e.amount);
+  }
+  const categories = [...catMap.entries()]
+    .map(([name, amount]) => ({ name, amount }))
+    .sort((a, b) => b.amount - a.amount);
+
+  return { realIncome, totalSpent, net, savings, categories };
+}
+
+export function computeYearData(expenses: Expense[], target: Date): MonthData {
+  const year = getYear(target);
+  const income: Expense[] = [];
+  const spent: Expense[] = [];
+  let savings = 0;
+
+  for (const e of expenses) {
+    if (getYear(parseDate(e.date)) !== year) continue;
+
+    if (e.tags.includes(NonExpenseTags.Income)) {
+      income.push(e);
+    } else if (e.tags.includes(NonExpenseTags.Savings)) {
+      savings += e.amount;
+    } else {
+      spent.push(e);
+    }
+  }
+
+  const realIncome = income.reduce((sum, e) => sum + Math.abs(e.amount), 0);
+  const totalSpent = spent.reduce((sum, e) => sum + e.amount, 0);
+  const net = realIncome - totalSpent;
+
+  const catMap = new Map<string, number>();
+  for (const e of spent) {
+    const tag = e.tags[0] || "Untagged";
+    catMap.set(tag, (catMap.get(tag) || 0) + e.amount);
+  }
+  const categories = [...catMap.entries()]
+    .map(([name, amount]) => ({ name, amount }))
+    .sort((a, b) => b.amount - a.amount);
+
+  return { realIncome, totalSpent, net, savings, categories };
+}
+
+export function computeAllData(expenses: Expense[]): MonthData {
+  const income: Expense[] = [];
+  const spent: Expense[] = [];
+  let savings = 0;
+
+  for (const e of expenses) {
     if (e.tags.includes(NonExpenseTags.Income)) {
       income.push(e);
     } else if (e.tags.includes(NonExpenseTags.Savings)) {
@@ -111,4 +168,9 @@ export function getMonthExpenses(expenses: Expense[], target: Date): Expense[] {
     if (getMonth(parseDate(e.date)) !== getMonth(target)) return false;
     return true;
   });
+}
+
+export function getYearExpenses(expenses: Expense[], target: Date): Expense[] {
+  const year = getYear(target);
+  return expenses.filter((e) => getYear(parseDate(e.date)) === year);
 }

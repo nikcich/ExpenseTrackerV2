@@ -8,14 +8,9 @@ import {
 } from "@/utils/cash-flow-forecast";
 import { useForecastConfig } from "@/store/store";
 import { format } from "date-fns";
+import { formatCurrency } from "@/utils/utils";
 import styles from "./Forecast.module.scss";
 import { GenericPage } from "@/components/GenericPage/GenericPage";
-
-const formatCurrency = (amount: number) =>
-  new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "USD",
-  }).format(amount);
 
 const cleanNum = (v: string) => String(Number(v));
 

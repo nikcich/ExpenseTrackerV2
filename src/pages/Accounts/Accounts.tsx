@@ -1,36 +1,13 @@
 import { useEffect, useRef, useState } from "react";
 import { useRsuVests, useBalanceSnapshots } from "@/store/store";
 import type { RsuVest, BalanceSnapshot } from "@/types/types";
-import styles from "./Investments.module.scss";
-
-function formatCurrency(n: number): string {
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "USD",
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  }).format(n);
-}
-
-function parseLocalDate(iso: string): Date {
-  const [y, m, d] = iso.split("T")[0].split("-").map(Number);
-  return new Date(y, m - 1, d);
-}
-
-function formatDate(iso: string): string {
-  const d = parseLocalDate(iso);
-  return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
-}
-
-function formatShortDate(iso: string): string {
-  const d = parseLocalDate(iso);
-  return d.toLocaleDateString("en-US", { month: "short", year: "numeric" });
-}
+import { formatCurrency, formatDate, formatShortDate } from "@/utils/utils";
+import styles from "./Accounts.module.scss";
 
 const emptyRsu = (): Partial<RsuVest> => ({ vestDate: "", shares: 0, price: 0, description: "" });
 const emptySnapshot = (): Partial<BalanceSnapshot> => ({ accountName: "", date: "", balance: 0, notes: "", type: "asset" });
 
-export function Investments() {
+export function Accounts() {
   const { vests, addVest, updateVest, removeVest } = useRsuVests();
   const { snapshots, addSnapshot, updateSnapshot, removeSnapshot } = useBalanceSnapshots();
 

@@ -4,11 +4,16 @@ export function MonthPills({
   months,
   selectedIndex,
   onChange,
+  formatLabel,
 }: {
   months: Date[];
   selectedIndex: number;
   onChange: (i: number) => void;
+  formatLabel?: (date: Date) => string;
 }) {
+  const fmt = formatLabel ?? ((date: Date) =>
+    date.toLocaleString("default", { month: "short", year: "numeric" })
+  );
   return (
     <div className={styles.monthPills}>
       {months.map((date, i) => (
@@ -17,7 +22,7 @@ export function MonthPills({
           className={`${styles.monthPill} ${i === selectedIndex ? styles.monthPillActive : ""}`}
           onClick={() => onChange(i)}
         >
-          {date.toLocaleString("default", { month: "short", year: "numeric" })}
+          {fmt(date)}
         </button>
       ))}
     </div>

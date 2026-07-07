@@ -341,6 +341,42 @@ export const parseDate = (dateStr: string): Date => {
   return date;
 };
 
+export function parseLocalDate(iso: string): Date {
+  const [y, m, d] = iso.split("T")[0].split("-").map(Number);
+  return new Date(y, m - 1, d);
+}
+
+export function formatDate(iso: string): string {
+  return parseLocalDate(iso).toLocaleDateString("en-US", {
+    month: "short", day: "numeric", year: "numeric",
+  });
+}
+
+export function formatShortDate(iso: string): string {
+  return parseLocalDate(iso).toLocaleDateString("en-US", {
+    month: "short", year: "numeric",
+  });
+}
+
+export function formatMonthShort(date: Date): string {
+  return date.toLocaleString("default", { month: "short" });
+}
+
+export function formatCurrency(n: number): string {
+  const abs = Math.abs(n);
+  const s = new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  }).format(abs);
+  return n < 0 ? `-${s}` : s;
+}
+
+export function formatPercent(pct: number): string {
+  return `${Math.round(pct)}%`;
+}
+
 const parsers = [
   d3.timeParse("%b %Y"), // "Aug 2025"
   d3.timeParse("%m/%d/%Y"), // "08/16/2025"

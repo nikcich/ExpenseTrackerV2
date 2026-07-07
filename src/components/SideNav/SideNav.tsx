@@ -40,7 +40,7 @@ export function SideNav() {
     <div className={styles.navContainer}>
       <div className={styles.navItems}>
         <NavButton Icon={PiCompassLight} page={Pages.Overview} label="Overview" />
-        <NavButton Icon={PiChartPieSlice} page={Pages.Investments} label="Investments" />
+        <NavButton Icon={PiChartPieSlice} page={Pages.Accounts} label="Accounts" />
         <NavButton Icon={MdOutlineTrendingUp} page={Pages.Forecast} label="Forecast" />
         <NavButton Icon={FaTable} page={Pages.TableView} label="Data Table" />
         <NavButton Icon={BsAlignMiddle} page={Pages.AverageSpending} label="Average Spending" />

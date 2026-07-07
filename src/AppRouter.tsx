@@ -16,7 +16,7 @@ import { ErrorBoundary } from "react-error-boundary";
 import { ExpenseSankey } from "./pages/Sankey/ExpenseSankey";
 import { Forecast } from "./pages/Forecast/Forecast";
 import { Overview } from "./pages/Overview/Overview";
-import { Investments } from "./pages/Investments/Investments";
+import { Accounts } from "./pages/Accounts/Accounts";
 
 const MockBanner = () => {
   const enabled = useSyncExternalStore(
@@ -128,8 +128,8 @@ export function AppRouter() {
         />
 
         <Route
-          path={Pages.Investments}
-          element={<RouteComponent element={<Investments />} />}
+          path={Pages.Accounts}
+          element={<RouteComponent element={<Accounts />} />}
         />
       </Routes>
     </BrowserRouter>

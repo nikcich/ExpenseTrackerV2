@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import * as d3 from "d3";
-import { formatCurrency } from "./utils";
+import { formatCurrency } from "@/utils/utils";
 import styles from "./Overview.module.scss";
 
 const CATEGORY_COLORS = [
