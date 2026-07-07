@@ -1,16 +1,17 @@
 import {
   BehaviorSubject,
-  interval,
   merge,
   Observable,
+  of,
   startWith,
   Subscription,
   switchMap,
 } from "rxjs";
 import { invoke } from "@tauri-apps/api/core";
+import { listen } from "@tauri-apps/api/event";
 import { useEffect, useState } from "react";
-import { API, KnownStoreKeys, POLL_INTERVAL_MS } from "../types/types";
-import { debounceTime, distinctUntilChanged, skip } from "rxjs/operators";
+import { API, KnownStoreKeys } from "../types/types";
+import { debounceTime, distinctUntilChanged, filter, skip } from "rxjs/operators";
 import { Response } from "../types/types";
 import { parse } from "date-fns";
 import * as d3 from "d3";
@@ -61,6 +62,20 @@ export const createTauriInvoker = <T>(
   };
 };
 
+function fromTauriEvent<T>(eventName: string): Observable<T> {
+  return new Observable<T>((subscriber) => {
+    let unlisten: (() => void) | undefined;
+    listen<T>(eventName, (event) => {
+      subscriber.next(event.payload);
+    }).then((unlistenFn) => {
+      unlisten = unlistenFn;
+    });
+    return () => {
+      unlisten?.();
+    };
+  });
+}
+
 type TauriStoreOptions<T> = {
   key: KnownStoreKeys;
   defaultValue?: T;
@@ -75,11 +90,21 @@ export function createTauriPoller<T>(
   command: API,
   pArgs: PollerArgs<T>,
   mockData?: T,
+  storeKey?: KnownStoreKeys,
 ): BehaviorSubject<T> {
-  merge(
-    interval(POLL_INTERVAL_MS).pipe(startWith(0)),
+  const triggers: Observable<unknown>[] = [
+    of(0),
     mockMode$.pipe(skip(1)),
-  )
+  ];
+
+  if (storeKey) {
+    triggers.push(
+      fromTauriEvent<{ key: string }>("store-changed")
+        .pipe(filter((payload) => payload.key === storeKey)),
+    );
+  }
+
+  merge(...triggers)
     .pipe(
       switchMap(async () => {
         if (mockData !== undefined && mockMode$.getValue()) {
@@ -92,6 +117,9 @@ export function createTauriPoller<T>(
     .subscribe({
       next: (val) => {
         if (val.status >= 400 || !val.message) {
+          if (val.status === 404 && !mockMode$.getValue()) {
+            pArgs.subject.next(undefined as T);
+          }
           console.error(
             `Polling for "${command}" returned error:`,
             val?.header,
@@ -221,6 +249,7 @@ export function createTauriStoreHook<T>(options: TauriStoreOptionsWithMock<T>) {
     API.GetJsonValue,
     { subject, args: { key: options.key } },
     options.mockData,
+    options.key,
   );
 
   const setValue = async (newVal: T | undefined) => {
@@ -258,6 +287,7 @@ export function createDebouncedTauriStoreHook<T>(
     API.GetJsonValue,
     { subject, args: { key: options.key } },
     options.mockData,
+    options.key,
   );
 
   const debounced$ = value$.pipe(debounceTime(debounceMs));
