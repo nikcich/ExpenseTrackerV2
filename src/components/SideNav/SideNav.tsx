@@ -14,6 +14,7 @@ import { BsAlignMiddle } from "react-icons/bs";
 import { TbChartSankey } from "react-icons/tb";
 import { MdOutlineTrendingUp } from "react-icons/md";
 import { PiCompassLight, PiChartPieSlice } from "react-icons/pi";
+import { FaRobot } from "react-icons/fa";
 import { Tooltip } from "@/components/ui/tooltip";
 import { enableOverlay, Overlay } from "@/store/OverlayStore";
 
@@ -53,6 +54,7 @@ export function SideNav() {
         <NavButton Icon={LuChartColumnStacked} page={Pages.StackedBarChart} label="Stacked Bar Chart" />
         <NavButton Icon={FaChartLine} page={Pages.YTDChart} label="Year to Date" />
         <NavButton Icon={TbChartSankey} page={Pages.Sankey} label="Sankey" />
+        <NavButton Icon={FaRobot} page={Pages.AiTest} label="AI Test" />
       </div>
       <div className={styles.spacer} />
       <Tooltip content="Settings" positioning={{ placement: "right" }}>

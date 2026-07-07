@@ -17,6 +17,11 @@ import { FaChevronUp } from "react-icons/fa";
 import styles from "./DataTable.module.scss";
 import { setSelection, useSelection } from "@/store/SelectionStore";
 import { enableOverlay, Overlay } from "@/store/OverlayStore";
+import {
+  useSuggestions,
+  useSuggestionsLoading,
+  SuggestionEntry,
+} from "@/store/SuggestionStore";
 import { invoke } from "@tauri-apps/api/core";
 import { debounce } from "lodash";
 import {
@@ -72,9 +77,10 @@ const compareDates = (
   }
 };
 
-const DataTableActions = () => {
+const DataTableActions = ({ untaggedCount }: { untaggedCount: number }) => {
   const selection = useSelection();
   const [deleteOpen, setDeleteOpen] = useState(false);
+  const suggestionsLoading = useSuggestionsLoading();
 
   const handleDeleteSelection = useCallback(async (selection: string[]) => {
     await invoke<Response<string>>(API.RemoveBulkExpenses, {
@@ -82,6 +88,10 @@ const DataTableActions = () => {
     });
 
     setSelection([]);
+  }, []);
+
+  const handleSuggestTags = useCallback(async () => {
+    enableOverlay(Overlay.SuggestTagsModal);
   }, []);
 
   return (
@@ -160,6 +170,15 @@ const DataTableActions = () => {
       )}
       <Button
         size={"xs"}
+        colorPalette={"purple"}
+        onClick={handleSuggestTags}
+        disabled={suggestionsLoading}
+        loading={suggestionsLoading}
+      >
+        Suggest Tags ({untaggedCount})
+      </Button>
+      <Button
+        size={"xs"}
         colorPalette={"green"}
         onClick={() => enableOverlay(Overlay.ManualModal)}
       >
@@ -177,16 +196,13 @@ export const DataTable = ({ items }: { items: Expense[] }) => {
   const [includeSavings, setIncludeSavings] = useState(true);
   const [includeUntagged, setIncludeUntagged] = useState(true);
 
-  // Normalize search string once
   const normalizedSearch = useMemo(
     () => searchString.trim().toLowerCase(),
     [searchString]
   );
 
-  // Defer expensive filtering while typing
   const deferredSearch = useDeferredValue(normalizedSearch);
 
-  // Debounce setter ONCE
   const debouncedSetSearch = useMemo(
     () => debounce((value: string) => setSearchString(value), 300),
     []
@@ -195,6 +211,11 @@ export const DataTable = ({ items }: { items: Expense[] }) => {
   useEffect(() => {
     return () => debouncedSetSearch.cancel();
   }, [debouncedSetSearch]);
+
+  const untaggedCount = useMemo(
+    () => items.filter((item) => item.tags.length === 0).length,
+    [items]
+  );
 
   const filteredItems = useMemo(() => {
     return items.filter((item) => {
@@ -236,7 +257,7 @@ export const DataTable = ({ items }: { items: Expense[] }) => {
   return (
     <GenericPage
       title={`Expenses (${filteredItems.length})`}
-      actions={<DataTableActions />}
+      actions={<DataTableActions untaggedCount={untaggedCount} />}
       footer={<BrushScrubber />}
     >
       <div
@@ -359,13 +380,17 @@ type RowProps = {
   onEdit: (id: string) => void;
   index: number;
   selectable: boolean;
+  suggestion?: SuggestionEntry;
+  onApplySuggestion: (expenseId: string, tag: string) => void;
 };
 
-const GRID_WITH_CHECK = "50px 150px 150px 1fr 100px";
-const GRID_NO_CHECK = "150px 150px 1fr 100px";
+const GRID_WITH_CHECK = "50px 150px 150px 1fr 100px 120px";
+const GRID_NO_CHECK = "150px 150px 1fr 100px 120px";
 
 const TableRow = memo<RowProps>(
-  ({ item, index, selected, onToggle, onEdit, selectable }) => {
+  ({ item, index, selected, onToggle, onEdit, selectable, suggestion, onApplySuggestion }) => {
+    const isUntagged = item.tags.length === 0;
+
     return (
       <tr
         data-selected={selected ? "" : undefined}
@@ -406,6 +431,24 @@ const TableRow = memo<RowProps>(
             ${item.amount.toFixed(2)}
           </span>
         </td>
+
+        <td className={styles.leftCenterContent}>
+          {isUntagged && suggestion && !suggestion.rejected && (
+            <TagComp.Root
+              colorPalette="purple"
+              cursor="pointer"
+              onClick={() => onApplySuggestion(item.id, suggestion.suggestedTag)}
+            >
+              <TagComp.Label>{suggestion.suggestedTag}</TagComp.Label>
+            </TagComp.Root>
+          )}
+          {isUntagged && suggestion?.rejected && (
+            <Text fontSize="xs" color="fg.subtle">Dismissed</Text>
+          )}
+          {isUntagged && !suggestion && (
+            <Text fontSize="xs" color="fg.subtle">—</Text>
+          )}
+        </td>
       </tr>
     );
   }
@@ -413,11 +456,31 @@ const TableRow = memo<RowProps>(
 
 export const CoreTable = memo(({ items, selectable = true }: { items: Expense[]; selectable?: boolean }) => {
   const selection = useSelection();
+  const suggestions = useSuggestions();
   const [sortColumn, setSortColumn] = useState<SortKey>("date");
   const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
   const [scrollTop, setScrollTop] = useState(0);
   const lastSelectedIndexRef = useRef<number | null>(null);
   const headerCheckboxRef = useRef<HTMLInputElement>(null);
+
+  const suggestionMap = useMemo(() => {
+    const map = new Map<string, SuggestionEntry>();
+    for (const s of suggestions) {
+      map.set(s.expenseId, s);
+    }
+    return map;
+  }, [suggestions]);
+
+  const handleApplySuggestion = useCallback(async (expenseId: string, tag: string) => {
+    const item = items.find((i) => i.id === expenseId);
+    if (!item) return;
+
+    const updated = { ...item, tags: [...item.tags, tag as Tag] };
+    await invoke<Response<string>>(API.UpdateExpense, {
+      hash: expenseId,
+      expense: updated,
+    });
+  }, [items]);
 
   const handleSort = useCallback(
     (column: SortKey) => {
@@ -528,7 +591,6 @@ export const CoreTable = memo(({ items, selectable = true }: { items: Expense[];
 
   return (
     <div className={styles.virtualizedTable}>
-      {/* ===== Sticky Header ===== */}
       <table className={styles.headerTable}>
         <thead>
           <tr style={{ gridTemplateColumns: selectable ? GRID_WITH_CHECK : GRID_NO_CHECK }}>
@@ -613,11 +675,14 @@ export const CoreTable = memo(({ items, selectable = true }: { items: Expense[];
                   ))}
               </span>
             </th>
+
+            <th className={styles.leftCenterContent}>
+              <span className={styles.header}>Suggested</span>
+            </th>
           </tr>
         </thead>
       </table>
 
-      {/* ===== Scrollable Virtualized Body ===== */}
       <div className={styles.bodyScroll} ref={bodyRef} onScroll={onScroll}>
         <div
           className={styles.spacer}
@@ -642,6 +707,8 @@ export const CoreTable = memo(({ items, selectable = true }: { items: Expense[];
                     onToggle={toggleSelection}
                     onEdit={editRow}
                     selectable={selectable}
+                    suggestion={suggestionMap.get(item.id)}
+                    onApplySuggestion={handleApplySuggestion}
                   />
                 );
               })}

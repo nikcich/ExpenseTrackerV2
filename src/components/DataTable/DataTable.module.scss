@@ -1,5 +1,3 @@
-$grid-columns: 50px 150px 150px 1fr 100px;
-
 .virtualizedTable {
   height: 100%;
   width: 100%;
@@ -22,7 +20,6 @@ $grid-columns: 50px 150px 150px 1fr 100px;
 
   thead tr {
     display: grid;
-    grid-template-columns: $grid-columns;
   }
 
   th {
@@ -94,7 +91,6 @@ $grid-columns: 50px 150px 150px 1fr 100px;
 
 .bodyTable tr {
   display: grid;
-  grid-template-columns: $grid-columns;
   height: 70px;
   width: 100%;
   border-bottom: 1px solid var(--chakra-colors-border-muted);

@@ -9,4 +9,5 @@ export enum Pages {
   AverageSpending = "/average-spending",
   Sankey = "/Sankey",
   Forecast = "/forecast",
+  AiTest = "/ai-test",
 }

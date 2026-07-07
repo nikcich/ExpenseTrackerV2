@@ -11,6 +11,11 @@ export enum API {
   UpdateBulkExpenses = "update_bulk_expenses",
   SetJsonValue = "store_set_json_value",
   GetJsonValue = "store_get_json_value",
+  DownloadModel = "download_model",
+  ForceRedownloadModel = "force_redownload_model",
+  EnsureModelReady = "ensure_model_ready",
+  SuggestTag = "suggest_tag",
+  SuggestTagsBulk = "suggest_tags_bulk",
 }
 
 export enum KnownStoreKeys {

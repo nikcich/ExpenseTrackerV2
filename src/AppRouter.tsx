@@ -1,6 +1,7 @@
 import { BrowserRouter, Route, Routes } from "react-router-dom";
 import { Pages } from "./types/routes";
 import { SideNav } from "./components/SideNav/SideNav";
+import { ModelSetup } from "./components/ModelSetup/ModelSetup";
 import styles from "./App.module.scss";
 import { JSX, useSyncExternalStore } from "react";
 import { mockMode$ } from "./utils/utils";
@@ -17,6 +18,7 @@ import { ExpenseSankey } from "./pages/Sankey/ExpenseSankey";
 import { Forecast } from "./pages/Forecast/Forecast";
 import { Overview } from "./pages/Overview/Overview";
 import { Accounts } from "./pages/Accounts/Accounts";
+import { AiTestPage } from "./pages/AiTestPage/AiTestPage";
 
 const MockBanner = () => {
   const enabled = useSyncExternalStore(
@@ -81,6 +83,7 @@ const RouteComponent = ({ element }: { element: JSX.Element }) => {
 export function AppRouter() {
   return (
     <BrowserRouter>
+      <ModelSetup>
       <Routes>
         <Route
           path={Pages.TableView}
@@ -123,6 +126,11 @@ export function AppRouter() {
         />
 
         <Route
+          path={Pages.AiTest}
+          element={<RouteComponent element={<AiTestPage />} />}
+        />
+
+        <Route
           path={Pages.Overview}
           element={<RouteComponent element={<Overview />} />}
         />
@@ -132,6 +140,7 @@ export function AppRouter() {
           element={<RouteComponent element={<Accounts />} />}
         />
       </Routes>
+      </ModelSetup>
     </BrowserRouter>
   );
 }
