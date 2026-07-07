@@ -19,6 +19,20 @@ import * as d3 from "d3";
 export const mockMode$ = new BehaviorSubject<boolean>(false);
 export const setMockMode = (enabled: boolean) => mockMode$.next(enabled);
 
+export const SHORTCUT_COOLDOWN = 300;
+
+export const preventDoubleClick = <T extends (...args: any[]) => any>(
+  fn: T,
+  delay = SHORTCUT_COOLDOWN
+) => {
+  let lastCall = 0;
+  return ((...args: Parameters<T>) => {
+    if (Date.now() - lastCall < delay) return undefined as unknown as ReturnType<T>;
+    lastCall = Date.now();
+    return fn(...args);
+  }) as T;
+};
+
 function deepEqual(a: any, b: any): boolean {
   if (Object.is(a, b)) return true;
   if (typeof a !== "object" || typeof b !== "object" || a == null || b == null)

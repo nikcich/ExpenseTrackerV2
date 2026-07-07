@@ -4,6 +4,7 @@ import { Expense, Tag } from "@/types/types";
 import { format, parse } from "date-fns";
 import { MultiSelectInput } from "./MultiSelectInput";
 import { useAllTagsOptions } from "@/utils/tags";
+import { preventDoubleClick, SHORTCUT_COOLDOWN } from "@/utils/utils";
 
 export const ExpenseForm = ({
   expense,
@@ -24,6 +25,7 @@ export const ExpenseForm = ({
   const ALL_TAGS_OPTIONS = useAllTagsOptions(true);
 
   const onFormSubmit = useCallback(
+    preventDoubleClick(
     (dt: string, a: number, d: string, t: string[]) => {
       const fmtDate = parse(dt, "yyyy-MM-dd", new Date());
       const formattedDateTime = format(fmtDate, "yyyy-MM-dd'T'HH:mm:ss");
@@ -35,7 +37,7 @@ export const ExpenseForm = ({
         tags: (t as Tag[]) ?? [],
       };
       onSubmit(partial);
-    },
+    }, SHORTCUT_COOLDOWN),
     []
   );
 
@@ -103,6 +105,7 @@ export const ExpenseForm = ({
       />
 
       <Button
+        data-primary="true"
         colorPalette="green"
         onClick={() => onFormSubmit(date, amount, description, tags)}
         disabled={!isFormDirty() || !isFormValid()}

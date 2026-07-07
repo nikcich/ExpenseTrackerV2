@@ -17,6 +17,7 @@ import { ExpenseSankey } from "./pages/Sankey/ExpenseSankey";
 import { Forecast } from "./pages/Forecast/Forecast";
 import { Overview } from "./pages/Overview/Overview";
 import { Accounts } from "./pages/Accounts/Accounts";
+import { useGlobalShortcuts } from "./hooks/useGlobalShortcuts";
 
 const MockBanner = () => {
   const enabled = useSyncExternalStore(
@@ -62,6 +63,7 @@ function fallbackRender({ error }: { error: Error }) {
   );
 }
 const RouteComponent = ({ element }: { element: JSX.Element }) => {
+  useGlobalShortcuts();
   return (
     <div className={styles.routeContainer}>
       <Overlays />

@@ -69,6 +69,7 @@ export const DateRangeModal = () => {
           Cancel
         </Button>
         <Button
+          data-primary="true"
           colorPalette={"blue"}
           onClick={() => {
             onApply(startDate, endDate);
