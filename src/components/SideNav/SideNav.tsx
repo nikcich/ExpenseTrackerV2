@@ -27,7 +27,7 @@ const NavButton = ({ Icon, page, label }: { Icon: React.FC; page: string; label:
           styles.navButton,
           location.pathname === page ? styles.active : ""
         )}
-        onClick={() => navigate(page)}
+        onClick={() => { if (location.pathname !== page) navigate(page); }}
       >
         <Icon />
       </button>

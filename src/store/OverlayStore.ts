@@ -6,6 +6,7 @@ export enum Overlay {
   ManualModal = "ManualModal",
   TagModal = "TagModal",
   SettingsModal = "SettingsModal",
+  HelpModal = "HelpModal",
 }
 
 type OverlayStore = {

@@ -8,6 +8,7 @@ import { API, Expense, Response, Tag } from "@/types/types";
 import { invoke } from "@tauri-apps/api/core";
 import { MultiSelectInput } from "../ExpenseForm/MultiSelectInput";
 import { useAllTagsOptions } from "@/utils/tags";
+import { preventDoubleClick, SHORTCUT_COOLDOWN } from "@/utils/utils";
 
 export const TagModal = () => {
   const onClose = useCallback(() => {
@@ -31,6 +32,7 @@ export const TagModal = () => {
   const getExpenseById = useGetExpenseById();
 
   const handleSave = useCallback(
+    preventDoubleClick(
     async (tagsStr: string[]) => {
       setLoading(true);
       const tags = tagsStr as Tag[];
@@ -56,7 +58,7 @@ export const TagModal = () => {
 
       setLoading(false);
       onClose();
-    },
+    }, SHORTCUT_COOLDOWN),
     [selection]
   );
 
@@ -109,7 +111,7 @@ export const TagModal = () => {
               Cancel
             </Button>
 
-            <Button colorPalette="green" onClick={() => handleSave(tags)}>
+            <Button data-primary="true" colorPalette="green" onClick={() => handleSave(tags)}>
               Save
             </Button>
           </div>

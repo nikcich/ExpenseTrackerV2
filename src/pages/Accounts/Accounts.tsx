@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useRsuVests, useBalanceSnapshots } from "@/store/store";
 import type { RsuVest, BalanceSnapshot } from "@/types/types";
-import { formatCurrency, formatDate, formatShortDate } from "@/utils/utils";
+import { formatCurrency, formatDate, formatShortDate, SHORTCUT_COOLDOWN } from "@/utils/utils";
 import styles from "./Accounts.module.scss";
 
 const emptyRsu = (): Partial<RsuVest> => ({ vestDate: "", shares: 0, price: 0, description: "" });
@@ -18,6 +18,8 @@ export function Accounts() {
   const [showSnapshotForm, setShowSnapshotForm] = useState(false);
   const [snapshotForm, setSnapshotForm] = useState<Partial<BalanceSnapshot>>(emptySnapshot());
   const [editingSnapshot, setEditingSnapshot] = useState<string | null>(null);
+  const saveRsuGuard = useRef(false);
+  const saveSnapshotGuard = useRef(false);
 
   const sortedVests = [...vests].sort((a, b) => new Date(b.vestDate).getTime() - new Date(a.vestDate).getTime());
   const sortedSnapshots = [...snapshots].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
@@ -47,7 +49,9 @@ export function Accounts() {
     .filter(({ snapshots }) => snapshots[0]?.balance !== 0);
 
   const handleSaveRsu = () => {
+    if (saveRsuGuard.current) return;
     if (!rsuForm.vestDate || !rsuForm.shares || !rsuForm.price) return;
+    saveRsuGuard.current = true;
     const vest: RsuVest = {
       id: editingRsu ?? "",
       vestDate: rsuForm.vestDate,
@@ -63,6 +67,7 @@ export function Accounts() {
     setRsuForm(emptyRsu());
     setShowRsuForm(false);
     setEditingRsu(null);
+    setTimeout(() => { saveRsuGuard.current = false; }, SHORTCUT_COOLDOWN);
   };
 
   const handleEditRsu = (vest: RsuVest) => {
@@ -78,7 +83,9 @@ export function Accounts() {
   };
 
   const handleSaveSnapshot = () => {
+    if (saveSnapshotGuard.current) return;
     if (!snapshotForm.accountName || !snapshotForm.date || snapshotForm.balance === undefined || snapshotForm.balance === null) return;
+    saveSnapshotGuard.current = true;
     const snapshot: BalanceSnapshot = {
       id: editingSnapshot ?? "",
       accountName: snapshotForm.accountName,
@@ -95,6 +102,7 @@ export function Accounts() {
     setSnapshotForm(emptySnapshot());
     setShowSnapshotForm(false);
     setEditingSnapshot(null);
+    setTimeout(() => { saveSnapshotGuard.current = false; }, SHORTCUT_COOLDOWN);
   };
 
   const handleEditSnapshot = (snapshot: BalanceSnapshot) => {
