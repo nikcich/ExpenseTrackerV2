@@ -26,6 +26,7 @@ export const AiTestPage = () => {
     try {
       const result = await invoke<Response<string>>(API.SuggestTag, {
         description: input,
+        examples: [],
       });
       setOutput(`[${result.status}] ${result.header}\n\n${result.message}`);
     } catch (e) {

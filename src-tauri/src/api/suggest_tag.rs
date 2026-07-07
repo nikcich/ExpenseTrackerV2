@@ -46,8 +46,9 @@ pub async fn ensure_model_ready(app_handle: tauri::AppHandle) -> Result<Response
             cb(attempt as f64 * 20.0, &format!("Testing inference ({}/5)", attempt));
         }
 
-        match tokio::task::spawn_blocking(|| {
-            model_manager::suggest_tag("Starbucks coffee")
+        let examples: Vec<model_manager::TaggedExample> = Vec::new();
+        match tokio::task::spawn_blocking(move || {
+            model_manager::suggest_tag("Starbucks coffee", &examples)
         })
         .await
         .map_err(|e| format!("Task join error: {}", e))
@@ -85,6 +86,7 @@ pub async fn ensure_model_ready(app_handle: tauri::AppHandle) -> Result<Response
 #[tauri::command]
 pub async fn suggest_tag(
     description: String,
+    examples: Vec<model_manager::TaggedExample>,
 ) -> Result<Response, String> {
     if !model_manager::is_model_downloaded() {
         return Ok(Response::err(
@@ -94,7 +96,7 @@ pub async fn suggest_tag(
     }
 
     let result = tokio::task::spawn_blocking(move || {
-        model_manager::suggest_tag(&description)
+        model_manager::suggest_tag(&description, &examples)
     })
     .await
     .map_err(|e| format!("Task join error: {}", e))?
@@ -106,6 +108,7 @@ pub async fn suggest_tag(
 #[tauri::command]
 pub async fn suggest_tags_bulk(
     descriptions: Vec<String>,
+    examples: Vec<model_manager::TaggedExample>,
 ) -> Result<Response, String> {
     if !model_manager::is_model_downloaded() {
         return Ok(Response::err(
@@ -117,7 +120,7 @@ pub async fn suggest_tags_bulk(
     let results = tokio::task::spawn_blocking(move || {
         let mut suggestions: Vec<(String, String)> = Vec::new();
         for desc in descriptions {
-            if let Ok(tag) = model_manager::suggest_tag(&desc) {
+            if let Ok(tag) = model_manager::suggest_tag(&desc, &examples) {
                 suggestions.push((desc, tag));
             }
         }

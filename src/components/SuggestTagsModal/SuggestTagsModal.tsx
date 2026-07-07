@@ -31,7 +31,9 @@ const SuggestTagsModalBody = ({
   onApplyAll,
   onClose,
 }: SuggestTagsModalBodyProps) => {
-  const pendingCount = suggestions.filter((s) => !s.confirmed && !s.rejected).length;
+  const pendingCount = suggestions.filter(
+    (s) => !s.confirmed && !s.rejected,
+  ).length;
   const confirmedCount = suggestions.filter((s) => s.confirmed).length;
 
   return (
@@ -52,19 +54,40 @@ const SuggestTagsModalBody = ({
               borderRadius="md"
               borderWidth="1px"
               borderColor={
-                s.confirmed ? "green.500" : s.rejected ? "gray.600" : "border.DEFAULT"
+                s.confirmed
+                  ? "green.500"
+                  : s.rejected
+                    ? "gray.600"
+                    : "border.DEFAULT"
               }
-              bg={s.confirmed ? "green.900/10" : s.rejected ? "gray.800" : undefined}
+              bg={
+                s.confirmed
+                  ? "green.900/10"
+                  : s.rejected
+                    ? "gray.800"
+                    : undefined
+              }
             >
               <HStack justify="space-between">
                 <Box flex={1}>
-                  <Text fontSize="sm" css={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{s.description}</Text>
+                  <Text
+                    fontSize="sm"
+                    css={{
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    {s.description}
+                  </Text>
                   {s.confirmed ? (
                     <TagComp.Root colorPalette="green" size="sm" mt={1}>
                       <TagComp.Label>{s.suggestedTag} ✓</TagComp.Label>
                     </TagComp.Root>
                   ) : s.rejected ? (
-                    <Text fontSize="xs" color="fg.subtle" mt={1}>Dismissed</Text>
+                    <Text fontSize="xs" color="fg.subtle" mt={1}>
+                      Dismissed
+                    </Text>
                   ) : (
                     <TagComp.Root
                       colorPalette="purple"
@@ -79,10 +102,18 @@ const SuggestTagsModalBody = ({
                 </Box>
                 {!s.confirmed && !s.rejected && (
                   <HStack gap={2}>
-                    <Button size="xs" colorPalette="green" onClick={() => onConfirm(s.expenseId)}>
+                    <Button
+                      size="xs"
+                      colorPalette="green"
+                      onClick={() => onConfirm(s.expenseId)}
+                    >
                       Accept
                     </Button>
-                    <Button size="xs" variant="outline" onClick={() => onReject(s.expenseId)}>
+                    <Button
+                      size="xs"
+                      variant="outline"
+                      onClick={() => onReject(s.expenseId)}
+                    >
                       Dismiss
                     </Button>
                   </HStack>
@@ -117,12 +148,15 @@ export const SuggestTagsModal = () => {
   const [downloading, setDownloading] = useState(false);
 
   const { value: storeValue } = useExpensesStore();
-  const items = useMemo(() => Object.values(storeValue ?? {}) as Expense[], [storeValue]);
+  const items = useMemo(
+    () => Object.values(storeValue ?? {}) as Expense[],
+    [storeValue],
+  );
 
   const untaggedItemsRef = useRef<Expense[]>([]);
   untaggedItemsRef.current = useMemo(
     () => items.filter((item) => item.tags.length === 0),
-    [items]
+    [items],
   );
 
   const fetchedRef = useRef(false);
@@ -137,9 +171,13 @@ export const SuggestTagsModal = () => {
     try {
       const descriptions = untagged.map((item) => item.description);
 
-      const result = await invoke<Response<[string, string][]>>(API.SuggestTagsBulk, {
-        descriptions,
-      });
+      const result = await invoke<Response<[string, string][]>>(
+        API.SuggestTagsBulk,
+        {
+          descriptions,
+          examples: [],
+        },
+      );
 
       if (result.status >= 400) {
         setError(result.header);
@@ -147,8 +185,8 @@ export const SuggestTagsModal = () => {
         return;
       }
 
-      const entries: SuggestionEntry[] = (result.message ?? []).map(
-        ([desc, tag]: [string, string]) => {
+      const entries: SuggestionEntry[] = (result.message ?? [])
+        .map(([desc, tag]: [string, string]) => {
           const item = untagged.find((i: Expense) => i.description === desc);
           return {
             expenseId: item?.id ?? "",
@@ -157,8 +195,8 @@ export const SuggestTagsModal = () => {
             confirmed: false,
             rejected: false,
           };
-        }
-      ).filter((e: SuggestionEntry) => e.expenseId !== "");
+        })
+        .filter((e: SuggestionEntry) => e.expenseId !== "");
 
       setSuggestions(entries);
     } catch (e) {
@@ -179,7 +217,9 @@ export const SuggestTagsModal = () => {
     const ensureModel = async () => {
       setDownloading(true);
       try {
-        const downloadResult = await invoke<Response<string>>(API.DownloadModel);
+        const downloadResult = await invoke<Response<string>>(
+          API.DownloadModel,
+        );
 
         if (downloadResult.status >= 400) {
           setError(downloadResult.header);
@@ -249,19 +289,25 @@ export const SuggestTagsModal = () => {
         <VStack py={8} gap={4}>
           <Spinner />
           <Text>Downloading model (~500 MB)...</Text>
-          <Text fontSize="sm" color="fg.subtle">This may take a few minutes on first launch</Text>
+          <Text fontSize="sm" color="fg.subtle">
+            This may take a few minutes on first launch
+          </Text>
         </VStack>
       ) : loading || applying ? (
         <VStack py={8} gap={4}>
           <Spinner />
-          <Text>{applying ? "Applying tags..." : "Analyzing transactions..."}</Text>
+          <Text>
+            {applying ? "Applying tags..." : "Analyzing transactions..."}
+          </Text>
         </VStack>
       ) : error ? (
         <VStack py={4} gap={4}>
           <Text color="red.400">Error: {error}</Text>
           <HStack gap={2}>
             <Button onClick={handleClose}>Close</Button>
-            <Button onClick={handleRetry} colorPalette="blue">Retry</Button>
+            <Button onClick={handleRetry} colorPalette="blue">
+              Retry
+            </Button>
           </HStack>
         </VStack>
       ) : (

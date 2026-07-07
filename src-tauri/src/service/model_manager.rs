@@ -14,6 +14,12 @@ use std::time::Instant;
 
 pub type ProgressCallback = Box<dyn Fn(f64, &str) + Send>;
 
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct TaggedExample {
+    pub description: String,
+    pub tag: String,
+}
+
 static BACKEND: OnceCell<LlamaBackend> = OnceCell::new();
 static MODEL: OnceCell<Mutex<Option<LlamaModel>>> = OnceCell::new();
 static MODEL_DIR: OnceCell<PathBuf> = OnceCell::new();
@@ -21,11 +27,11 @@ static LAST_INFERENCE: Mutex<Option<Instant>> = Mutex::new(None);
 static DOWNLOAD_LOCK: OnceCell<tokio::sync::Mutex<()>> = OnceCell::new();
 
 const MODEL_URL: &str =
-    "https://huggingface.co/Qwen/Qwen2.5-0.5B-Instruct-GGUF/resolve/main/qwen2.5-0.5b-instruct-q4_k_m.gguf";
-const MODEL_FILENAME: &str = "qwen2.5-0.5b-instruct-q4_k_m.gguf";
-const MODEL_VERSION: &str = "v1";
-// Expected size: ~397 MB. Use 300 MB as minimum threshold.
-const MIN_EXPECTED_SIZE: u64 = 300_000_000;
+    "https://huggingface.co/Qwen/Qwen2.5-1.5B-Instruct-GGUF/resolve/main/qwen2.5-1.5b-instruct-q4_k_m.gguf";
+const MODEL_FILENAME: &str = "qwen2.5-1.5b-instruct-q4_k_m.gguf";
+const MODEL_VERSION: &str = "v2";
+// Expected size: ~900 MB. Use 700 MB as minimum threshold.
+const MIN_EXPECTED_SIZE: u64 = 700_000_000;
 
 const TAGS: &[&str] = &[
     "Food", "Utilities", "Rent/Mortgage", "Transportation", "Entertainment",
@@ -179,14 +185,27 @@ pub async fn download_model_raw(on_progress: Option<ProgressCallback>) -> Result
     Ok(format!("Downloaded model ({:.1} MB)", downloaded as f64 / 1_000_000.0))
 }
 
-fn build_prompt(description: &str) -> String {
+fn build_prompt(description: &str, examples: &[TaggedExample]) -> String {
     let tags_str = TAGS.join(", ");
-    format!(
-        "Classify this transaction into one of these categories: {}.\n\
-         Transaction: {}\n\
-         Category (return ONLY the category name, nothing else):",
-        tags_str, description
-    )
+    let mut prompt = format!(
+        "Classify this transaction into one of these categories: {}.\n",
+        tags_str
+    );
+
+    if !examples.is_empty() {
+        prompt.push_str("\nHere are some examples of how similar transactions have been categorized:\n");
+        for ex in examples {
+            prompt.push_str(&format!("Transaction: {}\nCategory: {}\n\n", ex.description, ex.tag));
+        }
+        prompt.push_str("Now classify the following transaction:\n");
+    }
+
+    prompt.push_str(&format!(
+        "Transaction: {}\nCategory (return ONLY the category name, nothing else):",
+        description
+    ));
+
+    prompt
 }
 
 fn init_backend() -> Result<&'static LlamaBackend, String> {
@@ -195,7 +214,7 @@ fn init_backend() -> Result<&'static LlamaBackend, String> {
     })
 }
 
-fn run_inference(description: &str) -> Result<String, String> {
+fn run_inference(description: &str, examples: &[TaggedExample]) -> Result<String, String> {
     let backend = init_backend()?;
 
     let model_path = get_model_path();
@@ -223,27 +242,41 @@ fn run_inference(description: &str) -> Result<String, String> {
 
     let model = model_guard.as_ref().unwrap();
 
-    let n_ctx = NonZeroU32::new(512).ok_or("Invalid context size")?;
-    let mut ctx = model
-        .new_context(
-            backend,
-            LlamaContextParams::default().with_n_ctx(Some(n_ctx)),
-        )
-        .map_err(|e| format!("Failed to create context: {}", e))?;
+    let prompt = build_prompt(description, examples);
 
-    let prompt = build_prompt(description);
+    println!("[suggest_tag] examples: {} | prompt length: {} chars", examples.len(), prompt.len());
 
     let tokens = model
         .str_to_token(&prompt, AddBos::Always)
         .map_err(|e| format!("Tokenization failed: {}", e))?;
 
-    let mut batch = LlamaBatch::new(tokens.len(), 1);
-    batch
-        .add_sequence(&tokens, 0, false)
-        .map_err(|e| format!("Batch add failed: {}", e))?;
+    let n_tokens = tokens.len() as u32;
+    let n_ctx_val = std::cmp::max(n_tokens + 128, 512);
+    let n_ctx = NonZeroU32::new(n_ctx_val).ok_or("Invalid context size")?;
+    let n_batch: u32 = 2048;
+    let mut ctx = model
+        .new_context(
+            backend,
+            LlamaContextParams::default()
+                .with_n_ctx(Some(n_ctx))
+                .with_n_batch(n_batch),
+        )
+        .map_err(|e| format!("Failed to create context: {}", e))?;
 
-    ctx.decode(&mut batch)
-        .map_err(|e| format!("Decode failed: {}", e))?;
+    // Process prompt in batches of n_batch to avoid allocating a huge compute graph
+    for (i, chunk) in tokens.chunks(n_batch as usize).enumerate() {
+        let mut batch = LlamaBatch::new(chunk.len(), 1);
+        let start = i * n_batch as usize;
+        for (j, &token) in chunk.iter().enumerate() {
+            let pos = (start + j) as i32;
+            let is_last = (start + j) == tokens.len() - 1;
+            batch
+                .add(token, pos, &[0], is_last)
+                .map_err(|e| format!("Batch add failed at token {}: {}", start + j, e))?;
+        }
+        ctx.decode(&mut batch)
+            .map_err(|e| format!("Decode failed at batch {}: {}", i, e))?;
+    }
 
     let mut sampler = LlamaSampler::chain_simple([
         LlamaSampler::top_k(40),
@@ -295,11 +328,11 @@ fn run_inference(description: &str) -> Result<String, String> {
     }
 }
 
-pub fn suggest_tag(description: &str) -> Result<String, String> {
+pub fn suggest_tag(description: &str, examples: &[TaggedExample]) -> Result<String, String> {
     {
         let mut last = LAST_INFERENCE.lock().unwrap();
         *last = Some(Instant::now());
     }
 
-    run_inference(description)
+    run_inference(description, examples)
 }
