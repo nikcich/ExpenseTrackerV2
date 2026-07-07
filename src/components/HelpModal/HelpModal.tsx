@@ -72,6 +72,10 @@ export const HelpModal = () => {
             <td>Close modal</td>
           </tr>
           <tr>
+            <td><K>Enter</K></td>
+            <td>Submit / confirm</td>
+          </tr>
+          <tr>
             <td><K>Tab</K> / <K>Shift</K>+<K>Tab</K></td>
             <td>Cycle through fields (trapped in modal)</td>
           </tr>
