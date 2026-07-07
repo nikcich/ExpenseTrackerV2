@@ -22,6 +22,9 @@ export const useGlobalShortcuts = () => {
   const location = useLocation();
   const visibleOverlay = useOverlayStore("visibleOverlay");
   const lastAction = useRef(0);
+  const navigateFrom = (to: string, options?: Record<string, unknown>) => {
+    if (location.pathname !== to) navigate(to, { state: options });
+  };
 
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
@@ -48,10 +51,10 @@ export const useGlobalShortcuts = () => {
         e.preventDefault();
         const idx = PAGE_ORDER.indexOf(location.pathname as Pages);
         if (idx === -1) {
-          navigate(PAGE_ORDER[0]);
+          navigateFrom(PAGE_ORDER[0]);
         } else {
           const prev = (idx - 1 + PAGE_ORDER.length) % PAGE_ORDER.length;
-          navigate(PAGE_ORDER[prev]);
+          navigateFrom(PAGE_ORDER[prev]);
         }
         return;
       }
@@ -60,10 +63,10 @@ export const useGlobalShortcuts = () => {
         e.preventDefault();
         const idx = PAGE_ORDER.indexOf(location.pathname as Pages);
         if (idx === -1) {
-          navigate(PAGE_ORDER[0]);
+          navigateFrom(PAGE_ORDER[0]);
         } else {
           const next = (idx + 1) % PAGE_ORDER.length;
-          navigate(PAGE_ORDER[next]);
+          navigateFrom(PAGE_ORDER[next]);
         }
         return;
       }
@@ -72,13 +75,19 @@ export const useGlobalShortcuts = () => {
         const num = parseInt(e.key, 10);
         const index = num === 0 ? 9 : num - 1;
         if (index < PAGE_ORDER.length) {
-          navigate(PAGE_ORDER[index]);
+          navigateFrom(PAGE_ORDER[index]);
         }
         return;
       }
 
       const lower = e.key.toLowerCase();
+      if (lower === "i") {
+        navigateFrom(Pages.TableView, { csvImport: true });
+        return;
+      }
+
       if (lower === "n") {
+        navigateFrom(Pages.TableView);
         enableOverlay(Overlay.ManualModal);
         return;
       }

@@ -11,7 +11,8 @@ import { createTauriInvoker } from "@/utils/utils";
 import { downloadExpensesCSV } from "@/utils/download";
 import { invoke } from "@tauri-apps/api/core";
 import { open } from "@tauri-apps/plugin-dialog";
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+import { useLocation } from "react-router-dom";
 import {
   Button,
   CloseButton,
@@ -48,6 +49,12 @@ const useFileOpener = () => {
     setLoading(false);
   }, []);
 
+  const reset = useCallback(() => {
+    setResult(null);
+    setSelectedFile(null);
+    setSelectedFormat(undefined);
+  }, []);
+
   const parseFile = useCallback(async () => {
     if (!selectedFile || !selectedFormat) return;
     setLoading(true);
@@ -58,13 +65,8 @@ const useFileOpener = () => {
 
     setResult(res);
     setLoading(false);
-  }, [selectedFile, selectedFormat]);
-
-  const reset = useCallback(() => {
-    setResult(null);
-    setSelectedFile(null);
-    setSelectedFormat(undefined);
-  }, []);
+    if (res.status < 400) reset();
+  }, [selectedFile, selectedFormat, reset]);
 
   return {
     loading,
@@ -152,6 +154,14 @@ export function TableView() {
   } = useFileOpener();
 
   const allItems = [...expenses, ...income, ...savings];
+  const location = useLocation();
+
+  useEffect(() => {
+    if (location.state?.csvImport) {
+      pickFile();
+      window.history.replaceState({}, "");
+    }
+  }, [pickFile]);
 
   return (
     <div className={styles.container}>

@@ -44,6 +44,10 @@ export const HelpModal = () => {
         </thead>
         <tbody>
           <tr>
+            <td><K>I</K></td>
+            <td>Import CSV</td>
+          </tr>
+          <tr>
             <td><K>N</K></td>
             <td>New expense</td>
           </tr>
