@@ -1,0 +1,74 @@
+.overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: 999;
+  pointer-events: none;
+}
+
+.container {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  pointer-events: auto;
+  opacity: 0;
+  transform-origin: center center;
+  transition: opacity 0.15s ease-out, transform 0.15s ease-out;
+  transform: translate(-50%, -50%) scale(0.6);
+
+  &.entered {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+}
+
+.svg {
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  filter: drop-shadow(0 4px 16px rgba(0, 0, 0, 0.5));
+}
+
+.wedge {
+  fill: var(--chakra-colors-bg-panel, #1a1a2e);
+  stroke: var(--chakra-colors-border, #32323c);
+  stroke-width: 1;
+  cursor: pointer;
+  transition:
+    fill 0.12s ease,
+    stroke 0.12s ease,
+    filter 0.12s ease;
+}
+
+.wedgeHovered {
+  fill: #2563eb;
+  stroke: #60a5fa;
+  filter: drop-shadow(0 0 8px rgba(37, 99, 235, 0.6));
+}
+
+.wedgeActive {
+  fill: rgba(34, 197, 94, 0.15);
+  stroke: rgba(34, 197, 94, 0.4);
+}
+
+.label {
+  fill: var(--chakra-colors-fg, #e4e4e7);
+  font-size: 10px;
+  font-weight: 600;
+  text-anchor: middle;
+  dominant-baseline: central;
+  pointer-events: none;
+  user-select: none;
+}
+
+.labelHovered {
+  fill: white;
+  font-size: 11px;
+}
+
+.centerCircle {
+  fill: var(--chakra-colors-bg-muted, #2a2a3c);
+  stroke: var(--chakra-colors-border, #32323c);
+  stroke-width: 1;
+}
