@@ -33,7 +33,7 @@ import {
 } from "@chakra-ui/react";
 import { format } from "date-fns";
 import { useQuickTag } from "@/hooks/useQuickTag";
-import { QuickTagRadial } from "../QuickTagRadial/QuickTagRadial";
+import { RadialActions } from "../RadialActions/RadialActions";
 
 const TagCell = ({ tags }: { tags: Tag[] }) => {
   return (
@@ -666,13 +666,12 @@ export const CoreTable = memo(({ items, selectable = true }: { items: Expense[];
       />
 
       {quickTag.isActive && (
-        <QuickTagRadial
-          tags={quickTag.frequentTags}
-          appliedTags={quickTag.appliedTags}
+        <RadialActions
+          actions={quickTag.actions}
           position={quickTag.position}
-          hoveredTag={quickTag.hoveredTag}
-          onTagEnter={quickTag.onTagEnter}
-          onTagLeave={quickTag.onTagLeave}
+          hoveredAction={quickTag.hoveredAction}
+          onActionEnter={quickTag.onActionEnter}
+          onActionLeave={quickTag.onActionLeave}
         />
       )}
     </div>

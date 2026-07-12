@@ -3,9 +3,10 @@ import { useLocation } from "react-router-dom";
 import { useExpensesStore } from "@/store/store";
 import { useOverlayStore } from "@/store/OverlayStore";
 import { setSelection, useSelection } from "@/store/SelectionStore";
-import { API, Expense, Tag } from "@/types/types";
+import { API, Expense } from "@/types/types";
 import { Pages } from "@/types/routes";
 import { invoke } from "@tauri-apps/api/core";
+import { RadialAction } from "@/components/RadialActions/RadialActions";
 
 const BULK_DELAY_MS = 2000;
 const TOP_TAG_COUNT = 8;
@@ -28,7 +29,9 @@ export const useQuickTag = () => {
   const isActiveRef = useRef(false);
   const mousePosRef = useRef({ x: 0, y: 0 });
   const applyTagRef = useRef<(tag: string) => Promise<void>>(async () => {});
-  const hoverTagLeaveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const hoverTagLeaveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
+    null,
+  );
   const lockedRowIdRef = useRef<string | null>(null);
   const lockedSelectionRef = useRef<string[]>([]);
   const selectionRef = useRef(selection);
@@ -51,17 +54,21 @@ export const useQuickTag = () => {
     (id: string): Expense | undefined => {
       return expenses?.find((e) => e.id === id);
     },
-    [expenses]
+    [expenses],
   );
 
   const applyTag = useCallback(
     async (tag: string) => {
       if (isBulkRef.current) {
-        const expensesToUpdate: Expense[] = lockedSelectionRef.current
+        const selectedExpenses = lockedSelectionRef.current
           .map((id) => getExpenseById(id))
-          .filter(
-            (e): e is Expense => e !== undefined && !e.tags.includes(tag)
-          );
+          .filter((e): e is Expense => e !== undefined);
+
+        const allHaveTag = selectedExpenses.every((e) => e.tags.includes(tag));
+
+        const expensesToUpdate = allHaveTag
+          ? selectedExpenses
+          : selectedExpenses.filter((e) => !e.tags.includes(tag));
 
         if (expensesToUpdate.length === 0) return;
 
@@ -69,7 +76,9 @@ export const useQuickTag = () => {
           hashes: expensesToUpdate.map((e) => e.id),
           expenses: expensesToUpdate.map((e) => ({
             ...e,
-            tags: [...e.tags, tag],
+            tags: allHaveTag
+              ? e.tags.filter((t) => t !== tag)
+              : [...e.tags, tag],
           })),
         });
 
@@ -79,15 +88,19 @@ export const useQuickTag = () => {
         if (!rowId) return;
 
         const expense = getExpenseById(rowId);
-        if (!expense || expense.tags.includes(tag)) return;
+        if (!expense) return;
+
+        const newTags = expense.tags.includes(tag)
+          ? expense.tags.filter((t) => t !== tag)
+          : [...expense.tags, tag];
 
         await invoke(API.UpdateExpense, {
           hash: rowId,
-          expense: { ...expense, tags: [...expense.tags, tag] },
+          expense: { ...expense, tags: newTags },
         });
       }
     },
-    [getExpenseById]
+    [getExpenseById],
   );
 
   applyTagRef.current = applyTag;
@@ -111,6 +124,7 @@ export const useQuickTag = () => {
   }, []);
 
   const setHoveredRowId = useCallback((id: string | null) => {
+    if (id === null && isActiveRef.current) return;
     hoveredRowIdRef.current = id;
     setHoveredRowIdState(id);
   }, []);
@@ -141,22 +155,15 @@ export const useQuickTag = () => {
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key !== "Control") return;
 
-      const target = e.target as HTMLElement;
-      if (
-        target.tagName === "INPUT" ||
-        target.tagName === "TEXTAREA" ||
-        target.tagName === "SELECT" ||
-        target.isContentEditable
-      ) {
-        return;
-      }
+      const { x, y } = mousePosRef.current;
+      const el = document.elementFromPoint(x, y) as HTMLElement | null;
+      if (!el?.closest("tr")) return;
 
       if (visibleOverlay !== undefined) return;
       if (!isTableView) return;
       if (isActiveRef.current) return;
 
       e.preventDefault();
-      const { x, y } = mousePosRef.current;
 
       if (selectionRef.current.length > 0) {
         isBulkRef.current = true;
@@ -167,6 +174,7 @@ export const useQuickTag = () => {
           setPosition({ x, y });
         }, BULK_DELAY_MS);
       } else {
+        if (!hoveredRowIdRef.current) return;
         isBulkRef.current = false;
         lockedRowIdRef.current = hoveredRowIdRef.current;
         setIsActive(true);
@@ -206,37 +214,46 @@ export const useQuickTag = () => {
     };
   }, [location.pathname, visibleOverlay]);
 
-  const appliedTags: Tag[] = useMemo(() => {
+  const appliedTagSet: Set<string> = useMemo(() => {
     if (isBulkRef.current && selection.length > 0) {
       const tagSets = selection
         .map((id) => getExpenseById(id))
         .filter((e): e is Expense => e !== undefined)
         .map((e) => new Set(e.tags));
 
-      if (tagSets.length === 0) return [];
+      if (tagSets.length === 0) return new Set();
       const common = tagSets[0];
       for (let i = 1; i < tagSets.length; i++) {
         for (const t of common) {
           if (!tagSets[i].has(t)) common.delete(t);
         }
       }
-      return [...common];
+      return common;
     }
 
     if (hoveredRowId) {
-      return getExpenseById(hoveredRowId)?.tags ?? [];
+      return new Set(getExpenseById(hoveredRowId)?.tags ?? []);
     }
-    return [];
+    return new Set();
   }, [hoveredRowId, selection, getExpenseById, isActive]);
+
+  const actions: RadialAction[] = useMemo(
+    () =>
+      frequentTags.map((tag) => ({
+        id: tag,
+        label: tag,
+        active: appliedTagSet.has(tag),
+      })),
+    [frequentTags, appliedTagSet],
+  );
 
   return {
     isActive,
     position,
-    frequentTags,
-    hoveredTag,
-    appliedTags,
+    actions,
+    hoveredAction: hoveredTag,
     setHoveredRowId,
-    onTagEnter,
-    onTagLeave,
+    onActionEnter: onTagEnter,
+    onActionLeave: onTagLeave,
   };
 };

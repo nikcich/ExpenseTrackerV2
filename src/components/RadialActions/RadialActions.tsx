@@ -1,19 +1,47 @@
-import { Tag } from "@/types/types";
 import { useEffect, useMemo, useState } from "react";
-import styles from "./QuickTagRadial.module.scss";
+import styles from "./RadialActions.module.scss";
 
-interface QuickTagRadialProps {
-  tags: string[];
-  appliedTags: Tag[];
+export interface RadialAction {
+  id: string;
+  label: string;
+  active?: boolean;
+}
+
+interface RadialActionsProps {
+  actions: RadialAction[];
   position: { x: number; y: number };
-  hoveredTag: string | null;
-  onTagEnter: (tag: string) => void;
-  onTagLeave: () => void;
+  hoveredAction: string | null;
+  onActionEnter: (id: string) => void;
+  onActionLeave: () => void;
 }
 
 const OUTER_R = 120;
 const INNER_R = 44;
 const GAP_DEG = 1.5;
+const LINE_HEIGHT = 12;
+const CHAR_WIDTH = 5.5;
+
+const wrapText = (text: string, maxChars: number): string[] => {
+  const normalized = text.replace(/[_\/]/g, " ");
+  if (normalized.length <= maxChars) return [normalized];
+
+  const words = normalized.split(/\s+/);
+  const lines: string[] = [];
+  let line = "";
+
+  for (const word of words) {
+    const test = line ? `${line} ${word}` : word;
+    if (test.length <= maxChars) {
+      line = test;
+    } else {
+      if (line) lines.push(line);
+      line = word.length > maxChars ? word.slice(0, maxChars) : word;
+    }
+  }
+  if (line) lines.push(line);
+
+  return lines.length > 0 ? lines : [normalized];
+};
 
 const describeArc = (
   cx: number,
@@ -47,17 +75,13 @@ const describeArc = (
   ].join(" ");
 };
 
-const midAngle = (startDeg: number, endDeg: number) =>
-  ((startDeg + endDeg) / 2 * Math.PI) / 180;
-
-export const QuickTagRadial = ({
-  tags,
-  appliedTags,
+export const RadialActions = ({
+  actions,
   position,
-  hoveredTag,
-  onTagEnter,
-  onTagLeave,
-}: QuickTagRadialProps) => {
+  hoveredAction,
+  onActionEnter,
+  onActionLeave,
+}: RadialActionsProps) => {
   const [entered, setEntered] = useState(false);
 
   useEffect(() => {
@@ -65,23 +89,27 @@ export const QuickTagRadial = ({
     return () => cancelAnimationFrame(frame);
   }, []);
 
-  const totalGap = GAP_DEG * tags.length;
-  const sweepDeg = (360 - totalGap) / tags.length;
+  const totalGap = GAP_DEG * actions.length;
+  const sweepDeg = (360 - totalGap) / actions.length;
 
   const wedges = useMemo(() => {
-    return tags.map((tag, i) => {
+    return actions.map((action, i) => {
       const startDeg = i * (sweepDeg + GAP_DEG) - 90;
       const endDeg = startDeg + sweepDeg;
       const path = describeArc(0, 0, OUTER_R, INNER_R, startDeg, endDeg);
 
-      const mid = midAngle(startDeg, endDeg);
+      const midDeg = (startDeg + endDeg) / 2;
+      const mid = (midDeg * Math.PI) / 180;
       const labelR = (OUTER_R + INNER_R) / 2;
       const lx = labelR * Math.cos(mid);
       const ly = labelR * Math.sin(mid);
+      const textAngle = midDeg > 90 && midDeg < 270 ? midDeg + 180 : midDeg;
+      const arcLength = labelR * (sweepDeg * Math.PI / 180);
+      const maxChars = Math.floor(arcLength / CHAR_WIDTH);
 
-      return { tag, path, lx, ly, startDeg, endDeg };
+      return { ...action, path, lx, ly, textAngle, maxChars };
     });
-  }, [tags, sweepDeg]);
+  }, [actions, sweepDeg]);
 
   const size = OUTER_R * 2 + 24;
   const center = size / 2;
@@ -96,37 +124,48 @@ export const QuickTagRadial = ({
           viewBox={`${-center} ${-center} ${size} ${size}`}
           className={styles.svg}
         >
-          {wedges.map(({ tag, path, lx, ly }) => {
-            const isApplied = appliedTags.includes(tag);
-            const isHovered = hoveredTag === tag;
+          {wedges.map(({ id, label, active, path, lx, ly, textAngle, maxChars }) => {
+            const isHovered = hoveredAction === id;
+            const lines = wrapText(label, maxChars);
             return (
-              <g key={tag}>
+              <g key={id}>
                 <path
                   d={path}
                   className={[
                     styles.wedge,
                     isHovered ? styles.wedgeHovered : "",
-                    isApplied ? styles.wedgeApplied : "",
+                    active ? styles.wedgeActive : "",
                   ]
                     .filter(Boolean)
                     .join(" ")}
-                  onMouseEnter={() => onTagEnter(tag)}
-                  onMouseLeave={onTagLeave}
+                  onMouseEnter={() => onActionEnter(id)}
+                  onMouseLeave={onActionLeave}
                 />
                 <text
                   x={lx}
                   y={ly}
+                  transform={`rotate(${textAngle}, ${lx}, ${ly})`}
                   className={[
                     styles.label,
                     isHovered ? styles.labelHovered : "",
                   ]
                     .filter(Boolean)
                     .join(" ")}
-                  onMouseEnter={() => onTagEnter(tag)}
-                  onMouseLeave={onTagLeave}
                   pointerEvents="none"
                 >
-                  {isApplied ? `\u2713 ${tag}` : tag}
+                  {lines.map((line, j) => (
+                    <tspan
+                      key={j}
+                      x={lx}
+                      dy={
+                        j === 0
+                          ? `${-((lines.length - 1) * LINE_HEIGHT) / 2}px`
+                          : `${LINE_HEIGHT}px`
+                      }
+                    >
+                      {line}
+                    </tspan>
+                  ))}
                 </text>
               </g>
             );
