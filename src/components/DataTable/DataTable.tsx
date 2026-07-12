@@ -32,6 +32,8 @@ import {
   DialogTrigger,
 } from "@chakra-ui/react";
 import { format } from "date-fns";
+import { useQuickTag } from "@/hooks/useQuickTag";
+import { QuickTagRadial } from "../QuickTagRadial/QuickTagRadial";
 
 const TagCell = ({ tags }: { tags: Tag[] }) => {
   return (
@@ -357,6 +359,8 @@ type RowProps = {
   selected: boolean;
   onToggle: (id: string, index: number, shift: boolean) => void;
   onEdit: (id: string) => void;
+  onMouseEnter: () => void;
+  onMouseLeave: () => void;
   index: number;
   selectable: boolean;
 };
@@ -365,11 +369,13 @@ const GRID_WITH_CHECK = "50px 150px 150px 1fr 100px";
 const GRID_NO_CHECK = "150px 150px 1fr 100px";
 
 const TableRow = memo<RowProps>(
-  ({ item, index, selected, onToggle, onEdit, selectable }) => {
+  ({ item, index, selected, onToggle, onEdit, onMouseEnter, onMouseLeave, selectable }) => {
     return (
       <tr
         data-selected={selected ? "" : undefined}
         onDoubleClick={() => onEdit(item.id)}
+        onMouseEnter={onMouseEnter}
+        onMouseLeave={onMouseLeave}
         style={{ gridTemplateColumns: selectable ? GRID_WITH_CHECK : GRID_NO_CHECK }}
       >
         {selectable && (
@@ -418,6 +424,7 @@ export const CoreTable = memo(({ items, selectable = true }: { items: Expense[];
   const [scrollTop, setScrollTop] = useState(0);
   const lastSelectedIndexRef = useRef<number | null>(null);
   const headerCheckboxRef = useRef<HTMLInputElement>(null);
+  const quickTag = useQuickTag();
 
   const handleSort = useCallback(
     (column: SortKey) => {
@@ -641,6 +648,8 @@ export const CoreTable = memo(({ items, selectable = true }: { items: Expense[];
                     selected={selection.includes(item.id)}
                     onToggle={toggleSelection}
                     onEdit={editRow}
+                    onMouseEnter={() => quickTag.setHoveredRowId(item.id)}
+                    onMouseLeave={() => quickTag.setHoveredRowId(null)}
                     selectable={selectable}
                   />
                 );
@@ -655,6 +664,17 @@ export const CoreTable = memo(({ items, selectable = true }: { items: Expense[];
         total={sortedItems.length}
         scrollTop={scrollTop}
       />
+
+      {quickTag.isActive && (
+        <QuickTagRadial
+          tags={quickTag.frequentTags}
+          appliedTags={quickTag.appliedTags}
+          position={quickTag.position}
+          hoveredTag={quickTag.hoveredTag}
+          onTagEnter={quickTag.onTagEnter}
+          onTagLeave={quickTag.onTagLeave}
+        />
+      )}
     </div>
   );
 });
