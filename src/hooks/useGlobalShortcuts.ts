@@ -31,6 +31,16 @@ export const useGlobalShortcuts = () => {
       if (Date.now() - lastAction.current < SHORTCUT_COOLDOWN) return;
       lastAction.current = Date.now();
 
+      const target = e.target as HTMLElement;
+      if (
+        target.tagName === "INPUT" ||
+        target.tagName === "TEXTAREA" ||
+        target.tagName === "SELECT" ||
+        target.isContentEditable
+      ) {
+        return;
+      }
+
       const modalOpen = visibleOverlay !== undefined;
 
       if (e.key === "Escape") {
