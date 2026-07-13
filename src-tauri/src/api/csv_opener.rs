@@ -1,3 +1,5 @@
+use std::fs;
+
 use crate::api::events::notify_store_changed;
 use crate::definition::csv_definition::{CsvDefinitionKey, CSV_DEFINITIONS};
 use crate::model::expense::Expense;
@@ -249,5 +251,16 @@ pub fn update_expense(
                 Option::<String>::None,
             );
         }
+    }
+}
+
+#[tauri::command]
+pub fn save_csv_to_path(path: String, content: String) -> Response {
+    match fs::write(&path, content) {
+        Ok(_) => Response::ok(String::from("File saved successfully"), Some(path)),
+        Err(e) => Response::err(
+            format!("Failed to save file: {}", e),
+            Option::<String>::None,
+        ),
     }
 }

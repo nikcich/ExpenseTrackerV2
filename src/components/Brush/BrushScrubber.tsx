@@ -62,10 +62,14 @@ export const BrushScrubber: React.FC<BrushScrubberProps> = ({
 
     const [domainStart, domainEnd] = xScale.domain();
 
-    const months = d3.timeMonth.range(
+    const allMonths = d3.timeMonth.range(
       d3.timeMonth.floor(domainStart),
       d3.timeMonth.ceil(domainEnd)
     );
+
+    const maxTicks = 12;
+    const step = Math.max(1, Math.ceil(allMonths.length / maxTicks));
+    const months = allMonths.filter((_, i) => i % step === 0);
 
     const container = svg
       .append("g")

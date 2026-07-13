@@ -1,4 +1,4 @@
-import { Button, Flex, Input, Text } from "@chakra-ui/react";
+import { Flex, Input, Text } from "@chakra-ui/react";
 import {
   memo,
   useCallback,
@@ -8,7 +8,7 @@ import {
   useRef,
   useState,
 } from "react";
-import { API, Expense, NonExpenseTags, Response, Tag } from "@/types/types";
+import { Expense, NonExpenseTags, Tag } from "@/types/types";
 import { BrushScrubber } from "../Brush/BrushScrubber";
 import { GenericPage } from "../GenericPage/GenericPage";
 import { Tag as TagComp } from "@chakra-ui/react";
@@ -17,20 +17,7 @@ import { FaChevronUp } from "react-icons/fa";
 import styles from "./DataTable.module.scss";
 import { setSelection, useSelection } from "@/store/SelectionStore";
 import { enableOverlay, Overlay } from "@/store/OverlayStore";
-import { invoke } from "@tauri-apps/api/core";
 import { debounce } from "lodash";
-import {
-  DialogBackdrop,
-  DialogBody,
-  DialogCloseTrigger,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogPositioner,
-  DialogRoot,
-  DialogTitle,
-  DialogTrigger,
-} from "@chakra-ui/react";
 import { format } from "date-fns";
 import { useQuickTag } from "@/hooks/useQuickTag";
 import { RadialActions } from "../RadialActions/RadialActions";
@@ -74,121 +61,16 @@ const compareDates = (
   }
 };
 
-const DataTableActions = () => {
-  const selection = useSelection();
-  const [deleteOpen, setDeleteOpen] = useState(false);
-
-  const handleDeleteSelection = useCallback(async (selection: string[]) => {
-    await invoke<Response<string>>(API.RemoveBulkExpenses, {
-      hashes: selection,
-    });
-
-    setSelection([]);
-  }, []);
-
-  return (
-    <>
-      {selection.length > 0 && (
-        <>
-          <Text>{selection.length} selected</Text>
-          <Button
-            size={"xs"}
-            colorPalette={"orange"}
-            onClick={() => {
-              if (selection.length > 0) {
-                enableOverlay(Overlay.TagModal);
-              }
-            }}
-          >
-            Tag Selection
-          </Button>
-
-          <Button
-            size={"xs"}
-            colorPalette={"blue"}
-            onClick={() => {
-              if (selection.length > 0) {
-                enableOverlay(Overlay.EditModal);
-              }
-            }}
-          >
-            Modify Selection
-          </Button>
-
-          <Button
-            size={"xs"}
-            colorPalette={"red"}
-            onClick={() => setDeleteOpen(true)}
-          >
-            Delete Selection
-          </Button>
-
-          <DialogRoot
-            open={deleteOpen}
-            onOpenChange={(e) => setDeleteOpen(e.open)}
-          >
-            <DialogBackdrop />
-            <DialogTrigger />
-            <DialogPositioner>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>Delete {selection.length} expense(s)?</DialogTitle>
-                  <DialogCloseTrigger />
-                </DialogHeader>
-                <DialogBody>
-                  <Text>This action cannot be undone.</Text>
-                </DialogBody>
-                <DialogFooter>
-                  <Button
-                    variant="outline"
-                    onClick={() => setDeleteOpen(false)}
-                  >
-                    Cancel
-                  </Button>
-                  <Button
-                    colorPalette="red"
-                    onClick={() => {
-                      handleDeleteSelection(selection);
-                      setDeleteOpen(false);
-                    }}
-                  >
-                    Delete
-                  </Button>
-                </DialogFooter>
-              </DialogContent>
-            </DialogPositioner>
-          </DialogRoot>
-        </>
-      )}
-      <Button
-        size={"xs"}
-        colorPalette={"green"}
-        onClick={() => enableOverlay(Overlay.ManualModal)}
-      >
-        Create Expense
-      </Button>
-    </>
-  );
-};
-
 export const DataTable = ({ items }: { items: Expense[] }) => {
   const [searchString, setSearchString] = useState("");
 
-  const [includeIncome, setIncludeIncome] = useState(true);
-  const [includeExpenses, setIncludeExpenses] = useState(true);
-  const [includeSavings, setIncludeSavings] = useState(true);
-  const [includeUntagged, setIncludeUntagged] = useState(true);
-
-  // Normalize search string once
   const normalizedSearch = useMemo(
     () => searchString.trim().toLowerCase(),
     [searchString]
   );
 
-  // Defer expensive filtering while typing
   const deferredSearch = useDeferredValue(normalizedSearch);
 
-  // Debounce setter ONCE
   const debouncedSetSearch = useMemo(
     () => debounce((value: string) => setSearchString(value), 300),
     []
@@ -199,46 +81,22 @@ export const DataTable = ({ items }: { items: Expense[] }) => {
   }, [debouncedSetSearch]);
 
   const filteredItems = useMemo(() => {
+    if (!deferredSearch) return items;
+
     return items.filter((item) => {
-      const isIncome =
-        item.tags.includes(NonExpenseTags.Income);
+      const searchStr = deferredSearch.toLowerCase();
+      const matchesDescription = item.description.toLowerCase().includes(searchStr);
+      const matchesTags = item.tags.some((t) => t.toLowerCase().includes(searchStr));
+      const matchesAmount = item.amount.toFixed(2).includes(searchStr);
+      const matchesDate = format(new Date(item.date), "MM-dd-yyyy").includes(searchStr) || item.date.includes(searchStr);
 
-      const isSavings = item.tags.includes(NonExpenseTags.Savings);
-      const isUntagged = item.tags.length === 0;
-      const isExpense = !isIncome && !isSavings && !isUntagged;
-
-      if (!includeIncome && isIncome) return false;
-      if (!includeSavings && isSavings) return false;
-      if (!includeExpenses && isExpense) return false;
-      if (!includeUntagged && isUntagged) return false;
-
-      if (deferredSearch) {
-        const searchStr = deferredSearch.toLowerCase();
-        const matchesDescription = item.description.toLowerCase().includes(searchStr);
-        const matchesTags = item.tags.some((t) => t.toLowerCase().includes(searchStr));
-        const matchesAmount = item.amount.toFixed(2).includes(searchStr);
-        const matchesDate = format(new Date(item.date), "MM-dd-yyyy").includes(searchStr) || item.date.includes(searchStr);
-
-        if (!matchesDescription && !matchesTags && !matchesAmount && !matchesDate) {
-          return false;
-        }
-      }
-
-      return true;
+      return matchesDescription || matchesTags || matchesAmount || matchesDate;
     });
-  }, [
-    items,
-    deferredSearch,
-    includeIncome,
-    includeExpenses,
-    includeSavings,
-    includeUntagged,
-  ]);
+  }, [items, deferredSearch]);
 
   return (
     <GenericPage
       title={`Expenses (${filteredItems.length})`}
-      actions={<DataTableActions />}
       footer={<BrushScrubber />}
     >
       <div
@@ -251,48 +109,6 @@ export const DataTable = ({ items }: { items: Expense[] }) => {
           padding: "0.5rem",
         }}
       >
-        <div
-          style={{
-            display: "flex",
-            gap: "1rem",
-            paddingBottom: "0.5rem",
-            width: "100%",
-            alignItems: "flex-start",
-          }}
-        >
-          <Button
-            variant={includeIncome ? "solid" : "outline"}
-            colorPalette="green"
-            onClick={() => setIncludeIncome((v) => !v)}
-          >
-            Income {includeIncome ? "Included" : "Excluded"}
-          </Button>
-
-          <Button
-            variant={includeExpenses ? "solid" : "outline"}
-            colorPalette="red"
-            onClick={() => setIncludeExpenses((v) => !v)}
-          >
-            Expenses {includeExpenses ? "Included" : "Excluded"}
-          </Button>
-
-          <Button
-            variant={includeSavings ? "solid" : "outline"}
-            colorPalette="yellow"
-            onClick={() => setIncludeSavings((v) => !v)}
-          >
-            Savings {includeSavings ? "Included" : "Excluded"}
-          </Button>
-
-          <Button
-            variant={includeUntagged ? "solid" : "outline"}
-            colorPalette="gray"
-            onClick={() => setIncludeUntagged((v) => !v)}
-          >
-            Untagged {includeUntagged ? "Included" : "Excluded"}
-          </Button>
-        </div>
-
         <Input
           type="search"
           placeholder="Search..."

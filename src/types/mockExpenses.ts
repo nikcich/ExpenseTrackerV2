@@ -2,9 +2,12 @@ import {
   BalanceSnapshotsMap,
   ExpenseTag,
   ForecastConfigData,
+  GrantMap,
   KnownStoreKeys,
   NonExpenseTags,
   RsuVestsMap,
+  SalesMap,
+  StockMap,
   StoreExpenseMap,
   Tag,
 } from "./types";
@@ -225,23 +228,77 @@ export const MOCK_EXPENSES: StoreExpenseMap = generateRealisticExpenses(
   endDate,
 );
 
-const generateMockRsuVests = (from: Date): RsuVestsMap => {
+const generateMockStocks = (): StockMap => {
+  const id = uuidv4();
+  return {
+    [id]: { id, ticker: "AAPL", currentPrice: 175 },
+  };
+};
+
+export const MOCK_STOCKS: StockMap = generateMockStocks();
+
+const generateMockGrants = (stockId: string): GrantMap => {
+  const map: GrantMap = {};
+  const grantId = uuidv4();
+  map[grantId] = {
+    id: grantId,
+    name: "Q1 2024 RSU Grant",
+    stockId,
+    grantPrice: 150,
+    totalShares: 200,
+  };
+  return map;
+};
+
+const firstStockId = Object.keys(MOCK_STOCKS)[0];
+export const MOCK_GRANTS: GrantMap = generateMockGrants(firstStockId);
+
+const generateMockRsuVests = (from: Date, grants: GrantMap): RsuVestsMap => {
   const map: RsuVestsMap = {};
+  const grantId = Object.keys(grants)[0];
+  if (!grantId) return map;
   for (let i = 0; i < 4; i++) {
     const id = uuidv4();
     const vestDate = addMonths(from, i * 3 + 1);
     map[id] = {
       id,
+      grantId,
       vestDate: format(vestDate, "yyyy-MM-dd"),
       shares: 50,
-      price: Math.round((45 + Math.random() * 15) * 10) / 10,
-      description: "RSU Vest",
+      basisPrice: Math.round((45 + Math.random() * 15) * 10) / 10,
     };
   }
   return map;
 };
 
-export const MOCK_RSU_VESTS: RsuVestsMap = generateMockRsuVests(startDate);
+export const MOCK_RSU_VESTS: RsuVestsMap = generateMockRsuVests(startDate, MOCK_GRANTS);
+
+const generateMockSales = (from: Date, stockId: string): SalesMap => {
+  const map: SalesMap = {};
+  const sale1Id = uuidv4();
+  const saleDate = addMonths(from, 6);
+  map[sale1Id] = {
+    id: sale1Id,
+    stockId,
+    date: format(saleDate, "yyyy-MM-dd"),
+    shares: 25,
+    salePrice: Math.round((180 + Math.random() * 20) * 10) / 10,
+    basisPrice: 45,
+  };
+  const sale2Id = uuidv4();
+  const sale2Date = addMonths(from, 9);
+  map[sale2Id] = {
+    id: sale2Id,
+    stockId,
+    date: format(sale2Date, "yyyy-MM-dd"),
+    shares: 25,
+    salePrice: Math.round((185 + Math.random() * 20) * 10) / 10,
+    basisPrice: 50,
+  };
+  return map;
+};
+
+export const MOCK_SALES: SalesMap = generateMockSales(startDate, firstStockId);
 
 const generateMockBalanceSnapshots = (
   from: Date,
@@ -380,7 +437,10 @@ export const MOCK_BRUSH_RANGE: [number, number] = [
 
 export const MOCK_DATA_MAP: Partial<Record<KnownStoreKeys, unknown>> = {
   [KnownStoreKeys.Expenses]: MOCK_EXPENSES,
+  [KnownStoreKeys.Stocks]: MOCK_STOCKS,
+  [KnownStoreKeys.Grants]: MOCK_GRANTS,
   [KnownStoreKeys.RsuVests]: MOCK_RSU_VESTS,
+  [KnownStoreKeys.Sales]: MOCK_SALES,
   [KnownStoreKeys.BalanceSnapshots]: MOCK_BALANCE_SNAPSHOTS,
   [KnownStoreKeys.ForecastConfig]: MOCK_FORECAST_CONFIG,
 };

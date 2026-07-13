@@ -11,13 +11,17 @@ export enum API {
   UpdateBulkExpenses = "update_bulk_expenses",
   SetJsonValue = "store_set_json_value",
   GetJsonValue = "store_get_json_value",
+  SaveCSV = "save_csv_to_path",
 }
 
 export enum KnownStoreKeys {
   MyValue = "my_value",
   Expenses = "expenses",
   ForecastConfig = "forecast_config",
+  Stocks = "stocks",
+  Grants = "grants",
   RsuVests = "rsu_vests",
+  Sales = "sales",
   BalanceSnapshots = "balance_snapshots",
 }
 
@@ -95,16 +99,51 @@ export const ALL_TAGS: Tag[] = [
   ...Object.values(NonExpenseTags),
 ];
 
+export type Stock = {
+  id: string;
+  ticker: string;
+  currentPrice: number;
+};
+
+export type StockMap = {
+  [id: string]: Stock;
+};
+
+export type Grant = {
+  id: string;
+  name: string;
+  stockId: string;
+  grantPrice: number;
+  totalShares: number;
+};
+
+export type GrantMap = {
+  [id: string]: Grant;
+};
+
 export type RsuVest = {
   id: string;
+  grantId: string;
   vestDate: string;
   shares: number;
-  price: number;
-  description: string;
+  basisPrice: number;
 };
 
 export type RsuVestsMap = {
   [id: string]: RsuVest;
+};
+
+export type Sale = {
+  id: string;
+  stockId: string;
+  date: string;
+  shares: number;
+  salePrice: number;
+  basisPrice: number;
+};
+
+export type SalesMap = {
+  [id: string]: Sale;
 };
 
 export type BalanceSnapshot = {

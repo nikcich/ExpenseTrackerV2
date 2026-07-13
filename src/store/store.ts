@@ -1,4 +1,4 @@
-import { BalanceSnapshot, BalanceSnapshotsMap, ForecastConfigData, KnownStoreKeys, RsuVest, RsuVestsMap, StoreExpenseMap } from "../types/types";
+import { BalanceSnapshot, BalanceSnapshotsMap, ForecastConfigData, Grant, GrantMap, KnownStoreKeys, RsuVest, RsuVestsMap, Sale, SalesMap, Stock, StockMap, StoreExpenseMap } from "../types/types";
 import { createTauriApiHooks, createTauriStoreHook } from "../utils/utils";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { MOCK_BRUSH_RANGE, MOCK_DATA_MAP } from "@/types/mockExpenses";
@@ -62,6 +62,96 @@ export function useRsuVests() {
   }, [value, setValue]);
 
   return { vests, addVest, updateVest, removeVest };
+}
+
+const [useStocksStore] = createTauriStoreHook<StockMap>({
+  key: KnownStoreKeys.Stocks,
+  defaultValue: {},
+  mockData: MOCK_DATA_MAP[KnownStoreKeys.Stocks] as StockMap | undefined,
+});
+
+export function useStocks() {
+  const { value, setValue } = useStocksStore();
+  const stocks = useMemo(() => Object.values(value ?? {}), [value]);
+
+  const addStock = useCallback((stock: Stock) => {
+    const id = crypto.randomUUID();
+    setValue({ ...(value ?? {}), [id]: { ...stock, id } });
+  }, [value, setValue]);
+
+  const updateStock = useCallback((id: string, stock: Stock) => {
+    if (!value) return;
+    setValue({ ...value, [id]: stock });
+  }, [value, setValue]);
+
+  const removeStock = useCallback((id: string) => {
+    if (!value) return;
+    const next = { ...value };
+    delete next[id];
+    setValue(next);
+  }, [value, setValue]);
+
+  return { stocks, addStock, updateStock, removeStock };
+}
+
+const [useGrantsStore] = createTauriStoreHook<GrantMap>({
+  key: KnownStoreKeys.Grants,
+  defaultValue: {},
+  mockData: MOCK_DATA_MAP[KnownStoreKeys.Grants] as GrantMap | undefined,
+});
+
+export function useGrants() {
+  const { value, setValue } = useGrantsStore();
+  const grants = useMemo(() => Object.values(value ?? {}), [value]);
+
+  const addGrant = useCallback((grant: Grant) => {
+    const id = crypto.randomUUID();
+    setValue({ ...(value ?? {}), [id]: { ...grant, id } });
+  }, [value, setValue]);
+
+  const updateGrant = useCallback((id: string, grant: Grant) => {
+    if (!value) return;
+    setValue({ ...value, [id]: grant });
+  }, [value, setValue]);
+
+  const removeGrant = useCallback((id: string) => {
+    if (!value) return;
+    const next = { ...value };
+    delete next[id];
+    setValue(next);
+  }, [value, setValue]);
+
+  return { grants, addGrant, updateGrant, removeGrant };
+}
+
+const [useSalesStore] = createTauriStoreHook<SalesMap>({
+  key: KnownStoreKeys.Sales,
+  defaultValue: {},
+  mockData: MOCK_DATA_MAP[KnownStoreKeys.Sales] as SalesMap | undefined,
+});
+
+export function useSales() {
+  const { value, setValue } = useSalesStore();
+  const sales = useMemo(() => Object.values(value ?? {}), [value]);
+
+  const addSale = useCallback((sale: Sale) => {
+    const id = crypto.randomUUID();
+    setValue({ ...(value ?? {}), [id]: { ...sale, id } });
+  }, [value, setValue]);
+
+  const updateSale = useCallback((id: string, sale: Sale) => {
+    if (!value) return;
+    setValue({ ...value, [id]: sale });
+  }, [value, setValue]);
+
+  const removeSale = useCallback((id: string) => {
+    if (!value) return;
+    const next = { ...value };
+    delete next[id];
+    setValue(next);
+  }, [value, setValue]);
+
+  return { sales, addSale, updateSale, removeSale };
 }
 
 const [useBalanceSnapshotsStore] = createTauriStoreHook<BalanceSnapshotsMap>({

@@ -9,6 +9,7 @@ import { TableView } from "./pages/TableView/TableView";
 import { GroupedBarChart } from "./pages/GroupedBarChart/GroupedBarChart";
 import { TagStackedBarChart } from "./pages/TagStackedBarChart/TagStackedBarChart";
 import { Overlays } from "./Overlays";
+import { Toaster } from "./components/ui/toaster";
 import { RangeIncomeExpenseChart } from "./pages/RangeIncomeExpenseChart/RangeIncomeExpenseChart";
 import { YearToDateChart } from "./pages/YearToDateChart/YearToDateChart";
 import { AverageSpending } from "./pages/AverageSpending/AverageSpending";
@@ -17,6 +18,7 @@ import { ExpenseSankey } from "./pages/Sankey/ExpenseSankey";
 import { Forecast } from "./pages/Forecast/Forecast";
 import { Overview } from "./pages/Overview/Overview";
 import { Accounts } from "./pages/Accounts/Accounts";
+import { RSU } from "./pages/RSU/RSU";
 import { useGlobalShortcuts } from "./hooks/useGlobalShortcuts";
 
 const MockBanner = () => {
@@ -67,6 +69,7 @@ const RouteComponent = ({ element }: { element: JSX.Element }) => {
   return (
     <div className={styles.routeContainer}>
       <Overlays />
+      <Toaster />
       <SideNav />
       <div style={{ display: "flex", flexDirection: "column", flexGrow: 1, minWidth: 0, height: "100%" }}>
         <MockBanner />
@@ -132,6 +135,11 @@ export function AppRouter() {
         <Route
           path={Pages.Accounts}
           element={<RouteComponent element={<Accounts />} />}
+        />
+
+        <Route
+          path={Pages.RSU}
+          element={<RouteComponent element={<RSU />} />}
         />
       </Routes>
     </BrowserRouter>

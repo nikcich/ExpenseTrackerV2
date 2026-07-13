@@ -1,27 +1,22 @@
 import { useEffect, useRef, useState } from "react";
-import { useRsuVests, useBalanceSnapshots } from "@/store/store";
-import type { RsuVest, BalanceSnapshot } from "@/types/types";
+import { useRsuVests, useBalanceSnapshots, useStocks, useGrants } from "@/store/store";
+import type { BalanceSnapshot } from "@/types/types";
 import { formatCurrency, formatDate, formatShortDate, SHORTCUT_COOLDOWN } from "@/utils/utils";
 import styles from "./Accounts.module.scss";
 
-const emptyRsu = (): Partial<RsuVest> => ({ vestDate: "", shares: 0, price: 0, description: "" });
 const emptySnapshot = (): Partial<BalanceSnapshot> => ({ accountName: "", date: "", balance: 0, notes: "", type: "asset" });
 
 export function Accounts() {
-  const { vests, addVest, updateVest, removeVest } = useRsuVests();
+  const { vests } = useRsuVests();
   const { snapshots, addSnapshot, updateSnapshot, removeSnapshot } = useBalanceSnapshots();
-
-  const [showRsuForm, setShowRsuForm] = useState(false);
-  const [rsuForm, setRsuForm] = useState<Partial<RsuVest>>(emptyRsu());
-  const [editingRsu, setEditingRsu] = useState<string | null>(null);
+  const { stocks } = useStocks();
+  const { grants } = useGrants();
 
   const [showSnapshotForm, setShowSnapshotForm] = useState(false);
   const [snapshotForm, setSnapshotForm] = useState<Partial<BalanceSnapshot>>(emptySnapshot());
   const [editingSnapshot, setEditingSnapshot] = useState<string | null>(null);
-  const saveRsuGuard = useRef(false);
   const saveSnapshotGuard = useRef(false);
 
-  const sortedVests = [...vests].sort((a, b) => new Date(b.vestDate).getTime() - new Date(a.vestDate).getTime());
   const sortedSnapshots = [...snapshots].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
   const assets = snapshots.filter((s) => (s.type ?? "asset") !== "debt");
@@ -36,7 +31,18 @@ export function Accounts() {
     }
     return map;
   };
-  const totalRsuValue = vests.reduce((s, v) => s + v.shares * v.price, 0);
+
+  const stockMap = useRef(new Map(stocks.map((s) => [s.id, s])));
+  stockMap.current = new Map(stocks.map((s) => [s.id, s]));
+  const grantMap = useRef(new Map(grants.map((g) => [g.id, g])));
+  grantMap.current = new Map(grants.map((g) => [g.id, g]));
+
+  const totalRsuValue = vests.reduce((s, v) => {
+    const grant = grantMap.current.get(v.grantId);
+    const stock = grant ? stockMap.current.get(grant.stockId) : undefined;
+    return s + v.shares * (stock?.currentPrice ?? v.basisPrice);
+  }, 0);
+
   const totalAssets = [...latestByAccount(assets).values()].reduce((s, a) => s + a.balance, 0) + totalRsuValue;
   const totalDebts = [...latestByAccount(debts).values()].reduce((s, d) => s + Math.abs(d.balance), 0);
   const activeDebts = [...Array.from(new Set(debts.map((s) => s.accountName)))]
@@ -47,40 +53,6 @@ export function Accounts() {
       return { name, snapshots: accountSnapshots };
     })
     .filter(({ snapshots }) => snapshots[0]?.balance !== 0);
-
-  const handleSaveRsu = () => {
-    if (saveRsuGuard.current) return;
-    if (!rsuForm.vestDate || !rsuForm.shares || !rsuForm.price) return;
-    saveRsuGuard.current = true;
-    const vest: RsuVest = {
-      id: editingRsu ?? "",
-      vestDate: rsuForm.vestDate,
-      shares: Number(rsuForm.shares),
-      price: Number(rsuForm.price),
-      description: rsuForm.description ?? "",
-    };
-    if (editingRsu) {
-      updateVest(editingRsu, vest);
-    } else {
-      addVest(vest);
-    }
-    setRsuForm(emptyRsu());
-    setShowRsuForm(false);
-    setEditingRsu(null);
-    setTimeout(() => { saveRsuGuard.current = false; }, SHORTCUT_COOLDOWN);
-  };
-
-  const handleEditRsu = (vest: RsuVest) => {
-    setRsuForm({ ...vest });
-    setEditingRsu(vest.id);
-    setShowRsuForm(true);
-  };
-
-  const handleCancelRsu = () => {
-    setRsuForm(emptyRsu());
-    setShowRsuForm(false);
-    setEditingRsu(null);
-  };
 
   const handleSaveSnapshot = () => {
     if (saveSnapshotGuard.current) return;
@@ -140,27 +112,6 @@ export function Accounts() {
       </div>
 
       <div className={styles.summaryRow}>
-        {vests.length > 0 && (
-          <div className={styles.summaryCard}>
-            <span className={styles.summaryCardTitle}>RSU Summary</span>
-            <div className={styles.summaryStats}>
-              <div className={styles.summaryStat}>
-                <span className={styles.summaryStatLabel}>Total Shares</span>
-                <span className={styles.summaryStatValue}>{vests.reduce((s, v) => s + v.shares, 0).toLocaleString()}</span>
-              </div>
-              <div className={styles.summaryStat}>
-                <span className={styles.summaryStatLabel}>Value at Vest</span>
-                <span className={`${styles.summaryStatValue} ${styles.money}`}>
-                  {formatCurrency(vests.reduce((s, v) => s + v.shares * v.price, 0))}
-                </span>
-              </div>
-              <div className={styles.summaryStat}>
-                <span className={styles.summaryStatLabel}>Events</span>
-                <span className={styles.summaryStatValue}>{vests.length}</span>
-              </div>
-            </div>
-          </div>
-        )}
         <div className={styles.summaryCard}>
           <span className={styles.summaryCardTitle}>Assets</span>
           {assets.length === 0 ? (
@@ -235,27 +186,6 @@ export function Accounts() {
       </div>
 
       <div className={styles.sparklineRow}>
-        {vests.length > 0 && (
-          <div className={styles.sparklineCard}>
-            <span className={styles.sparklineTitle}>Total RSU Value</span>
-            {vests.length < 2 ? (
-              <span className={styles.summaryEmpty}>Need at least 2 vesting events</span>
-            ) : (
-              <Sparkline
-                data={(() => {
-                  let running = 0;
-                  return [...vests]
-                    .sort((a, b) => new Date(a.vestDate).getTime() - new Date(b.vestDate).getTime())
-                    .map((v) => {
-                      running += v.shares * v.price;
-                      return { label: formatShortDate(v.vestDate), value: running };
-                    });
-                })()}
-                color="var(--fg-success, #4ade80)"
-              />
-            )}
-          </div>
-        )}
         <div className={styles.sparklineCard}>
           <span className={styles.sparklineTitle}>Total Portfolio Balance</span>
           {snapshots.length < 2 ? (
@@ -277,95 +207,6 @@ export function Accounts() {
             />
           )}
         </div>
-      </div>
-
-      <div className={styles.section}>
-        <div className={styles.sectionHeader}>
-          <span className={styles.sectionTitle}>RSU Vests</span>
-          <button className={styles.addBtn} onClick={() => { handleCancelRsu(); setShowRsuForm(!showRsuForm); }}>
-            {showRsuForm ? "Cancel" : "+ Add Vest"}
-          </button>
-        </div>
-
-        {showRsuForm && (
-          <div className={styles.inlineForm}>
-            <div className={styles.field}>
-              <span className={styles.fieldLabel}>Vest Date</span>
-              <input
-                className={styles.fieldInput}
-                type="date"
-                value={rsuForm.vestDate ?? ""}
-                onChange={(e) => setRsuForm({ ...rsuForm, vestDate: e.target.value })}
-              />
-            </div>
-            <div className={styles.field}>
-              <span className={styles.fieldLabel}>Shares</span>
-              <input
-                className={styles.fieldInput}
-                type="number"
-                step="any"
-                value={rsuForm.shares ?? ""}
-                onChange={(e) => setRsuForm({ ...rsuForm, shares: Number(e.target.value) })}
-              />
-            </div>
-            <div className={styles.field}>
-              <span className={styles.fieldLabel}>Price/Share</span>
-              <input
-                className={styles.fieldInput}
-                type="number"
-                step="any"
-                value={rsuForm.price ?? ""}
-                onChange={(e) => setRsuForm({ ...rsuForm, price: Number(e.target.value) })}
-              />
-            </div>
-            <div className={styles.field}>
-              <span className={styles.fieldLabel}>Description</span>
-              <input
-                className={styles.fieldInput}
-                type="text"
-                value={rsuForm.description ?? ""}
-                onChange={(e) => setRsuForm({ ...rsuForm, description: e.target.value })}
-                placeholder="e.g. Q1 2026 vest"
-              />
-            </div>
-            <div className={styles.formActions}>
-              <button className={styles.saveBtn} onClick={handleSaveRsu}>Save</button>
-              <button className={styles.cancelBtn} onClick={handleCancelRsu}>Cancel</button>
-            </div>
-          </div>
-        )}
-
-        {sortedVests.length > 0 && (
-          <div className={styles.tableCard}>
-            <table className={styles.table}>
-              <thead>
-                <tr>
-                  <th>Date</th>
-                  <th>Shares</th>
-                  <th>Price/Share</th>
-                  <th className={styles.num}>Total Value</th>
-                  <th>Description</th>
-                  <th className={styles.actionsCell}></th>
-                </tr>
-              </thead>
-              <tbody>
-                {sortedVests.map((v) => (
-                  <tr key={v.id}>
-                    <td>{formatDate(v.vestDate)}</td>
-                    <td>{v.shares.toLocaleString()}</td>
-                    <td>{formatCurrency(v.price)}</td>
-                    <td className={styles.num}>{formatCurrency(v.shares * v.price)}</td>
-                    <td>{v.description}</td>
-                    <td className={styles.actionsCell}>
-                      <button className={styles.actionBtn} onClick={() => handleEditRsu(v)}>Edit</button>
-                      <button className={`${styles.actionBtn} ${styles.deleteBtn}`} onClick={() => removeVest(v.id)}>Delete</button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
       </div>
 
       <div className={styles.section}>

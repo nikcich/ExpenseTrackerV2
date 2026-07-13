@@ -6,19 +6,27 @@ import {
   useFilteredSavings,
 } from "@/hooks/expenses";
 import { useExpensesStore } from "@/store/store";
-import { API, Response } from "@/types/types";
+import { API, NonExpenseTags, Response } from "@/types/types";
 import { createTauriInvoker } from "@/utils/utils";
 import { downloadExpensesCSV } from "@/utils/download";
 import { invoke } from "@tauri-apps/api/core";
 import { open } from "@tauri-apps/plugin-dialog";
-import { useCallback, useEffect, useState } from "react";
+import { revealItemInDir } from "@tauri-apps/plugin-opener";
+import { toaster } from "@/components/ui/toaster";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useLocation } from "react-router-dom";
 import {
   Button,
   CloseButton,
   Dialog,
+  Menu,
   Portal,
+  Text,
 } from "@chakra-ui/react";
+import { LuFilter } from "react-icons/lu";
+import { BsThreeDotsVertical } from "react-icons/bs";
+import { enableOverlay, Overlay } from "@/store/OverlayStore";
+import { useSelection, setSelection } from "@/store/SelectionStore";
 
 const useFileOpener = () => {
   const [loading, setLoading] = useState(false);
@@ -80,18 +88,22 @@ const useFileOpener = () => {
   };
 };
 
-const ResetExpensesDialog = () => {
+const ResetExpensesDialog = ({
+  open,
+  onOpenChange,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}) => {
   const { setValue: setExpenses } = useExpensesStore();
   const clearExpenses = async () => setExpenses({});
-  const [open, setOpen] = useState(false);
 
   return (
-    <Dialog.Root role="alertdialog" open={open}>
-      <Dialog.Trigger asChild>
-        <Button size="sm" colorPalette={"red"} onClick={() => setOpen(true)}>
-          Delete All
-        </Button>
-      </Dialog.Trigger>
+    <Dialog.Root
+      role="alertdialog"
+      open={open}
+      onOpenChange={(e) => onOpenChange(e.open)}
+    >
       <Portal>
         <Dialog.Backdrop />
         <Dialog.Positioner>
@@ -109,7 +121,9 @@ const ResetExpensesDialog = () => {
               <Dialog.ActionTrigger asChild>
                 <Button
                   variant="outline"
-                  onClick={() => { setOpen(false); }}
+                  onClick={() => {
+                    onOpenChange(false);
+                  }}
                 >
                   Cancel
                 </Button>
@@ -117,7 +131,7 @@ const ResetExpensesDialog = () => {
               <Button
                 colorPalette="red"
                 onClick={() => {
-                  setOpen(false);
+                  onOpenChange(false);
                   clearExpenses();
                 }}
               >
@@ -127,7 +141,73 @@ const ResetExpensesDialog = () => {
             <Dialog.CloseTrigger asChild>
               <CloseButton
                 size="sm"
-                onClick={() => { setOpen(false); }}
+                onClick={() => {
+                  onOpenChange(false);
+                }}
+              />
+            </Dialog.CloseTrigger>
+          </Dialog.Content>
+        </Dialog.Positioner>
+      </Portal>
+    </Dialog.Root>
+  );
+};
+
+const DeleteSelectionDialog = ({
+  open,
+  onOpenChange,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}) => {
+  const selection = useSelection();
+
+  const handleDeleteSelection = useCallback(async () => {
+    await invoke<Response<string>>(API.RemoveBulkExpenses, {
+      hashes: selection,
+    });
+    setSelection([]);
+  }, [selection]);
+
+  return (
+    <Dialog.Root
+      role="alertdialog"
+      open={open}
+      onOpenChange={(e) => onOpenChange(e.open)}
+    >
+      <Portal>
+        <Dialog.Backdrop />
+        <Dialog.Positioner>
+          <Dialog.Content>
+            <Dialog.Header>
+              <Dialog.Title>Delete {selection.length} expense(s)?</Dialog.Title>
+            </Dialog.Header>
+            <Dialog.Body>
+              <Text>This action cannot be undone.</Text>
+            </Dialog.Body>
+            <Dialog.Footer>
+              <Dialog.ActionTrigger asChild>
+                <Button
+                  variant="outline"
+                  onClick={() => onOpenChange(false)}
+                >
+                  Cancel
+                </Button>
+              </Dialog.ActionTrigger>
+              <Button
+                colorPalette="red"
+                onClick={() => {
+                  handleDeleteSelection();
+                  onOpenChange(false);
+                }}
+              >
+                Delete
+              </Button>
+            </Dialog.Footer>
+            <Dialog.CloseTrigger asChild>
+              <CloseButton
+                size="sm"
+                onClick={() => onOpenChange(false)}
               />
             </Dialog.CloseTrigger>
           </Dialog.Content>
@@ -153,7 +233,34 @@ export function TableView() {
     reset,
   } = useFileOpener();
 
-  const allItems = [...expenses, ...income, ...savings];
+  const [includeIncome, setIncludeIncome] = useState(true);
+  const [includeExpenses, setIncludeExpenses] = useState(true);
+  const [includeSavings, setIncludeSavings] = useState(true);
+  const [includeUntagged, setIncludeUntagged] = useState(true);
+  const [deleteAllOpen, setDeleteAllOpen] = useState(false);
+  const [deleteSelectionOpen, setDeleteSelectionOpen] = useState(false);
+  const selection = useSelection();
+
+  const allItems = useMemo(
+    () => [...expenses, ...income, ...savings],
+    [expenses, income, savings]
+  );
+
+  const typeFilteredItems = useMemo(() => {
+    return allItems.filter((item) => {
+      const isIncome = item.tags.includes(NonExpenseTags.Income);
+      const isSavings = item.tags.includes(NonExpenseTags.Savings);
+      const isUntagged = item.tags.length === 0;
+      const isExpense = !isIncome && !isSavings && !isUntagged;
+
+      if (!includeIncome && isIncome) return false;
+      if (!includeSavings && isSavings) return false;
+      if (!includeExpenses && isExpense) return false;
+      if (!includeUntagged && isUntagged) return false;
+      return true;
+    });
+  }, [allItems, includeIncome, includeExpenses, includeSavings, includeUntagged]);
+
   const location = useLocation();
 
   useEffect(() => {
@@ -232,25 +339,153 @@ export function TableView() {
             All Items ({allItems.length})
           </span>
           <div className={styles.actionRow}>
-            <Button
-              size="sm"
-              colorPalette={"green"}
-              onClick={() => downloadExpensesCSV(allStoreExpenses)}
-            >
-              Download CSV
-            </Button>
-            <Button
-              size="sm"
-              colorPalette={"blue"}
-              onClick={createTauriInvoker(API.NewWindow)}
-            >
-              New Window
-            </Button>
-            <ResetExpensesDialog />
+            <Menu.Root closeOnSelect={false}>
+              <Menu.Trigger asChild>
+                <Button size="sm" variant="outline">
+                  <LuFilter size={14} />
+                  Filter
+                </Button>
+              </Menu.Trigger>
+              <Menu.Positioner>
+                <Menu.Content>
+                  <Menu.Item
+                    value="income"
+                    onClick={() => setIncludeIncome((v) => !v)}
+                  >
+                    <span
+                      className={`${styles.filterIndicator} ${includeIncome ? styles.filterActive : ""}`}
+                      style={{ color: "#38a169" }}
+                    >
+                      {includeIncome ? "\u25CF" : "\u25CB"}
+                    </span>
+                    Income
+                  </Menu.Item>
+                  <Menu.Item
+                    value="expenses"
+                    onClick={() => setIncludeExpenses((v) => !v)}
+                  >
+                    <span
+                      className={`${styles.filterIndicator} ${includeExpenses ? styles.filterActive : ""}`}
+                      style={{ color: "#fc8181" }}
+                    >
+                      {includeExpenses ? "\u25CF" : "\u25CB"}
+                    </span>
+                    Expenses
+                  </Menu.Item>
+                  <Menu.Item
+                    value="savings"
+                    onClick={() => setIncludeSavings((v) => !v)}
+                  >
+                    <span
+                      className={`${styles.filterIndicator} ${includeSavings ? styles.filterActive : ""}`}
+                      style={{ color: "#ecc94b" }}
+                    >
+                      {includeSavings ? "\u25CF" : "\u25CB"}
+                    </span>
+                    Savings
+                  </Menu.Item>
+                  <Menu.Item
+                    value="untagged"
+                    onClick={() => setIncludeUntagged((v) => !v)}
+                  >
+                    <span
+                      className={`${styles.filterIndicator} ${includeUntagged ? styles.filterActive : ""}`}
+                    >
+                      {includeUntagged ? "\u25CF" : "\u25CB"}
+                    </span>
+                    Untagged
+                  </Menu.Item>
+                </Menu.Content>
+              </Menu.Positioner>
+            </Menu.Root>
+
+            <Menu.Root>
+              <Menu.Trigger asChild>
+                <Button size="sm" variant="ghost" className={styles.kebabBtn}>
+                  <BsThreeDotsVertical size={16} />
+                </Button>
+              </Menu.Trigger>
+              <Menu.Positioner>
+                <Menu.Content>
+                  <Menu.Item
+                    value="download"
+                    onClick={async () => {
+                      const path = await downloadExpensesCSV(allStoreExpenses);
+                      if (path) {
+                        toaster.create({
+                          title: "CSV exported",
+                          description: "File saved successfully",
+                          type: "success",
+                          action: {
+                            label: "Open folder",
+                            onClick: () => revealItemInDir(path),
+                          },
+                        });
+                      }
+                    }}
+                  >
+                    Download CSV
+                  </Menu.Item>
+                  <Menu.Item
+                    value="new-window"
+                    onClick={createTauriInvoker(API.NewWindow)}
+                  >
+                    New Window
+                  </Menu.Item>
+                  <Menu.Item
+                    value="create-expense"
+                    onClick={() => enableOverlay(Overlay.ManualModal)}
+                  >
+                    Create Expense
+                  </Menu.Item>
+                  {selection.length > 0 && (
+                    <>
+                      <Menu.Separator />
+                      <Menu.Item
+                        value="tag-selection"
+                        onClick={() => enableOverlay(Overlay.TagModal)}
+                      >
+                        Tag Selection
+                      </Menu.Item>
+                      <Menu.Item
+                        value="modify-selection"
+                        onClick={() => enableOverlay(Overlay.EditModal)}
+                      >
+                        Modify Selection
+                      </Menu.Item>
+                      <Menu.Item
+                        value="delete-selection"
+                        onClick={() => setDeleteSelectionOpen(true)}
+                        colorPalette="red"
+                      >
+                        Delete Selection
+                      </Menu.Item>
+                    </>
+                  )}
+                  <Menu.Separator />
+                  <Menu.Item
+                    value="delete-all"
+                    onClick={() => setDeleteAllOpen(true)}
+                    colorPalette="red"
+                  >
+                    Delete All
+                  </Menu.Item>
+                </Menu.Content>
+              </Menu.Positioner>
+            </Menu.Root>
           </div>
         </div>
-        <DataTable items={allItems} />
+        <DataTable items={typeFilteredItems} />
       </div>
+
+      <ResetExpensesDialog
+        open={deleteAllOpen}
+        onOpenChange={setDeleteAllOpen}
+      />
+      <DeleteSelectionDialog
+        open={deleteSelectionOpen}
+        onOpenChange={setDeleteSelectionOpen}
+      />
     </div>
   );
 }

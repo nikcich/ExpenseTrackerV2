@@ -84,7 +84,7 @@ export function GroupedBarChart() {
         y: groups.map((group) => {
           const savingsValue =
             sortedGroupedSavings.find((e) => e.group === group)?.total ?? 0;
-          return Math.abs(savingsValue);
+          return savingsValue;
         }),
         color: "#ffd000ff",
       },
