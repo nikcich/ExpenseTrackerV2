@@ -1,4 +1,6 @@
-import { Expense } from "@/types/types";
+import { Expense, API } from "@/types/types";
+import { save } from "@tauri-apps/plugin-dialog";
+import { invoke } from "@tauri-apps/api/core";
 
 function exportExpensesToCSV(expenses: Expense[]): string {
   const header = ["Tags", "Date", "Description", "Amount"];
@@ -23,22 +25,18 @@ function exportExpensesToCSV(expenses: Expense[]): string {
   return [header.join(","), ...rows].join("\n");
 }
 
-function downloadCSV(filename: string, csvContent: string) {
-  const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-  const link = document.createElement("a");
-  const url = URL.createObjectURL(blob);
-
-  link.setAttribute("href", url);
-  link.setAttribute("download", filename);
-
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-
-  URL.revokeObjectURL(url);
-}
-
-export function downloadExpensesCSV(expenses: Expense[]) {
+export async function downloadExpensesCSV(
+  expenses: Expense[]
+): Promise<string | null> {
   const csvString = exportExpensesToCSV(expenses);
-  downloadCSV("expenses.csv", csvString);
+
+  const path = await save({
+    defaultPath: "expenses.csv",
+    filters: [{ name: "CSV", extensions: ["csv"] }],
+  });
+
+  if (!path) return null;
+
+  await invoke(API.SaveCSV, { path, content: csvString });
+  return path;
 }

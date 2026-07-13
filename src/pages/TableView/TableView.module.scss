@@ -164,6 +164,23 @@
   align-items: center;
 }
 
+.kebabBtn {
+  padding: 0.35rem 0.5rem;
+  min-width: 0;
+}
+
+.filterIndicator {
+  display: inline-block;
+  width: 1.2em;
+  font-size: 0.7rem;
+  opacity: 0.4;
+  transition: opacity 0.15s ease;
+}
+
+.filterActive {
+  opacity: 1;
+}
+
 .loadingText {
   color: var(--fg-muted, #a0a0ab);
   font-size: 0.85rem;

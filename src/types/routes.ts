@@ -1,6 +1,7 @@
 export enum Pages {
   Overview = "/",
   Accounts = "/accounts",
+  RSU = "/rsu",
   TableView = "/table-view",
   BarChart = "/bar-chart",
   StackedBarChart = "/stacked-bar-chart",

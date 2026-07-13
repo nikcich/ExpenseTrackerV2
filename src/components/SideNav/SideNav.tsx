@@ -14,6 +14,7 @@ import { BsAlignMiddle } from "react-icons/bs";
 import { TbChartSankey } from "react-icons/tb";
 import { MdOutlineTrendingUp } from "react-icons/md";
 import { PiCompassLight, PiChartPieSlice } from "react-icons/pi";
+import { FaCoins } from "react-icons/fa";
 import { Tooltip } from "@/components/ui/tooltip";
 import { enableOverlay, Overlay } from "@/store/OverlayStore";
 
@@ -41,6 +42,7 @@ export function SideNav() {
       <div className={styles.navItems}>
         <NavButton Icon={PiCompassLight} page={Pages.Overview} label="Overview" />
         <NavButton Icon={PiChartPieSlice} page={Pages.Accounts} label="Accounts" />
+        <NavButton Icon={FaCoins} page={Pages.RSU} label="RSU" />
         <NavButton Icon={MdOutlineTrendingUp} page={Pages.Forecast} label="Forecast" />
         <NavButton Icon={FaTable} page={Pages.TableView} label="Data Table" />
         <NavButton Icon={BsAlignMiddle} page={Pages.AverageSpending} label="Average Spending" />

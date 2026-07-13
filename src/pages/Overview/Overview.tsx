@@ -1,4 +1,4 @@
-import { useExpensesStore, useRsuVests, useBalanceSnapshots } from "@/store/store";
+import { useExpensesStore, useRsuVests, useBalanceSnapshots, useStocks, useGrants } from "@/store/store";
 import { useEffect, useMemo, useState, useDeferredValue } from "react";
 import { Spinner, SegmentGroup } from "@chakra-ui/react";
 import { CoreTable } from "@/components/DataTable/DataTable";
@@ -19,12 +19,21 @@ function endOfMonth(target: Date): Date {
 function InvestmentsCard({ cutoffDate }: { cutoffDate: Date }) {
   const { vests } = useRsuVests();
   const { snapshots } = useBalanceSnapshots();
+  const { stocks } = useStocks();
+  const { grants } = useGrants();
+
+  const stockMap = new Map(stocks.map((s) => [s.id, s]));
+  const grantMap = new Map(grants.map((g) => [g.id, g]));
 
   const filteredVests = vests.filter((v) => parseLocalDate(v.vestDate) <= cutoffDate);
   const filteredSnapshots = snapshots.filter((s) => parseLocalDate(s.date) <= cutoffDate);
 
   const totalShares = filteredVests.reduce((s, v) => s + v.shares, 0);
-  const totalValue = filteredVests.reduce((s, v) => s + v.shares * v.price, 0);
+  const totalValue = filteredVests.reduce((s, v) => {
+    const grant = grantMap.get(v.grantId);
+    const stock = grant ? stockMap.get(grant.stockId) : undefined;
+    return s + v.shares * (stock?.currentPrice ?? v.basisPrice);
+  }, 0);
 
   const latestByAccount = new Map<string, typeof filteredSnapshots[0]>();
   for (const s of filteredSnapshots) {
