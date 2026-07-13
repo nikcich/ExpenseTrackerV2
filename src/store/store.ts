@@ -203,3 +203,12 @@ export function useForecastConfig() {
     saveConfig: setValue,
   };
 }
+
+export function useHasRsuData() {
+  const { vests } = useRsuVests();
+  const { stocks } = useStocks();
+  const { grants } = useGrants();
+  const { sales } = useSales();
+
+  return vests.length > 0 || stocks.length > 0 || grants.length > 0 || sales.length > 0;
+}

@@ -7,7 +7,7 @@ import cx from "classnames";
 import { FaTable } from "react-icons/fa6";
 import { FaChartBar } from "react-icons/fa";
 import { LuChartColumnStacked } from "react-icons/lu";
-import { FaSlidersH } from "react-icons/fa";
+import { IoSettingsOutline } from "react-icons/io5";
 import { RiBarChartHorizontalFill } from "react-icons/ri";
 import { FaChartLine } from "react-icons/fa6";
 import { BsAlignMiddle } from "react-icons/bs";
@@ -17,6 +17,8 @@ import { PiCompassLight, PiChartPieSlice } from "react-icons/pi";
 import { FaCoins } from "react-icons/fa";
 import { Tooltip } from "@/components/ui/tooltip";
 import { enableOverlay, Overlay } from "@/store/OverlayStore";
+import { useSettingsStore } from "@/store/SettingsStore";
+import { useHasRsuData } from "@/store/store";
 
 const NavButton = ({ Icon, page, label }: { Icon: React.FC; page: string; label: string }) => {
   const navigate = useNavigate();
@@ -37,12 +39,16 @@ const NavButton = ({ Icon, page, label }: { Icon: React.FC; page: string; label:
 };
 
 export function SideNav() {
+  const rsuTabEnabled = useSettingsStore("rsuTabEnabled");
+  const hasRsuData = useHasRsuData();
+  const showRsu = rsuTabEnabled || hasRsuData;
+
   return (
     <div className={styles.navContainer}>
       <div className={styles.navItems}>
         <NavButton Icon={PiCompassLight} page={Pages.Overview} label="Overview" />
         <NavButton Icon={PiChartPieSlice} page={Pages.Accounts} label="Accounts" />
-        <NavButton Icon={FaCoins} page={Pages.RSU} label="RSU" />
+        {showRsu && <NavButton Icon={FaCoins} page={Pages.RSU} label="RSU" />}
         <NavButton Icon={MdOutlineTrendingUp} page={Pages.Forecast} label="Forecast" />
         <NavButton Icon={FaTable} page={Pages.TableView} label="Data Table" />
         <NavButton Icon={BsAlignMiddle} page={Pages.AverageSpending} label="Average Spending" />
@@ -62,7 +68,7 @@ export function SideNav() {
           className={styles.navButton}
           onClick={() => enableOverlay(Overlay.SettingsModal)}
         >
-          <FaSlidersH />
+          <IoSettingsOutline />
         </button>
       </Tooltip>
     </div>

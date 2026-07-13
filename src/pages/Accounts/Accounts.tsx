@@ -192,17 +192,39 @@ export function Accounts() {
             <span className={styles.summaryEmpty}>Need at least 2 snapshots</span>
           ) : (
             <Sparkline
-              data={Object.entries(
-                snapshots
-                  .filter((s) => (s.type ?? "asset") !== "debt")
-                  .reduce<Record<string, number>>((acc, s) => {
-                    const dateKey = s.date.slice(0, 10);
-                    acc[dateKey] = (acc[dateKey] || 0) + s.balance;
-                    return acc;
-                  }, {})
-              )
-                .sort(([a], [b]) => a.localeCompare(b))
-                .map(([date, total]) => ({ label: formatShortDate(date), value: total }))}
+              data={(() => {
+                const assets = snapshots.filter((s) => (s.type ?? "asset") !== "debt");
+
+                const byAccount = new Map<string, BalanceSnapshot[]>();
+                for (const s of assets) {
+                  const list = byAccount.get(s.accountName) ?? [];
+                  list.push(s);
+                  byAccount.set(s.accountName, list);
+                }
+                for (const list of byAccount.values()) {
+                  list.sort((a, b) => a.date.localeCompare(b.date));
+                }
+
+                const allDates = [...new Set(assets.map((s) => s.date.slice(0, 10)))].sort();
+
+                const current = new Map<string, number>();
+                const ptr = new Map<string, number>();
+                for (const k of byAccount.keys()) ptr.set(k, 0);
+
+                return allDates.map((date) => {
+                  for (const [acct, hist] of byAccount) {
+                    let i = ptr.get(acct)!;
+                    while (i < hist.length && hist[i].date.slice(0, 10) <= date) {
+                      current.set(acct, hist[i].balance);
+                      i++;
+                    }
+                    ptr.set(acct, i);
+                  }
+                  let total = 0;
+                  for (const v of current.values()) total += v;
+                  return { label: formatShortDate(date), value: total };
+                });
+              })()}
               color="var(--fg-info, #60a5fa)"
             />
           )}

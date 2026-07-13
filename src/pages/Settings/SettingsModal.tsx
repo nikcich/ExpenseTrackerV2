@@ -4,6 +4,7 @@ import { CheckboxCard, Heading, Switch, Separator, Text } from "@chakra-ui/react
 import { setSettingsStore, useSettingsStore } from "@/store/SettingsStore";
 import { setMockMode } from "@/utils/utils";
 import { useAllTags } from "@/utils/tags";
+import { useHasRsuData } from "@/store/store";
 import styles from "./Settings.module.scss";
 
 const CustomCheckBox = ({
@@ -38,7 +39,9 @@ const CustomCheckBox = ({
 export function SettingsModal() {
   const disabledTags = useSettingsStore("disabledTags");
   const mockDataEnabled = useSettingsStore("mockDataEnabled");
+  const rsuTabEnabled = useSettingsStore("rsuTabEnabled");
   const allTagsSet = useAllTags();
+  const hasRsuData = useHasRsuData();
 
   const isAll = disabledTags.length === 0;
 
@@ -89,6 +92,38 @@ export function SettingsModal() {
           </CheckboxCard.Root>
           <Text fontSize="sm" color="fg.muted" mt={1}>
             When enabled, all charts and pages show fake sample data instead of real stored expenses. Useful for screenshots and demos.
+          </Text>
+        </div>
+
+        <Separator />
+
+        <div>
+          <Heading size="sm" mb={2}>Navigation</Heading>
+          <CheckboxCard.Root>
+            <CheckboxCard.Control>
+              <CheckboxCard.Content>
+                <Switch.Root
+                  colorPalette={"blue"}
+                  checked={rsuTabEnabled || hasRsuData}
+                  disabled={hasRsuData}
+                  onCheckedChange={(changes) => {
+                    setSettingsStore((prev) => ({
+                      ...prev,
+                      rsuTabEnabled: changes.checked,
+                    }));
+                  }}
+                >
+                  <Switch.HiddenInput />
+                  <Switch.Control />
+                  <Switch.Label>Show RSU tab</Switch.Label>
+                </Switch.Root>
+              </CheckboxCard.Content>
+            </CheckboxCard.Control>
+          </CheckboxCard.Root>
+          <Text fontSize="sm" color="fg.muted" mt={1}>
+            {hasRsuData
+              ? "RSU tab is always visible when you have RSU data."
+              : "RSU tab is hidden by default. Enable it here or add RSU data to make it appear."}
           </Text>
         </div>
 
