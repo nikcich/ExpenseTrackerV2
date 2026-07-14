@@ -33,18 +33,13 @@ export function Forecast() {
   const [expenses, setExpenses] = useState<ExpenseRule[]>([]);
 
   const { config: savedConfig, loaded, saveConfig } = useForecastConfig();
-  const initialized = useRef(false);
-  const lastSavedRef = useRef<string>("");
+  const loadedFromStore = useRef(false);
+  const saveTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
   useEffect(() => {
-    if (!loaded) return;
-    if (!initialized.current) {
-      initialized.current = true;
-    }
+    if (!loaded || loadedFromStore.current) return;
+    loadedFromStore.current = true;
     if (!savedConfig) return;
-    const key = JSON.stringify(savedConfig);
-    if (key === lastSavedRef.current) return;
-    lastSavedRef.current = key;
     setStartBalance(savedConfig.startBalance);
     setReserve(savedConfig.reserve);
     setStartDate(savedConfig.startDate);
@@ -68,17 +63,18 @@ export function Forecast() {
   }, [savedConfig, loaded]);
 
   useEffect(() => {
-    if (!initialized.current) return;
-    const key = JSON.stringify({ startBalance, reserve, startDate, endDate, incomeStreams, expenses });
-    if (key === lastSavedRef.current) return;
-    saveConfig({ startBalance, reserve, startDate, endDate, incomeStreams, expenses });
-    lastSavedRef.current = key;
+    if (!loadedFromStore.current) return;
+    clearTimeout(saveTimerRef.current);
+    saveTimerRef.current = setTimeout(() => {
+      saveConfig({ startBalance, reserve, startDate, endDate, incomeStreams, expenses });
+    }, 500);
+    return () => clearTimeout(saveTimerRef.current);
   }, [startBalance, reserve, startDate, endDate, incomeStreams, expenses, saveConfig]);
 
   const updateIncome = useCallback((index: number, field: string, value: string | number) => {
     setIncomeStreams((prev) => {
       const next = [...prev];
-      (next[index] as any)[field] = value;
+      next[index] = { ...next[index], [field]: value };
       return next;
     });
   }, []);
