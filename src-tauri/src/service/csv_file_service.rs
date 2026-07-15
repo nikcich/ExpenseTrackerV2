@@ -114,6 +114,15 @@ pub fn parse_csv_file_with_selected_definition(
         .get(&csv_definition_key)
         .ok_or("CSV definition not found")?;
 
+    parse_csv_file_with_definition(expense_store, path, csv_definition)
+}
+
+/// Parse a CSV file with a given CsvDefinition reference and update the store
+pub fn parse_csv_file_with_definition(
+    expense_store: &ExpenseStore,
+    path: String,
+    csv_definition: &CsvDefinition,
+) -> Result<(u16, u16), Box<dyn StdError>> {
     let file =
         open_file_from_path(&path).map_err(|_| format!("Failed to open file at path: {}", path))?;
     let mut reader = ReaderBuilder::new()
@@ -133,6 +142,7 @@ pub fn parse_csv_file_with_selected_definition(
     }
 
     let lines = Arc::new(lines);
+    let csv_def = Arc::new(csv_definition.clone());
     let chunk_size: usize = lines.len() / NUM_THREADS;
     let remainder: usize = lines.len() % NUM_THREADS;
     let mut thread_handles = Vec::new();
@@ -146,17 +156,13 @@ pub fn parse_csv_file_with_selected_definition(
         }
 
         let lines_ref = Arc::clone(&lines);
+        let csv_def_ref = Arc::clone(&csv_def);
         let handle = thread::spawn(move || {
             let mut worker_parsed = Vec::new();
 
-            // Main work loop for each thread
-            // The work is the chunks defined above
             for idx in start_idx..end_idx {
                 let line = &lines_ref[idx];
-
-                // Parse a record and return as Expense object if successfully
-                let parsed_record: Expense = csv_definition.parse_record(line).unwrap();
-
+                let parsed_record: Expense = csv_def_ref.parse_record(line).unwrap();
                 worker_parsed.push(parsed_record);
             }
 

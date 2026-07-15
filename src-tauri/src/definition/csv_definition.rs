@@ -297,6 +297,19 @@ impl CsvDefinition {
         };
     }
 
+    pub fn new_from_parts(
+        name: &'static str,
+        has_headers: bool,
+        expected_columns: BTreeMap<CsvColumnRole, CsvColumnInfo>,
+    ) -> Self {
+        Self {
+            name,
+            has_headers,
+            expected_columns,
+            meta_data_columns: HashMap::new(),
+        }
+    }
+
     pub fn add_meta_data_column(mut self, role: CsvColumnRole, column_info: CsvColumnInfo) -> Self {
         self.meta_data_columns.insert(role, column_info);
         return self;

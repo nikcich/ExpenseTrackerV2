@@ -5,7 +5,7 @@ import {
   useFilteredIncome,
   useFilteredSavings,
 } from "@/hooks/expenses";
-import { useExpensesStore } from "@/store/store";
+import { useExpensesStore, useCustomCsvDefinitions } from "@/store/store";
 import { API, NonExpenseTags, Response } from "@/types/types";
 import { createTauriInvoker } from "@/utils/utils";
 import { downloadExpensesCSV } from "@/utils/download";
@@ -37,6 +37,7 @@ const useFileOpener = () => {
   const [selectedFormat, setSelectedFormat] = useState<string | undefined>(
     undefined
   );
+  const { definitions } = useCustomCsvDefinitions();
 
   const pickFile = useCallback(async () => {
     setLoading(true);
@@ -49,13 +50,14 @@ const useFileOpener = () => {
     });
 
     if (file) {
-      const res: Response<string[]> = await invoke(API.OpenCSV, { file });
+      const customJson = definitions.length > 0 ? JSON.stringify(definitions) : undefined;
+      const res: Response<string[]> = await invoke(API.OpenCSV, { file, customDefinitionsJson: customJson });
       setSelectedFile(file);
       setResult(res);
     }
 
     setLoading(false);
-  }, []);
+  }, [definitions]);
 
   const reset = useCallback(() => {
     setResult(null);
@@ -66,15 +68,17 @@ const useFileOpener = () => {
   const parseFile = useCallback(async () => {
     if (!selectedFile || !selectedFormat) return;
     setLoading(true);
+    const customJson = definitions.length > 0 ? JSON.stringify(definitions) : undefined;
     const res = await invoke<Response<string>>(API.ParseCSV, {
       path: selectedFile,
       csvDefinitionKey: selectedFormat,
+      customDefinitionsJson: customJson,
     });
 
     setResult(res);
     setLoading(false);
     if (res.status < 400) reset();
-  }, [selectedFile, selectedFormat, reset]);
+  }, [selectedFile, selectedFormat, reset, definitions]);
 
   return {
     loading,
@@ -85,6 +89,7 @@ const useFileOpener = () => {
     setSelectedFormat,
     parseFile,
     reset,
+    definitions,
   };
 };
 
@@ -231,6 +236,7 @@ export function TableView() {
     setSelectedFormat,
     parseFile,
     reset,
+    definitions,
   } = useFileOpener();
 
   const [includeIncome, setIncludeIncome] = useState(true);
@@ -314,11 +320,15 @@ export function TableView() {
               >
                 <option value="">Choose format...</option>
                 {Array.isArray(result?.message)
-                  ? result.message.map((key) => (
-                      <option key={key} value={key}>
-                        {key}
-                      </option>
-                    ))
+                  ? result.message.map((key) => {
+                      const customDef = definitions.find((d) => d.id === key);
+                      const label = customDef?.name ?? key;
+                      return (
+                        <option key={key} value={key}>
+                          {label}
+                        </option>
+                      );
+                    })
                   : null}
               </select>
             </div>

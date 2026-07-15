@@ -12,6 +12,8 @@ export enum API {
   SetJsonValue = "store_set_json_value",
   GetJsonValue = "store_get_json_value",
   SaveCSV = "save_csv_to_path",
+  ReadCSVPreview = "read_csv_preview",
+  PreviewParseCSV = "preview_csv_parse",
 }
 
 export enum KnownStoreKeys {
@@ -23,6 +25,7 @@ export enum KnownStoreKeys {
   RsuVests = "rsu_vests",
   Sales = "sales",
   BalanceSnapshots = "balance_snapshots",
+  CustomCsvDefinitions = "custom_csv_definitions",
 }
 
 export type ForecastConfigData = {
@@ -163,4 +166,21 @@ export type Response<T> = {
   status: number;
   header: string;
   message: T | null;
+};
+
+export type DynamicCsvDefinition = {
+  id: string;
+  name: string;
+  hasHeaders: boolean;
+  dateColumn: { index: number; format: string };
+  descriptionColumn: { index: number };
+  amountColumn: { index: number; inverted: boolean };
+  tagColumn?: { index: number };
+  creditDebitColumn?: { index: number; creditQuery: string };
+};
+
+export type PreviewResult = {
+  row: number;
+  expense: Expense | null;
+  error: string | null;
 };

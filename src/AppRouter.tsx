@@ -19,6 +19,7 @@ import { Forecast } from "./pages/Forecast/Forecast";
 import { Overview } from "./pages/Overview/Overview";
 import { Accounts } from "./pages/Accounts/Accounts";
 import { RSU } from "./pages/RSU/RSU";
+import { CSVFormats } from "./pages/CSVFormats/CSVFormats";
 import { useGlobalShortcuts } from "./hooks/useGlobalShortcuts";
 
 const MockBanner = () => {
@@ -140,6 +141,11 @@ export function AppRouter() {
         <Route
           path={Pages.RSU}
           element={<RouteComponent element={<RSU />} />}
+        />
+
+        <Route
+          path={Pages.CSVFormats}
+          element={<RouteComponent element={<CSVFormats />} />}
         />
       </Routes>
     </BrowserRouter>

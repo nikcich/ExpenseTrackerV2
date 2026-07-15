@@ -15,6 +15,7 @@ import { TbChartSankey } from "react-icons/tb";
 import { MdOutlineTrendingUp } from "react-icons/md";
 import { PiCompassLight, PiChartPieSlice } from "react-icons/pi";
 import { FaCoins } from "react-icons/fa";
+import { LuFileSpreadsheet } from "react-icons/lu";
 import { Tooltip } from "@/components/ui/tooltip";
 import { enableOverlay, Overlay } from "@/store/OverlayStore";
 import { useSettingsStore } from "@/store/SettingsStore";
@@ -61,6 +62,7 @@ export function SideNav() {
         <NavButton Icon={LuChartColumnStacked} page={Pages.StackedBarChart} label="Stacked Bar Chart" />
         <NavButton Icon={FaChartLine} page={Pages.YTDChart} label="Year to Date" />
         <NavButton Icon={TbChartSankey} page={Pages.Sankey} label="Sankey" />
+        <NavButton Icon={LuFileSpreadsheet} page={Pages.CSVFormats} label="CSV Formats" />
       </div>
       <div className={styles.spacer} />
       <Tooltip content="Settings" positioning={{ placement: "right" }}>

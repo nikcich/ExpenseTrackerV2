@@ -10,4 +10,5 @@ export enum Pages {
   AverageSpending = "/average-spending",
   Sankey = "/Sankey",
   Forecast = "/forecast",
+  CSVFormats = "/csv-formats",
 }

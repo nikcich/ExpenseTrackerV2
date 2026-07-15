@@ -1,4 +1,4 @@
-import { BalanceSnapshot, BalanceSnapshotsMap, ForecastConfigData, Grant, GrantMap, KnownStoreKeys, RsuVest, RsuVestsMap, Sale, SalesMap, Stock, StockMap, StoreExpenseMap } from "../types/types";
+import { BalanceSnapshot, BalanceSnapshotsMap, DynamicCsvDefinition, ForecastConfigData, Grant, GrantMap, KnownStoreKeys, RsuVest, RsuVestsMap, Sale, SalesMap, Stock, StockMap, StoreExpenseMap } from "../types/types";
 import { createTauriApiHooks, createTauriStoreHook } from "../utils/utils";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { MOCK_BRUSH_RANGE, MOCK_DATA_MAP } from "@/types/mockExpenses";
@@ -211,4 +211,28 @@ export function useHasRsuData() {
   const { sales } = useSales();
 
   return vests.length > 0 || stocks.length > 0 || grants.length > 0 || sales.length > 0;
+}
+
+const [useCustomCsvDefinitionsStore] = createTauriStoreHook<DynamicCsvDefinition[]>({
+  key: KnownStoreKeys.CustomCsvDefinitions,
+  defaultValue: [],
+});
+
+export function useCustomCsvDefinitions() {
+  const { value, setValue } = useCustomCsvDefinitionsStore();
+  const definitions = useMemo(() => value ?? [], [value]);
+
+  const addDefinition = useCallback((def: DynamicCsvDefinition) => {
+    setValue([...(value ?? []), def]);
+  }, [value, setValue]);
+
+  const updateDefinition = useCallback((def: DynamicCsvDefinition) => {
+    setValue((value ?? []).map((d) => (d.id === def.id ? def : d)));
+  }, [value, setValue]);
+
+  const removeDefinition = useCallback((id: string) => {
+    setValue((value ?? []).filter((d) => d.id !== id));
+  }, [value, setValue]);
+
+  return { definitions, addDefinition, updateDefinition, removeDefinition };
 }
