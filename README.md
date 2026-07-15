@@ -4,6 +4,8 @@
 
 Expense Tracker V2 is a desktop application for personal finance management, built with a Rust backend using Tauri and a React frontend. It provides robust tools for importing, visualizing, and managing your financial data locally and securely.
 
+![alt text](./src/assets/Overview.png)
+
 ## Features
 
 - **Cross-Platform:** Runs on Windows, macOS, and Linux thanks to the Tauri framework.
