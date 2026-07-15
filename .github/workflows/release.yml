@@ -15,11 +15,11 @@ jobs:
       matrix:
         include:
           - platform: ubuntu-22.04
-            targets: "appimage,deb"
+            bundles: "appimage,deb"
           - platform: windows-latest
-            targets: "nsis,msi"
+            bundles: "nsis,msi"
           - platform: macos-latest
-            targets: "dmg,app"
+            bundles: "dmg,app"
 
     runs-on: ${{ matrix.platform }}
 
@@ -90,4 +90,4 @@ jobs:
           releaseBody: "See the assets for download links."
           releaseDraft: false
           prerelease: false
-          args: --targets ${{ matrix.targets }}
+          args: --bundles ${{ matrix.bundles }}
