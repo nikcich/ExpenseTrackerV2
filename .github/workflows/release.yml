@@ -1,0 +1,75 @@
+name: Release
+
+on:
+  push:
+    branches:
+      - "rel-*"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: ubuntu-22.04
+            targets: "appimage,deb"
+          - platform: windows-latest
+            targets: "nsis,msi"
+          - platform: macos-latest
+            targets: "dmg,app"
+
+    runs-on: ${{ matrix.platform }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Extract version from branch
+        id: version
+        shell: bash
+        run: |
+          BRANCH="${GITHUB_REF_NAME}"
+          VERSION="${BRANCH#rel-}"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "Release version: $VERSION"
+
+      - name: Sync version to tauri.conf.json
+        shell: bash
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          # Update version in tauri.conf.json
+          node -e "
+            const fs = require('fs');
+            const conf = JSON.parse(fs.readFileSync('src-tauri/tauri.conf.json', 'utf8'));
+            conf.version = '$VERSION';
+            fs.writeFileSync('src-tauri/tauri.conf.json', JSON.stringify(conf, null, 2) + '\n');
+          "
+          # Update version in Cargo.toml
+          sed -i "s/^version = .*/version = \"$VERSION\"/" src-tauri/Cargo.toml
+
+      - name: Install frontend dependencies
+        run: npm ci
+
+      - name: Rust setup
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Rust cache
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+
+      - name: Build Tauri app
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        with:
+          tagName: "v${{ steps.version.outputs.version }}"
+          releaseName: "v${{ steps.version.outputs.version }}"
+          releaseBody: "See the assets for download links."
+          releaseDraft: false
+          prerelease: false
+          args: --targets ${{ matrix.targets }}
