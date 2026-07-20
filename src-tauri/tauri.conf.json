@@ -1,6 +1,6 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "expense_tracker_v2",
+  "productName": "Expense Tracker",
   "version": "0.1.0",
   "identifier": "com.nrcms.expense-tracker-v2",
   "build": {
