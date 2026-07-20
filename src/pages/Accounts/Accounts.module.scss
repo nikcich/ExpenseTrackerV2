@@ -137,6 +137,8 @@
   color: var(--fg-default, #e8e8ed);
   font-size: 0.8rem;
   outline: none;
+  box-sizing: border-box;
+  height: 1.8rem;
 
   &:focus {
     border-color: var(--fg-muted, #a0a0ab);

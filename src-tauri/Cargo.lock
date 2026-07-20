@@ -978,7 +978,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "expense_tracker_v2"
+name = "expense_tracker"
 version = "0.1.0"
 dependencies = [
  "blake3",

@@ -85,7 +85,7 @@
 }
 
 .fieldInput {
-  padding: 0.4rem 0.6rem;
+  padding: 0.35rem 0.5rem;
   border-radius: 0.35rem;
   border: 1px solid var(--border-color, #32323c);
   background: var(--bg-sunken, #141418);
@@ -95,6 +95,7 @@
   width: 100%;
   font-family: inherit;
   box-sizing: border-box;
+  height: 1.8rem;
 
   &:focus {
     border-color: var(--fg-muted, #a0a0ab);
