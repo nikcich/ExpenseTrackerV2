@@ -14,6 +14,9 @@ export enum API {
   SaveCSV = "save_csv_to_path",
   ReadCSVPreview = "read_csv_preview",
   PreviewParseCSV = "preview_csv_parse",
+  ExportAllData = "export_all_data",
+  ImportAllData = "import_all_data",
+  ReadTextFile = "read_text_file",
 }
 
 export enum KnownStoreKeys {

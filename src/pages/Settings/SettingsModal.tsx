@@ -1,10 +1,12 @@
 import { GenericModal } from "@/components/GenericModal/GenericModal";
 import { Overlay, closeAllOverlays } from "@/store/OverlayStore";
-import { CheckboxCard, Heading, Switch, Separator, Text } from "@chakra-ui/react";
+import { CheckboxCard, Heading, Switch, Separator, Text, Button } from "@chakra-ui/react";
 import { setSettingsStore, useSettingsStore } from "@/store/SettingsStore";
 import { setMockMode } from "@/utils/utils";
 import { useAllTags } from "@/utils/tags";
 import { useHasRsuData } from "@/store/store";
+import { exportAllData, importAllData } from "@/utils/download";
+import { toaster } from "@/components/ui/toaster";
 import styles from "./Settings.module.scss";
 
 const CustomCheckBox = ({
@@ -93,6 +95,67 @@ export function SettingsModal() {
           <Text fontSize="sm" color="fg.muted" mt={1}>
             When enabled, all charts and pages show fake sample data instead of real stored expenses. Useful for screenshots and demos.
           </Text>
+        </div>
+
+        <Separator />
+
+        <div>
+          <Heading size="sm" mb={2}>Data Management</Heading>
+          <Text fontSize="sm" color="fg.muted" mb={3}>
+            Export all your data (expenses, RSU, accounts, forecast config, CSV definitions) to a single JSON file, or import from a previous backup.
+          </Text>
+          <div style={{ display: "flex", gap: "0.75rem" }}>
+            <Button
+              size="sm"
+              variant="outline"
+              colorPalette="green"
+              onClick={async () => {
+                try {
+                  const path = await exportAllData();
+                  if (path) {
+                    toaster.create({
+                      title: "Export complete",
+                      description: `Saved to ${path}`,
+                      type: "success",
+                    });
+                  }
+                } catch (e) {
+                  toaster.create({
+                    title: "Export failed",
+                    description: String(e),
+                    type: "error",
+                  });
+                }
+              }}
+            >
+              Export All Data
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              colorPalette="blue"
+              onClick={async () => {
+                try {
+                  const keys = await importAllData();
+                  if (keys.length > 0) {
+                    toaster.create({
+                      title: "Import complete",
+                      description: `Imported: ${keys.join(", ")}`,
+                      type: "success",
+                    });
+                  }
+                } catch (e) {
+                  toaster.create({
+                    title: "Import failed",
+                    description: String(e),
+                    type: "error",
+                  });
+                }
+              }}
+            >
+              Import Data
+            </Button>
+          </div>
         </div>
 
         <Separator />

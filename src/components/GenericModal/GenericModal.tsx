@@ -102,6 +102,8 @@ export const GenericModal = ({ children, overlay }: ModalProps) => {
         borderRadius="xl"
         p={5}
         width="50%"
+        maxHeight="80vh"
+        overflowY="auto"
         boxShadow="lg"
         borderWidth="1px"
         borderColor="border.DEFAULT"

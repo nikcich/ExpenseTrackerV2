@@ -315,6 +315,17 @@ pub fn save_csv_to_path(path: String, content: String) -> Response {
 }
 
 #[tauri::command]
+pub fn read_text_file(path: String) -> Response {
+    match fs::read_to_string(&path) {
+        Ok(content) => Response::ok(String::from("File read successfully"), Some(content)),
+        Err(e) => Response::err(
+            format!("Failed to read file: {}", e),
+            Option::<String>::None,
+        ),
+    }
+}
+
+#[tauri::command]
 pub fn read_csv_preview(path: String, rows: usize) -> Response {
     let file = match open_file_from_path(&path) {
         Ok(f) => f,

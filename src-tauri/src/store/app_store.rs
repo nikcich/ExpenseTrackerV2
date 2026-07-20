@@ -284,6 +284,10 @@ impl ExpenseStore {
         Ok(())
     }
 
+    pub fn get_all_store_data(&self) -> Value {
+        self.get_store_data()
+    }
+
     pub fn get_json_value(&self, key: &str) -> Result<Option<Value>, Box<dyn StdError>> {
         let store_data = self.get_store_data();
 

@@ -44,6 +44,8 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             api::store::store_set_json_value,
             api::store::store_get_json_value,
+            api::store::export_all_data,
+            api::store::import_all_data,
             api::window_manager::new_window,
             api::range_state::set_date_range,
             api::range_state::get_date_range,
@@ -55,6 +57,7 @@ pub fn run() {
             api::csv_opener::remove_expense,
             api::csv_opener::remove_bulk_expenses,
             api::csv_opener::save_csv_to_path,
+            api::csv_opener::read_text_file,
             api::csv_opener::read_csv_preview,
             api::csv_opener::preview_csv_parse,
         ])
