@@ -11,4 +11,5 @@ export enum Pages {
   Sankey = "/Sankey",
   Forecast = "/forecast",
   CSVFormats = "/csv-formats",
+  SSDI = "/ssdi",
 }

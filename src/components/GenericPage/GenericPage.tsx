@@ -87,6 +87,11 @@ const emptyStateConfig: Record<string, { title: string; description: string }> =
       description:
         "Add expenses with tags to customize which tags appear in charts.",
     },
+    "/ssdi": {
+      title: "No SSDI data",
+      description:
+        "Search for income deposits to start tracking your earnings against SGA thresholds.",
+    },
   };
 
 export const GenericPage = ({

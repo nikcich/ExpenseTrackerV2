@@ -7,6 +7,7 @@ import {
   NonExpenseTags,
   RsuVestsMap,
   SalesMap,
+  SsdiConfig,
   StockMap,
   StoreExpenseMap,
   Tag,
@@ -435,6 +436,34 @@ export const MOCK_BRUSH_RANGE: [number, number] = [
   endDate.getTime(),
 ];
 
+const generateMockSsdiPayPeriods = (): Record<string, { id: string; beginDate: string; endDate: string; depositExpenseId: string; grossEarnings: number }> => {
+  const map: Record<string, { id: string; beginDate: string; endDate: string; depositExpenseId: string; grossEarnings: number }> = {};
+  const expenseIds = Object.keys(MOCK_EXPENSES);
+  const salaryIds = expenseIds.filter((id) => MOCK_EXPENSES[id].description === "Salary");
+  for (let i = 0; i < Math.min(4, salaryIds.length); i++) {
+    const id = uuidv4();
+    const salaryExpense = MOCK_EXPENSES[salaryIds[i]];
+    const depositDate = new Date(salaryExpense.date);
+    const beginDate = new Date(depositDate);
+    beginDate.setDate(beginDate.getDate() - 14);
+    map[id] = {
+      id,
+      beginDate: format(beginDate, "yyyy-MM-dd"),
+      endDate: format(depositDate, "yyyy-MM-dd"),
+      depositExpenseId: salaryIds[i],
+      grossEarnings: 2800 + Math.round(Math.random() * 400),
+    };
+  }
+  return map;
+};
+
+export const MOCK_SSDI_PAY_PERIODS = generateMockSsdiPayPeriods();
+
+export const MOCK_SSDI_CONFIG: SsdiConfig = {
+  year: new Date().getFullYear(),
+  sgaMonthlyAmount: 1620,
+};
+
 export const MOCK_DATA_MAP: Partial<Record<KnownStoreKeys, unknown>> = {
   [KnownStoreKeys.Expenses]: MOCK_EXPENSES,
   [KnownStoreKeys.Stocks]: MOCK_STOCKS,
@@ -443,4 +472,6 @@ export const MOCK_DATA_MAP: Partial<Record<KnownStoreKeys, unknown>> = {
   [KnownStoreKeys.Sales]: MOCK_SALES,
   [KnownStoreKeys.BalanceSnapshots]: MOCK_BALANCE_SNAPSHOTS,
   [KnownStoreKeys.ForecastConfig]: MOCK_FORECAST_CONFIG,
+  [KnownStoreKeys.SsdiPayPeriods]: MOCK_SSDI_PAY_PERIODS,
+  [KnownStoreKeys.SsdiConfig]: MOCK_SSDI_CONFIG,
 };

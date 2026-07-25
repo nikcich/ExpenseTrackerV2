@@ -42,6 +42,7 @@ export function SettingsModal() {
   const disabledTags = useSettingsStore("disabledTags");
   const mockDataEnabled = useSettingsStore("mockDataEnabled");
   const rsuTabEnabled = useSettingsStore("rsuTabEnabled");
+  const ssdiTabEnabled = useSettingsStore("ssdiTabEnabled");
   const allTagsSet = useAllTags();
   const hasRsuData = useHasRsuData();
 
@@ -187,6 +188,30 @@ export function SettingsModal() {
             {hasRsuData
               ? "RSU tab is always visible when you have RSU data."
               : "RSU tab is hidden by default. Enable it here or add RSU data to make it appear."}
+          </Text>
+
+          <CheckboxCard.Root mt={3}>
+            <CheckboxCard.Control>
+              <CheckboxCard.Content>
+                <Switch.Root
+                  colorPalette={"blue"}
+                  checked={ssdiTabEnabled}
+                  onCheckedChange={(changes) => {
+                    setSettingsStore((prev) => ({
+                      ...prev,
+                      ssdiTabEnabled: changes.checked,
+                    }));
+                  }}
+                >
+                  <Switch.HiddenInput />
+                  <Switch.Control />
+                  <Switch.Label>Show SSDI tab</Switch.Label>
+                </Switch.Root>
+              </CheckboxCard.Content>
+            </CheckboxCard.Control>
+          </CheckboxCard.Root>
+          <Text fontSize="sm" color="fg.muted" mt={1}>
+            SSDI tab is hidden by default. Enable it here to track Title 2 earnings and SGA compliance.
           </Text>
         </div>
 

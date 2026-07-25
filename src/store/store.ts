@@ -1,4 +1,4 @@
-import { BalanceSnapshot, BalanceSnapshotsMap, DynamicCsvDefinition, ForecastConfigData, Grant, GrantMap, KnownStoreKeys, RsuVest, RsuVestsMap, Sale, SalesMap, Stock, StockMap, StoreExpenseMap } from "../types/types";
+import { BalanceSnapshot, BalanceSnapshotsMap, DynamicCsvDefinition, ForecastConfigData, Grant, GrantMap, KnownStoreKeys, RsuVest, RsuVestsMap, Sale, SalesMap, SsdiConfig, SsdiPayPeriod, Stock, StockMap, StoreExpenseMap } from "../types/types";
 import { createTauriApiHooks, createTauriStoreHook } from "../utils/utils";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { MOCK_BRUSH_RANGE, MOCK_DATA_MAP } from "@/types/mockExpenses";
@@ -235,4 +235,45 @@ export function useCustomCsvDefinitions() {
   }, [value, setValue]);
 
   return { definitions, addDefinition, updateDefinition, removeDefinition };
+}
+
+const [useSsdiPayPeriodsStore] = createTauriStoreHook<Record<string, SsdiPayPeriod>>({
+  key: KnownStoreKeys.SsdiPayPeriods,
+  defaultValue: {},
+  mockData: MOCK_DATA_MAP[KnownStoreKeys.SsdiPayPeriods] as Record<string, SsdiPayPeriod> | undefined,
+});
+
+export function useSsdiPayPeriods() {
+  const { value, setValue } = useSsdiPayPeriodsStore();
+  const periods = useMemo(() => Object.values(value ?? {}), [value]);
+
+  const addPeriod = useCallback((period: SsdiPayPeriod) => {
+    const id = crypto.randomUUID();
+    setValue({ ...(value ?? {}), [id]: { ...period, id } });
+  }, [value, setValue]);
+
+  const updatePeriod = useCallback((id: string, period: SsdiPayPeriod) => {
+    if (!value) return;
+    setValue({ ...value, [id]: period });
+  }, [value, setValue]);
+
+  const removePeriod = useCallback((id: string) => {
+    if (!value) return;
+    const next = { ...value };
+    delete next[id];
+    setValue(next);
+  }, [value, setValue]);
+
+  return { periods, addPeriod, updatePeriod, removePeriod };
+}
+
+const [useSsdiConfigStore] = createTauriStoreHook<SsdiConfig>({
+  key: KnownStoreKeys.SsdiConfig,
+  defaultValue: { year: new Date().getFullYear(), sgaMonthlyAmount: 1620 },
+  mockData: MOCK_DATA_MAP[KnownStoreKeys.SsdiConfig] as SsdiConfig | undefined,
+});
+
+export function useSsdiConfig() {
+  const { value, setValue } = useSsdiConfigStore();
+  return { config: value, saveConfig: setValue };
 }
