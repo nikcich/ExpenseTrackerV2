@@ -1,4 +1,4 @@
-import { BalanceSnapshot, BalanceSnapshotsMap, DynamicCsvDefinition, ForecastConfigData, Grant, GrantMap, KnownStoreKeys, RsuVest, RsuVestsMap, Sale, SalesMap, SsdiConfig, SsdiPayPeriod, Stock, StockMap, StoreExpenseMap } from "../types/types";
+import { BalanceSnapshot, BalanceSnapshotsMap, DynamicCsvDefinition, ForecastConfigData, Grant, GrantMap, ImportHistory, KnownStoreKeys, RsuVest, RsuVestsMap, Sale, SalesMap, SsdiConfig, SsdiPayPeriod, Stock, StockMap, StoreExpenseMap } from "../types/types";
 import { createTauriApiHooks, createTauriStoreHook } from "../utils/utils";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { MOCK_BRUSH_RANGE, MOCK_DATA_MAP } from "@/types/mockExpenses";
@@ -276,4 +276,15 @@ const [useSsdiConfigStore] = createTauriStoreHook<SsdiConfig>({
 export function useSsdiConfig() {
   const { value, setValue } = useSsdiConfigStore();
   return { config: value, saveConfig: setValue };
+}
+
+const [useImportHistoryStore] = createTauriStoreHook<ImportHistory>({
+  key: KnownStoreKeys.ImportHistory,
+  defaultValue: [],
+  mockData: MOCK_DATA_MAP[KnownStoreKeys.ImportHistory] as ImportHistory | undefined,
+});
+
+export function useImportHistory() {
+  const { value, setValue } = useImportHistoryStore();
+  return { importHistory: value ?? [], setImportHistory: setValue };
 }

@@ -13,4 +13,4 @@ export const { useStore: useSettingsStore, setState: setSettingsStore } =
     mockDataEnabled: false,
     rsuTabEnabled: false,
     ssdiTabEnabled: false,
-  });
+  }, "settings");

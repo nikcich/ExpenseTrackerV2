@@ -9,7 +9,9 @@ use crate::model::expense::Expense;
 use crate::model::response::{Response, Status};
 use crate::service::csv_file_service::{open_csv_file_and_find_definitions, open_file_from_path};
 use crate::store::app_store::ExpenseStore;
+use chrono::Utc;
 use serde::Serialize;
+use serde_json::{json, Value};
 use std::error::Error as StdError;
 use tauri::AppHandle;
 use tauri::State;
@@ -125,15 +127,32 @@ pub fn parse_csv_from_path(
         path,
         &csv_definition,
     ) {
-        Ok((added_count, duplicate_count)) => {
+        Ok((added_count, duplicate_count, _min_date, _max_date)) => {
             notify_store_changed(&app_handle, "expenses");
+
+            let today = Utc::now().format("%Y-%m-%d").to_string();
+
+            let mut history: Vec<Value> = expense_store_state
+                .get_json_value("import_history")
+                .ok()
+                .flatten()
+                .and_then(|v| v.as_array().cloned())
+                .unwrap_or_default();
+
+            history.push(json!(today));
+
+            let _ = expense_store_state.set_json_value("import_history", Value::Array(history));
+
             return Response::new(
                 Status::Created,
                 String::from("CSV parsed successfully"),
-                format!(
-                    "Added {} entries, ignored {} duplicate entries",
-                    &added_count, &duplicate_count
-                ),
+                json!({
+                    "message": format!(
+                        "Added {} entries, ignored {} duplicate entries",
+                        &added_count, &duplicate_count
+                    ),
+                    "importDate": today,
+                }),
             );
         }
         Err(e) => {

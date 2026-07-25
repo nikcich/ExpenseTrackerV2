@@ -3,6 +3,7 @@ import {
   ExpenseTag,
   ForecastConfigData,
   GrantMap,
+  ImportHistory,
   KnownStoreKeys,
   NonExpenseTags,
   RsuVestsMap,
@@ -464,6 +465,12 @@ export const MOCK_SSDI_CONFIG: SsdiConfig = {
   sgaByYear: { [new Date().getFullYear()]: 1620 },
 };
 
+export const MOCK_IMPORT_HISTORY: ImportHistory = [
+  format(subMonths(now, 6), "yyyy-MM-dd"),
+  format(subMonths(now, 3), "yyyy-MM-dd"),
+  format(subMonths(now, 1), "yyyy-MM-dd"),
+];
+
 export const MOCK_DATA_MAP: Partial<Record<KnownStoreKeys, unknown>> = {
   [KnownStoreKeys.Expenses]: MOCK_EXPENSES,
   [KnownStoreKeys.Stocks]: MOCK_STOCKS,
@@ -474,4 +481,5 @@ export const MOCK_DATA_MAP: Partial<Record<KnownStoreKeys, unknown>> = {
   [KnownStoreKeys.ForecastConfig]: MOCK_FORECAST_CONFIG,
   [KnownStoreKeys.SsdiPayPeriods]: MOCK_SSDI_PAY_PERIODS,
   [KnownStoreKeys.SsdiConfig]: MOCK_SSDI_CONFIG,
+  [KnownStoreKeys.ImportHistory]: MOCK_IMPORT_HISTORY,
 };

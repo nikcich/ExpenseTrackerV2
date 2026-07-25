@@ -5,7 +5,7 @@ import {
   useFilteredIncome,
   useFilteredSavings,
 } from "@/hooks/expenses";
-import { useExpensesStore, useCustomCsvDefinitions } from "@/store/store";
+import { useExpensesStore, useCustomCsvDefinitions, useImportHistory } from "@/store/store";
 import { API, NonExpenseTags, Response } from "@/types/types";
 import { createTauriInvoker } from "@/utils/utils";
 import { downloadExpensesCSV } from "@/utils/download";
@@ -28,7 +28,12 @@ import { BsThreeDotsVertical } from "react-icons/bs";
 import { enableOverlay, Overlay } from "@/store/OverlayStore";
 import { useSelection, setSelection } from "@/store/SelectionStore";
 
-const useFileOpener = () => {
+type CsvParseResponse = {
+  message: string;
+  importDate: string;
+};
+
+const useFileOpener = (appendImportDate: (date: string) => void) => {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<
     Response<string[]> | Response<string> | null
@@ -69,16 +74,21 @@ const useFileOpener = () => {
     if (!selectedFile || !selectedFormat) return;
     setLoading(true);
     const customJson = definitions.length > 0 ? JSON.stringify(definitions) : undefined;
-    const res = await invoke<Response<string>>(API.ParseCSV, {
+    const res = await invoke<Response<CsvParseResponse>>(API.ParseCSV, {
       path: selectedFile,
       csvDefinitionKey: selectedFormat,
       customDefinitionsJson: customJson,
     });
 
-    setResult(res);
+    if (res.status < 400 && res.message) {
+      appendImportDate(res.message.importDate);
+      setResult({ status: res.status, header: res.header, message: res.message.message });
+    } else {
+      setResult({ status: res.status, header: res.header, message: typeof res.message === "string" ? res.message : null });
+    }
     setLoading(false);
     if (res.status < 400) reset();
-  }, [selectedFile, selectedFormat, reset, definitions]);
+  }, [selectedFile, selectedFormat, reset, definitions, appendImportDate]);
 
   return {
     loading,
@@ -96,12 +106,17 @@ const useFileOpener = () => {
 const ResetExpensesDialog = ({
   open,
   onOpenChange,
+  onClear,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onClear: () => void;
 }) => {
   const { setValue: setExpenses } = useExpensesStore();
-  const clearExpenses = async () => setExpenses({});
+  const clearExpenses = async () => {
+    setExpenses({});
+    onClear();
+  };
 
   return (
     <Dialog.Root
@@ -227,6 +242,12 @@ export function TableView() {
   const income = useFilteredIncome();
   const savings = useFilteredSavings();
   const { value: allStoreExpenses } = useExpensesStore();
+  const { importHistory, setImportHistory } = useImportHistory();
+
+  const appendImportDate = useCallback((date: string) => {
+    setImportHistory([...(importHistory ?? []), date]);
+  }, [importHistory, setImportHistory]);
+
   const {
     loading,
     result,
@@ -237,7 +258,7 @@ export function TableView() {
     parseFile,
     reset,
     definitions,
-  } = useFileOpener();
+  } = useFileOpener(appendImportDate);
 
   const [includeIncome, setIncludeIncome] = useState(true);
   const [includeExpenses, setIncludeExpenses] = useState(true);
@@ -491,6 +512,7 @@ export function TableView() {
       <ResetExpensesDialog
         open={deleteAllOpen}
         onOpenChange={setDeleteAllOpen}
+        onClear={() => setImportHistory([])}
       />
       <DeleteSelectionDialog
         open={deleteSelectionOpen}

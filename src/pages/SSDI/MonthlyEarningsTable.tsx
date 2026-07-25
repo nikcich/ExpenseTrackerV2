@@ -210,8 +210,8 @@ export function MonthlyEarningsTable({ rows }: Props) {
               {row.twpStatus === "exhausted" && "✕ Over SGA (Exhausted)"}
               {row.twpStatus === "cessation" && "Over SGA (Cessation Period)"}
               {row.twpStatus === "twp" && "TWP Month Used"}
-              {row.twpStatus === "under" && !row.inGracePeriod && "✓ Under SGA"}
-              {row.twpStatus === "under" && row.inGracePeriod && "✓ Under SGA (Cessation Period)"}
+              {row.twpStatus === "under" && !row.inGracePeriod && "Under SGA"}
+              {row.twpStatus === "under" && row.inGracePeriod && "Under SGA (Cessation Period)"}
             </td>
           </tr>
         ))}

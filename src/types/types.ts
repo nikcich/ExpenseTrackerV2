@@ -31,6 +31,7 @@ export enum KnownStoreKeys {
   CustomCsvDefinitions = "custom_csv_definitions",
   SsdiPayPeriods = "ssdi_pay_periods",
   SsdiConfig = "ssdi_config",
+  ImportHistory = "import_history",
 }
 
 export type ForecastConfigData = {
@@ -202,3 +203,5 @@ export type SsdiConfig = {
   year: number;
   sgaByYear: Record<number, number>;
 };
+
+export type ImportHistory = string[];
