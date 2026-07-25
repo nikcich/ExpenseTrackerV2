@@ -73,7 +73,7 @@ export const BarChart = <T extends Datum>({
               t: 40,
               r: 20,
               l: horizontal ? (legend ? 70 : 20) : 40,
-              b: horizontal ? 25 : legend ? 60 : 80,
+              b: horizontal ? 25 : legend && legendDirection === "h" ? 80 : legend ? 60 : 80,
             },
             paper_bgcolor: "transparent",
             plot_bgcolor: "transparent",
@@ -82,7 +82,7 @@ export const BarChart = <T extends Datum>({
             },
             dragmode: false,
             showlegend: legend,
-            legend: { orientation: legendDirection },
+            legend: { orientation: legendDirection, y: legendDirection === "h" ? -0.25 : undefined, x: legendDirection === "h" ? 0.5 : undefined, xanchor: legendDirection === "h" ? "center" : undefined },
             ...(xTickColors ? { xaxis: { showticklabels: false } } : {}),
             ...(threshold ? { shapes: [{
               type: "line",

@@ -3,7 +3,7 @@ import styles from "./SSDI.module.scss";
 
 export const TWP_LIMIT = 9;
 
-export type TwpStatus = "under" | "twp" | "exhausted";
+export type TwpStatus = "under" | "twp" | "cessation" | "exhausted";
 
 export type MonthlyRow = {
   monthKey: string;
@@ -11,6 +11,7 @@ export type MonthlyRow = {
   earned: number;
   deposit: number;
   twpStatus: TwpStatus;
+  inGracePeriod: boolean;
 };
 
 function diffInDays(a: Date, b: Date): number {
@@ -29,8 +30,13 @@ function formatMonthKey(date: Date): string {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
 }
 
-function formatMonthLabel(date: Date): string {
+export function formatMonthLabel(date: Date): string {
   return date.toLocaleDateString("en-US", { month: "short", year: "numeric" });
+}
+
+export function formatMonthKeyLabel(key: string): string {
+  const [y, m] = key.split("-").map(Number);
+  return formatMonthLabel(new Date(y, m - 1, 1));
 }
 
 function getMonthStart(date: Date): Date {
@@ -41,16 +47,22 @@ function getMonthEnd(date: Date): Date {
   return new Date(date.getFullYear(), date.getMonth() + 1, 0);
 }
 
-export function computeTwpCount(rows: MonthlyRow[]): number {
-  return rows.filter((r) => r.twpStatus !== "under").length;
-}
+const TWP_WINDOW_YEARS = 5;
+
+export type MonthlyRowsResult = {
+  rows: MonthlyRow[];
+  twpCount: number;
+  cessationKey: string | null;
+  gracePeriodEnd: string | null;
+  isCompliant: boolean;
+};
 
 export function computeMonthlyRows(
   periods: SsdiPayPeriod[],
   sgaMonthlyAmount: number,
   year: number,
   getExpenseById: (id: string) => Expense | undefined,
-): MonthlyRow[] {
+): MonthlyRowsResult {
   const earnedMap = new Map<string, number>();
   const depositMap = new Map<string, number>();
   const yearPrefix = `${year}-`;
@@ -90,29 +102,72 @@ export function computeMonthlyRows(
     }
   }
 
-  const allMonthKeys = new Set([...earnedMap.keys(), ...depositMap.keys()]);
-  const sortedKeys = [...allMonthKeys].filter((key) => key.startsWith(yearPrefix)).sort();
+  const allSortedKeys = [...new Set([...earnedMap.keys(), ...depositMap.keys()])].sort();
+
+  const statusMap = new Map<string, TwpStatus>();
+  for (const key of allSortedKeys) {
+    const earned = earnedMap.get(key) ?? 0;
+    if (earned <= sgaMonthlyAmount) {
+      statusMap.set(key, "under");
+      continue;
+    }
+    const [ky, km] = key.split("-").map(Number);
+    const windowStartKey = formatMonthKey(new Date(ky - TWP_WINDOW_YEARS, km - 1, 1));
+    const exceededCount = allSortedKeys.filter(
+      (k) => k >= windowStartKey && k <= key && (earnedMap.get(k) ?? 0) > sgaMonthlyAmount,
+    ).length;
+    statusMap.set(key, exceededCount <= TWP_LIMIT ? "twp" : "exhausted");
+  }
 
   let twpCount = 0;
-  const rows: MonthlyRow[] = sortedKeys.map((key) => {
+  if (allSortedKeys.length > 0) {
+    const latestKey = allSortedKeys[allSortedKeys.length - 1];
+    const [latestY, latestM] = latestKey.split("-").map(Number);
+    const twpWindowStartKey = formatMonthKey(new Date(latestY - TWP_WINDOW_YEARS, latestM - 1, 1));
+    twpCount = allSortedKeys.filter(
+      (k) => k >= twpWindowStartKey && k <= latestKey && statusMap.get(k) === "twp",
+    ).length;
+  }
+
+  const cessationKey = allSortedKeys.find((k) => statusMap.get(k) === "exhausted") ?? null;
+  let gracePeriodEnd: string | null = null;
+  if (cessationKey) {
+    const [cy, cm] = cessationKey.split("-").map(Number);
+    gracePeriodEnd = formatMonthKey(new Date(cy, cm + 2, 1));
+    for (let i = 0; i < 3; i++) {
+      const graceKey = formatMonthKey(new Date(cy, cm - 1 + i, 1));
+      const earned = earnedMap.get(graceKey) ?? 0;
+      if (statusMap.has(graceKey) && earned > sgaMonthlyAmount) {
+        statusMap.set(graceKey, "cessation");
+      }
+    }
+  }
+
+  const gracePeriodKeys = new Set<string>();
+  if (cessationKey) {
+    const [cy, cm] = cessationKey.split("-").map(Number);
+    for (let i = 0; i < 3; i++) {
+      gracePeriodKeys.add(formatMonthKey(new Date(cy, cm - 1 + i, 1)));
+    }
+  }
+
+  const filteredKeys = allSortedKeys.filter((key) => key.startsWith(yearPrefix));
+  const rows: MonthlyRow[] = filteredKeys.map((key) => {
     const [y, m] = key.split("-").map(Number);
     const date = new Date(y, m - 1, 1);
-    const earned = earnedMap.get(key) ?? 0;
-    let twpStatus: TwpStatus = "under";
-    if (earned > sgaMonthlyAmount) {
-      twpCount++;
-      twpStatus = twpCount <= TWP_LIMIT ? "twp" : "exhausted";
-    }
     return {
       monthKey: key,
       label: formatMonthLabel(date),
-      earned,
+      earned: earnedMap.get(key) ?? 0,
       deposit: depositMap.get(key) ?? 0,
-      twpStatus,
+      twpStatus: statusMap.get(key) ?? "under",
+      inGracePeriod: gracePeriodKeys.has(key),
     };
   });
 
-  return rows;
+  const isCompliant = !rows.some((r) => r.twpStatus === "exhausted");
+
+  return { rows, twpCount, cessationKey, gracePeriodEnd, isCompliant };
 }
 
 type Props = {
@@ -148,12 +203,15 @@ export function MonthlyEarningsTable({ rows }: Props) {
             <td className={styles.amountCell}>${fmt(row.deposit)}</td>
             <td className={
               row.twpStatus === "exhausted" ? styles.statusOver :
+              row.twpStatus === "cessation" ? styles.statusOver :
               row.twpStatus === "twp" ? styles.statusTwp :
               styles.statusUnder
             }>
               {row.twpStatus === "exhausted" && "✕ Over SGA (Exhausted)"}
-              {row.twpStatus === "twp" && "⚠ TWP Month Used"}
-              {row.twpStatus === "under" && "✓ Under SGA"}
+              {row.twpStatus === "cessation" && "Over SGA (Cessation Period)"}
+              {row.twpStatus === "twp" && "TWP Month Used"}
+              {row.twpStatus === "under" && !row.inGracePeriod && "✓ Under SGA"}
+              {row.twpStatus === "under" && row.inGracePeriod && "✓ Under SGA (Cessation Period)"}
             </td>
           </tr>
         ))}

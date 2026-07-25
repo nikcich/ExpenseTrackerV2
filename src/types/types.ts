@@ -200,5 +200,5 @@ export type SsdiPayPeriod = {
 
 export type SsdiConfig = {
   year: number;
-  sgaMonthlyAmount: number;
+  sgaByYear: Record<number, number>;
 };

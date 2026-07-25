@@ -269,7 +269,7 @@ export function useSsdiPayPeriods() {
 
 const [useSsdiConfigStore] = createTauriStoreHook<SsdiConfig>({
   key: KnownStoreKeys.SsdiConfig,
-  defaultValue: { year: new Date().getFullYear(), sgaMonthlyAmount: 1620 },
+  defaultValue: { year: new Date().getFullYear(), sgaByYear: {} },
   mockData: MOCK_DATA_MAP[KnownStoreKeys.SsdiConfig] as SsdiConfig | undefined,
 });
 

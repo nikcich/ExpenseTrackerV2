@@ -1,4 +1,4 @@
-import styles from "./Overview.module.scss";
+import styles from "./MonthPills.module.scss";
 
 export function MonthPills({
   months,
@@ -15,11 +15,11 @@ export function MonthPills({
     date.toLocaleString("default", { month: "short", year: "numeric" })
   );
   return (
-    <div className={styles.monthPills}>
+    <div className={styles.pills}>
       {months.map((date, i) => (
         <button
           key={date.toISOString()}
-          className={`${styles.monthPill} ${i === selectedIndex ? styles.monthPillActive : ""}`}
+          className={`${styles.pill} ${i === selectedIndex ? styles.pillActive : ""}`}
           onClick={() => onChange(i)}
         >
           {fmt(date)}

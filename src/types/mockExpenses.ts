@@ -461,7 +461,7 @@ export const MOCK_SSDI_PAY_PERIODS = generateMockSsdiPayPeriods();
 
 export const MOCK_SSDI_CONFIG: SsdiConfig = {
   year: new Date().getFullYear(),
-  sgaMonthlyAmount: 1620,
+  sgaByYear: { [new Date().getFullYear()]: 1620 },
 };
 
 export const MOCK_DATA_MAP: Partial<Record<KnownStoreKeys, unknown>> = {

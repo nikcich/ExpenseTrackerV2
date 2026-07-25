@@ -3,9 +3,9 @@ import { GenericPage } from "@/components/GenericPage/GenericPage";
 import { useSsdiPayPeriods, useSsdiConfig } from "@/store/store";
 import { useIncome, useGetExpenseById } from "@/hooks/expenses";
 import { PayPeriodsTable } from "./PayPeriodsTable";
-import { MonthlyEarningsTable, computeMonthlyRows, computeTwpCount, TWP_LIMIT, TwpStatus } from "./MonthlyEarningsTable";
-import { ChartCard } from "@/components/charts/ChartCard";
+import { MonthlyEarningsTable, computeMonthlyRows, TWP_LIMIT, TwpStatus, formatMonthKeyLabel } from "./MonthlyEarningsTable";
 import { BarChart } from "@/components/charts/BarChart";
+import { MonthPills } from "@/components/MonthPills/MonthPills";
 import styles from "./SSDI.module.scss";
 
 const MONTH_NAMES = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
@@ -42,9 +42,32 @@ export function SSDI() {
   }, [addPeriod]);
 
   const year = config?.year ?? new Date().getFullYear();
-  const sgaAmount = config?.sgaMonthlyAmount ?? 1620;
+  const sgaAmount = config?.sgaByYear?.[year] ?? 1620;
 
-  const monthlyRows = useMemo(
+  const availableYears = useMemo(() => {
+    const years = new Set<number>();
+    years.add(new Date().getFullYear());
+    for (const p of periods) {
+      if (p.beginDate) years.add(new Date(p.beginDate).getFullYear());
+      if (p.endDate) years.add(new Date(p.endDate).getFullYear());
+      const exp = getExpenseById(p.depositExpenseId);
+      if (exp) years.add(new Date(exp.date).getFullYear());
+    }
+    return [...years].sort((a, b) => a - b);
+  }, [periods, getExpenseById]);
+
+  const filteredPeriods = useMemo(
+    () => periods.filter((p) => {
+      const expense = getExpenseById(p.depositExpenseId);
+      if (expense && new Date(expense.date).getFullYear() === year) return true;
+      if (p.beginDate && new Date(p.beginDate).getFullYear() === year) return true;
+      if (p.endDate && new Date(p.endDate).getFullYear() === year) return true;
+      return false;
+    }),
+    [periods, year, getExpenseById]
+  );
+
+  const { rows: monthlyRows, twpCount, cessationKey, gracePeriodEnd, isCompliant } = useMemo(
     () => computeMonthlyRows(periods, sgaAmount, year, getExpenseById),
     [periods, sgaAmount, year, getExpenseById]
   );
@@ -57,40 +80,37 @@ export function SSDI() {
 
   const xTickColors = useMemo(
     () => chartMonths.map((m) => {
-      if (m.twpStatus === "exhausted") return "#ef4444";
+      if (m.twpStatus === "exhausted" || m.twpStatus === "cessation") return "#f87171";
       if (m.twpStatus === "twp") return "#eab308";
       return "#4ade80";
     }),
     [chartMonths]
   );
 
-  const twpCount = useMemo(() => computeTwpCount(monthlyRows), [monthlyRows]);
-
   return (
     <GenericPage title="SSDI Earnings Tracker" hasRange={false} needsData={false}>
       <div className={styles.container}>
         <div className={styles.card}>
           <div className={styles.configRow}>
-            <div className={styles.field}>
-              <label className={styles.fieldLabel}>Year</label>
-              <input
-                type="number"
-                className={styles.fieldInput}
-                value={year}
-                onChange={(e) =>
-                  saveConfig({ ...(config ?? { year, sgaMonthlyAmount: sgaAmount }), year: parseInt(e.target.value) || year })
-                }
-              />
-            </div>
+            <MonthPills
+              months={availableYears.map((y) => new Date(y, 0, 1))}
+              selectedIndex={availableYears.indexOf(year)}
+              onChange={(i) => {
+                const newYear = availableYears[i];
+                saveConfig({ ...(config ?? { year: newYear, sgaByYear: {} }), year: newYear });
+              }}
+              formatLabel={(d) => String(d.getFullYear())}
+            />
             <div className={styles.field}>
               <label className={styles.fieldLabel}>SGA Monthly Amount</label>
               <input
                 type="number"
                 className={styles.fieldInput}
                 value={sgaAmount}
-                onChange={(e) =>
-                  saveConfig({ ...(config ?? { year, sgaMonthlyAmount: sgaAmount }), sgaMonthlyAmount: parseFloat(e.target.value) || 0 })
-                }
+                onChange={(e) => {
+                  const newSga = parseFloat(e.target.value) || 0;
+                  saveConfig({ ...(config ?? { year, sgaByYear: {} }), sgaByYear: { ...config?.sgaByYear, [year]: newSga } });
+                }}
               />
             </div>
           </div>
@@ -166,7 +186,7 @@ export function SSDI() {
             <span className={styles.cardTitle}>Pay Periods</span>
           </div>
           <PayPeriodsTable
-            periods={periods}
+            periods={filteredPeriods}
             getExpenseById={getExpenseById}
             onUpdate={updatePeriod}
             onRemove={removePeriod}
@@ -180,11 +200,34 @@ export function SSDI() {
             </div>
             <MonthlyEarningsTable rows={monthlyRows} />
           </div>
-          <div className={styles.twpCard}>
-            <div className={styles.twpCount}>
-              {twpCount} / {TWP_LIMIT}
+          <div className={styles.overviewCard}>
+            <div className={styles.cardHeader}>
+              <span className={styles.cardTitle}>Overview Status</span>
             </div>
-            <div className={styles.twpLabel}>TWP Months Used</div>
+            <div className={styles.overviewGrid}>
+              <span className={styles.overviewLabel}>TWP Months Used</span>
+              <span className={styles.overviewValue}>{twpCount} / {TWP_LIMIT}</span>
+
+              <span className={styles.overviewLabel}>Cessation Month</span>
+              <span className={styles.overviewValue}>
+                {cessationKey ? formatMonthKeyLabel(cessationKey) : "\u2014"}
+              </span>
+
+              <span className={styles.overviewLabel}>Grace Period Ends</span>
+              <span className={styles.overviewValue}>
+                {gracePeriodEnd ? formatMonthKeyLabel(gracePeriodEnd) : "\u2014"}
+              </span>
+
+              <span className={styles.overviewLabel}>SSA Compliance</span>
+              <span
+                className={styles.overviewValue}
+                style={{
+                  color: isCompliant ? "var(--fg-success, #4ade80)" : "var(--fg-error, #f87171)",
+                }}
+              >
+                {isCompliant ? "OK" : "NON-COMPLIANT"}
+              </span>
+            </div>
           </div>
         </div>
 
@@ -192,31 +235,29 @@ export function SSDI() {
           <div className={styles.cardHeader}>
             <span className={styles.cardTitle}>Monthly Earnings Overview</span>
           </div>
-          <ChartCard>
-            <BarChart
-              x={chartMonths.map((m) => m.label)}
-              barCharts={[
-                {
-                  name: "Gross Earnings",
-                  y: chartMonths.map((m) => m.earned),
-                  color: "#3b82f6",
-                },
-                {
-                  name: "Deposits",
-                  y: chartMonths.map((m) => m.deposit),
-                  color: "#6b7280",
-                },
-              ]}
-              legend={true}
-              legendDirection="h"
-              threshold={{
-                value: sgaAmount,
-                label: `SGA $${sgaAmount.toLocaleString()}`,
-                color: "#ef4444",
-              }}
-              xTickColors={xTickColors}
-            />
-          </ChartCard>
+          <BarChart
+            x={chartMonths.map((m) => m.label)}
+            barCharts={[
+              {
+                name: "Gross Earnings",
+                y: chartMonths.map((m) => m.earned),
+                color: "#3b82f6",
+              },
+              {
+                name: "Deposits",
+                y: chartMonths.map((m) => m.deposit),
+                color: "#6b7280",
+              },
+            ]}
+            legend={true}
+            legendDirection="h"
+            threshold={{
+              value: sgaAmount,
+              label: `SGA $${sgaAmount.toLocaleString()}`,
+              color: "#ef4444",
+            }}
+            xTickColors={xTickColors}
+          />
         </div>
       </div>
     </GenericPage>

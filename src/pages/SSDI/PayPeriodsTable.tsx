@@ -32,7 +32,11 @@ export function PayPeriodsTable({ periods, getExpenseById, onUpdate, onRemove }:
         </tr>
       </thead>
       <tbody>
-        {periods.map((period) => {
+        {[...periods].sort((a, b) => {
+          const dateA = getExpenseById(a.depositExpenseId)?.date ?? "";
+          const dateB = getExpenseById(b.depositExpenseId)?.date ?? "";
+          return dateA.localeCompare(dateB);
+        }).map((period) => {
           const expense = getExpenseById(period.depositExpenseId);
           const employer = expense?.description ?? "—";
           const depositDate = expense

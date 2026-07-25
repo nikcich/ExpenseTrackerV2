@@ -128,6 +128,10 @@
   width: 130px;
 }
 
+.tableInput::-webkit-datetime-edit {
+  text-align: center;
+}
+
 .tableInput:focus {
   border-color: #3b82f6;
 }
@@ -140,11 +144,13 @@
   padding: 0.25rem 0.5rem;
   cursor: pointer;
   font-size: 0.8rem;
+  display: block;
+  margin: 0 auto;
 }
 
 .deleteButton:hover {
-  color: #ef4444;
-  border-color: #ef4444;
+  color: var(--fg-error, #f87171);
+  border-color: var(--fg-error, #f87171);
 }
 
 .statusUnder {
@@ -153,7 +159,7 @@
 }
 
 .statusOver {
-  color: #ef4444;
+  color: var(--fg-error, #f87171);
   font-weight: 500;
 }
 
@@ -213,28 +219,30 @@
   min-width: 0;
 }
 
-.twpCard {
+.overviewCard {
   background: var(--bg-panel, #19191e);
   border: 1px solid var(--border-color, #32323c);
   border-radius: 0.75rem;
   padding: 1.25rem;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  min-width: 180px;
-  width: 180px;
+  min-width: 260px;
+  width: 280px;
 }
 
-.twpCount {
-  font-size: 2rem;
-  font-weight: 700;
-  font-variant-numeric: tabular-nums;
+.overviewGrid {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.5rem 1rem;
+  align-items: baseline;
 }
 
-.twpLabel {
+.overviewLabel {
   font-size: 0.8rem;
   color: var(--fg-muted, #a0a0ab);
-  margin-top: 0.35rem;
-  text-align: center;
+  white-space: nowrap;
+}
+
+.overviewValue {
+  font-size: 1.1rem;
+  font-weight: 600;
+  text-align: right;
 }
