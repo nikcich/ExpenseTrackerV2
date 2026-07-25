@@ -127,6 +127,7 @@
   color: var(--fg-subtle, #6b6b7b);
   text-transform: uppercase;
   letter-spacing: 0.05em;
+  text-align: left;
 }
 
 .fieldInput {
@@ -145,11 +146,20 @@
   }
 }
 
+.fieldError {
+  border-color: #ef4444 !important;
+
+  &:focus {
+    border-color: #ef4444 !important;
+  }
+}
+
 .formActions {
   display: flex;
   gap: 0.35rem;
   align-items: flex-end;
-  padding-bottom: 0.15rem;
+  padding-top: 0.5rem;
+  width: 100%;
 }
 
 .saveBtn {
@@ -287,4 +297,157 @@
   font-size: 0.75rem;
   font-weight: 600;
   color: var(--fg-default, #e8e8ed);
+}
+
+.distributionInputs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  align-items: flex-end;
+}
+
+.formRowBreak {
+  flex-basis: 100%;
+  height: 0;
+}
+
+.distributionField {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  width: 70px;
+}
+
+.distributionTotal {
+  font-size: 0.7rem;
+  padding-bottom: 0.35rem;
+  font-weight: 500;
+}
+
+.distValid {
+  color: #10b981;
+}
+
+.distInvalid {
+  color: #f87171;
+}
+
+.distError {
+  color: #ef4444;
+  font-weight: 600;
+}
+
+.distributionPreview {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  align-items: center;
+  padding-bottom: 0.15rem;
+}
+
+.distChip {
+  padding: 0.2rem 0.5rem;
+  border-radius: 0.3rem;
+  background: var(--bg-panel, #19191e);
+  border: 1px solid var(--border-color, #32323c);
+  font-size: 0.7rem;
+  color: var(--fg-default, #e8e8ed);
+  font-variant-numeric: tabular-nums;
+}
+
+.forecastSummaryRow {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.forecastSummaryStat {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  background: var(--bg-panel, #19191e);
+  border: 1px solid var(--border-color, #32323c);
+  border-radius: 0.5rem;
+  padding: 0.65rem 0.9rem;
+  flex: 1 1 180px;
+  min-width: 160px;
+}
+
+.forecastChartCard {
+  background: var(--bg-panel, #19191e);
+  border: 1px solid var(--border-color, #32323c);
+  border-radius: 0.75rem;
+  padding: 1.25rem;
+  min-height: 220px;
+}
+
+.forecastGrantBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.forecastGrantSelector {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.forecastPastRow {
+  opacity: 0.45;
+}
+
+.forecastStatusPast {
+  font-size: 0.7rem;
+  color: var(--fg-subtle, #6b6b7b);
+}
+
+.forecastStatusFuture {
+  font-size: 0.7rem;
+  color: #60a5fa;
+}
+
+.forecastControls {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.priceInputs {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+}
+
+.priceSlider {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.priceSliderValue {
+  font-size: 0.8rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--fg-default, #e8e8ed);
+  min-width: 4rem;
+}
+
+.priceSlider input[type="range"] {
+  width: 120px;
+  height: 4px;
+  -webkit-appearance: none;
+  appearance: none;
+  background: var(--border-color, #32323c);
+  border-radius: 2px;
+  outline: none;
+
+  &::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: var(--fg-muted, #a0a0ab);
+    cursor: pointer;
+  }
 }

@@ -115,12 +115,22 @@ export type StockMap = {
   [id: string]: Stock;
 };
 
+export type VestingFrequency = "monthly" | "quarterly" | "semi-annual" | "annual";
+
+export type VestingSchedule = {
+  startDate: string;
+  totalYears: number;
+  frequency: VestingFrequency;
+  distribution: number[];
+};
+
 export type Grant = {
   id: string;
   name: string;
   stockId: string;
   grantPrice: number;
   totalShares: number;
+  vestingSchedule?: VestingSchedule;
 };
 
 export type GrantMap = {

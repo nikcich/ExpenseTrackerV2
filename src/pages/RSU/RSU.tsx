@@ -1,12 +1,24 @@
-import { useRef, useState } from "react";
+import { useRef, useState, useEffect } from "react";
+import { SegmentGroup } from "@chakra-ui/react";
 import { useRsuVests, useStocks, useGrants, useSales } from "@/store/store";
-import type { RsuVest, Stock, Grant, Sale } from "@/types/types";
+import type {
+  RsuVest,
+  Stock,
+  Grant,
+  Sale,
+  VestingFrequency,
+} from "@/types/types";
 import {
   formatCurrency,
   formatShortDate,
   SHORTCUT_COOLDOWN,
 } from "@/utils/utils";
 import { Sparkline } from "@/components/Sparkline/Sparkline";
+import { LineChart } from "@/components/charts/LineChart";
+import { BarChart } from "@/components/charts/BarChart";
+import {
+  computeForecast,
+} from "@/utils/rsu-forecast";
 import styles from "./RSU.module.scss";
 
 const emptyStock = (): Partial<Stock> => ({ ticker: "", currentPrice: 0 });
@@ -15,6 +27,7 @@ const emptyGrant = (): Partial<Grant> => ({
   stockId: "",
   grantPrice: 0,
   totalShares: 0,
+  vestingSchedule: undefined,
 });
 const emptyRsu = (): Partial<RsuVest> => ({
   grantId: "",
@@ -30,6 +43,27 @@ const emptySale = (): Partial<Sale> => ({
   basisPrice: 0,
 });
 
+const DISTRIBUTION_PRESETS: Record<string, (years: number) => number[]> = {
+  equal: (years: number) => Array(years).fill(100 / years),
+  front: (years: number) => {
+    const weights = [50, 30, 15, 5];
+    if (years <= weights.length)
+      return weights.slice(0, years);
+    const result = weights.map((w) => w);
+    while (result.length < years) result.push(0);
+    return result;
+  },
+  back: (years: number) => {
+    const weights = [5, 15, 30, 50];
+    if (years <= weights.length)
+      return weights.slice(0, years);
+    const result: number[] = [];
+    while (result.length < years - weights.length) result.push(0);
+    weights.forEach((w) => result.push(w));
+    return result;
+  },
+};
+
 export function RSU() {
   const { vests, addVest, updateVest, removeVest } = useRsuVests();
   const { stocks, addStock, updateStock, removeStock } = useStocks();
@@ -43,6 +77,19 @@ export function RSU() {
   const [showGrantForm, setShowGrantForm] = useState(false);
   const [grantForm, setGrantForm] = useState<Partial<Grant>>(emptyGrant());
   const [editingGrant, setEditingGrant] = useState<string | null>(null);
+  const [schedulePreset, setSchedulePreset] = useState<string>("equal");
+  const [scheduleForm, setScheduleForm] = useState({
+    startDate: "",
+    totalYears: 4,
+    frequency: "quarterly" as VestingFrequency,
+    distribution: [25, 25, 25, 25],
+  });
+  const [grantErrors, setGrantErrors] = useState<Set<string>>(new Set());
+  const [selectedForecastGrantId, setSelectedForecastGrantId] = useState<
+    string | null
+  >(null);
+  const [forecastUnit, setForecastUnit] = useState<"shares" | "dollars">("shares");
+  const [forecastPrices, setForecastPrices] = useState<Map<string, number>>(new Map());
 
   const [showRsuForm, setShowRsuForm] = useState(false);
   const [rsuForm, setRsuForm] = useState<Partial<RsuVest>>(emptyRsu());
@@ -61,6 +108,17 @@ export function RSU() {
   stockMap.current = new Map(stocks.map((s) => [s.id, s]));
   const grantMap = useRef(new Map(grants.map((g) => [g.id, g])));
   grantMap.current = new Map(grants.map((g) => [g.id, g]));
+
+  useEffect(() => {
+    if (forecastPrices.size > 0 || grants.length === 0) return;
+    const prices = new Map<string, number>();
+    for (const g of grants) {
+      if (prices.has(g.stockId)) continue;
+      const stock = stockMap.current.get(g.stockId);
+      prices.set(g.stockId, stock?.currentPrice ?? g.grantPrice);
+    }
+    setForecastPrices(prices);
+  }, [grants, forecastPrices.size]);
 
   const sortedVests = [...vests].sort(
     (a, b) => new Date(b.vestDate).getTime() - new Date(a.vestDate).getTime(),
@@ -149,13 +207,31 @@ export function RSU() {
   const handleSaveGrant = () => {
     if (saveGrantGuard.current) return;
     if (!grantForm.name || !grantForm.stockId || !grantForm.totalShares) return;
+
+    const errors = new Set<string>();
+    if (!scheduleForm.startDate) errors.add("startDate");
+    if (scheduleForm.totalYears <= 0) errors.add("totalYears");
+    const distSum = scheduleForm.distribution.reduce((a, b) => a + b, 0);
+    if (Math.round(distSum * 100) / 100 !== 100) errors.add("distribution");
+    if (errors.size > 0) {
+      setGrantErrors(errors);
+      return;
+    }
+
     saveGrantGuard.current = true;
+    setGrantErrors(new Set());
     const grant: Grant = {
       id: editingGrant ?? "",
       name: grantForm.name,
       stockId: grantForm.stockId,
       grantPrice: Number(grantForm.grantPrice ?? 0),
       totalShares: Number(grantForm.totalShares),
+      vestingSchedule: {
+        startDate: scheduleForm.startDate,
+        totalYears: scheduleForm.totalYears,
+        frequency: scheduleForm.frequency,
+        distribution: scheduleForm.distribution,
+      },
     };
     if (editingGrant) {
       updateGrant(editingGrant, grant);
@@ -165,6 +241,13 @@ export function RSU() {
     setGrantForm(emptyGrant());
     setShowGrantForm(false);
     setEditingGrant(null);
+    setSchedulePreset("equal");
+    setScheduleForm({
+      startDate: "",
+      totalYears: 4,
+      frequency: "quarterly",
+      distribution: [25, 25, 25, 25],
+    });
     setTimeout(() => {
       saveGrantGuard.current = false;
     }, SHORTCUT_COOLDOWN);
@@ -173,6 +256,23 @@ export function RSU() {
   const handleEditGrant = (grant: Grant) => {
     setGrantForm({ ...grant });
     setEditingGrant(grant.id);
+    if (grant.vestingSchedule) {
+      setSchedulePreset("custom");
+      setScheduleForm({
+        startDate: grant.vestingSchedule.startDate,
+        totalYears: grant.vestingSchedule.totalYears,
+        frequency: grant.vestingSchedule.frequency,
+        distribution: [...grant.vestingSchedule.distribution],
+      });
+    } else {
+      setSchedulePreset("equal");
+      setScheduleForm({
+        startDate: "",
+        totalYears: 4,
+        frequency: "quarterly",
+        distribution: [25, 25, 25, 25],
+      });
+    }
     setShowGrantForm(true);
   };
 
@@ -180,6 +280,13 @@ export function RSU() {
     setGrantForm(emptyGrant());
     setShowGrantForm(false);
     setEditingGrant(null);
+    setSchedulePreset("equal");
+    setScheduleForm({
+      startDate: "",
+      totalYears: 4,
+      frequency: "quarterly",
+      distribution: [25, 25, 25, 25],
+    });
   };
 
   const handleSaveRsu = () => {
@@ -506,6 +613,160 @@ export function RSU() {
                 }
               />
             </div>
+
+            <div className={styles.formRowBreak} />
+
+            <div className={styles.field}>
+              <span className={styles.fieldLabel}>Start Date</span>
+              <input
+                className={`${styles.fieldInput} ${grantErrors.has("startDate") ? styles.fieldError : ""}`}
+                type="date"
+                value={scheduleForm.startDate}
+                onChange={(e) => {
+                  setScheduleForm({
+                    ...scheduleForm,
+                    startDate: e.target.value,
+                  });
+                  if (e.target.value) {
+                    setGrantErrors((prev) => {
+                      const next = new Set(prev);
+                      next.delete("startDate");
+                      return next;
+                    });
+                  }
+                }}
+              />
+            </div>
+            <div className={styles.field}>
+              <span className={styles.fieldLabel}>Total Years</span>
+              <input
+                className={styles.fieldInput}
+                type="number"
+                min={1}
+                max={10}
+                step={1}
+                value={scheduleForm.totalYears}
+                onChange={(e) => {
+                  const years = Math.max(
+                    1,
+                    Math.min(10, Number(e.target.value)),
+                  );
+                  const fn =
+                    DISTRIBUTION_PRESETS[schedulePreset] ??
+                    DISTRIBUTION_PRESETS.equal;
+                  setScheduleForm({
+                    ...scheduleForm,
+                    totalYears: years,
+                    distribution: fn(years),
+                  });
+                }}
+              />
+            </div>
+            <div className={styles.field}>
+              <span className={styles.fieldLabel}>Frequency</span>
+              <select
+                className={styles.fieldInput}
+                value={scheduleForm.frequency}
+                onChange={(e) =>
+                  setScheduleForm({
+                    ...scheduleForm,
+                    frequency: e.target.value as VestingFrequency,
+                  })
+                }
+              >
+                <option value="monthly">Monthly</option>
+                <option value="quarterly">Quarterly</option>
+                <option value="semi-annual">Semi-Annual</option>
+                <option value="annual">Annual</option>
+              </select>
+            </div>
+            <div className={styles.field}>
+              <span className={styles.fieldLabel}>Distribution</span>
+              <select
+                className={styles.fieldInput}
+                value={schedulePreset}
+                onChange={(e) => {
+                  const preset = e.target.value;
+                  setSchedulePreset(preset);
+                  if (preset !== "custom") {
+                    const fn = DISTRIBUTION_PRESETS[preset];
+                    setScheduleForm({
+                      ...scheduleForm,
+                      distribution: fn(scheduleForm.totalYears),
+                    });
+                  }
+                }}
+              >
+                <option value="equal">Equal</option>
+                <option value="front">Front-loaded</option>
+                <option value="back">Back-loaded</option>
+                <option value="custom">Custom</option>
+              </select>
+            </div>
+
+            {schedulePreset === "custom" && (
+              <div className={styles.distributionInputs}>
+                {scheduleForm.distribution.map((pct, idx) => (
+                  <div key={idx} className={styles.distributionField}>
+                    <span className={styles.fieldLabel}>
+                      Year {idx + 1} %
+                    </span>
+                    <input
+                      className={styles.fieldInput}
+                      type="number"
+                      min={0}
+                      max={100}
+                      step={1}
+                      value={pct}
+                      onChange={(e) => {
+                        const newDist = [...scheduleForm.distribution];
+                        newDist[idx] = Number(e.target.value);
+                        setScheduleForm({
+                          ...scheduleForm,
+                          distribution: newDist,
+                        });
+                        const sum = newDist.reduce((a, b) => a + b, 0);
+                        if (Math.round(sum * 100) / 100 === 100) {
+                          setGrantErrors((prev) => {
+                            const next = new Set(prev);
+                            next.delete("distribution");
+                            return next;
+                          });
+                        }
+                      }}
+                    />
+                  </div>
+                ))}
+                <span
+                  className={`${styles.distributionTotal} ${
+                    Math.round(
+                      scheduleForm.distribution.reduce(
+                        (a, b) => a + b,
+                        0,
+                      ) * 100,
+                    ) / 100 === 100
+                      ? styles.distValid
+                      : styles.distInvalid
+                  } ${grantErrors.has("distribution") ? styles.distError : ""}`}
+                >
+                  {scheduleForm.distribution
+                    .reduce((a, b) => a + b, 0)
+                    .toFixed(0)}
+                  % / 100%
+                </span>
+              </div>
+            )}
+
+            {schedulePreset !== "custom" && (
+              <div className={styles.distributionPreview}>
+                {scheduleForm.distribution.map((pct, idx) => (
+                  <span key={idx} className={styles.distChip}>
+                    Y{idx + 1}: {pct.toFixed(1)}%
+                  </span>
+                ))}
+              </div>
+            )}
+
             <div className={styles.formActions}>
               <button className={styles.saveBtn} onClick={handleSaveGrant}>
                 Save
@@ -740,7 +1001,7 @@ export function RSU() {
                     >
                       {row.basisDelta >= 0 ? "+" : ""}
                       {formatCurrency(row.basisDelta)} (
-                      {row.basisPct.toFixed(1)}%)
+                    {row.basisPct.toFixed(1)}%)
                     </td>
                   </tr>
                 ))}
@@ -904,6 +1165,297 @@ export function RSU() {
           </div>
         )}
       </div>
+
+      {(() => {
+        const grantsWithSchedule = grants.filter(
+          (g) => g.vestingSchedule,
+        );
+        if (grantsWithSchedule.length === 0 && vests.length === 0) return null;
+
+        const allPoints: {
+          date: string;
+          actual: number;
+          forecast: number;
+        }[] = [];
+
+        const grantForecasts = grantsWithSchedule.map((g) => {
+          const forecast = computeForecast(g, vests, stocks);
+          const futureVests = forecast.filter((f) => !f.isPast);
+          const remainingShares = futureVests.reduce(
+            (s, f) => s + f.shares,
+            0,
+          );
+          const remainingValue = futureVests.reduce(
+            (s, f) => s + f.projectedValue,
+            0,
+          );
+          const stock = stockMap.current.get(g.stockId);
+          return { grant: g, forecast, futureVests, remainingShares, remainingValue, ticker: stock?.ticker };
+        });
+
+        type StockEntry = { shares: number; stockId: string };
+        const actualByDate = new Map<string, StockEntry[]>();
+        for (const v of vests) {
+          const grant = grantMap.current.get(v.grantId);
+          const stockId = grant?.stockId ?? "";
+          const arr = actualByDate.get(v.vestDate) ?? [];
+          arr.push({ shares: v.shares, stockId });
+          actualByDate.set(v.vestDate, arr);
+        }
+
+        const forecastByDate = new Map<string, StockEntry[]>();
+        for (const gf of grantForecasts) {
+          for (const f of gf.forecast) {
+            if (!f.isPast) {
+              const arr = forecastByDate.get(f.date) ?? [];
+              arr.push({ shares: f.shares, stockId: gf.grant.stockId });
+              forecastByDate.set(f.date, arr);
+            }
+          }
+        }
+
+        const sumStockValue = (entries: StockEntry[]) =>
+          entries.reduce((s, e) => {
+            const price = forecastPrices.get(e.stockId) ?? 0;
+            return s + e.shares * (forecastUnit === "dollars" ? price : 1);
+          }, 0);
+
+
+        const allDates = new Set([...actualByDate.keys(), ...forecastByDate.keys()]);
+        const sortedDates = [...allDates].sort(
+          (a, b) => new Date(a).getTime() - new Date(b).getTime(),
+        );
+
+        let cumActual = 0;
+        let cumForecast = 0;
+        for (const date of sortedDates) {
+          cumActual += sumStockValue(actualByDate.get(date) ?? []);
+          cumForecast += sumStockValue(forecastByDate.get(date) ?? []);
+          allPoints.push({
+            date,
+            actual: cumActual,
+            forecast: cumActual + cumForecast,
+          });
+        }
+
+        const totalRemaining = grantForecasts.reduce(
+          (s, gf) => s + gf.remainingShares,
+          0,
+        );
+        const totalRemainingValue = grantForecasts.reduce((s, gf) => {
+          const price = forecastPrices.get(gf.grant.stockId) ?? 0;
+          return s + gf.remainingShares * (forecastUnit === "dollars" ? price : 0);
+        }, 0);
+
+        return (
+          <div className={styles.section}>
+            <div className={styles.sectionHeader}>
+              <span className={styles.sectionTitle}>
+                Vesting Forecast
+              </span>
+              <div className={styles.forecastControls}>
+                <SegmentGroup.Root
+                  value={forecastUnit}
+                  onValueChange={(e) => setForecastUnit(e.value as "shares" | "dollars")}
+                  size="sm"
+                >
+                  <SegmentGroup.Indicator />
+                  <SegmentGroup.Items items={["shares", "dollars"]} />
+                </SegmentGroup.Root>
+                {forecastUnit === "dollars" && (
+                  <div className={styles.priceInputs}>
+                    {[...forecastPrices.entries()].map(([stockId, price]) => {
+                      const stock = stockMap.current.get(stockId);
+                      const maxPrice = (stock?.currentPrice ?? price) * 10;
+                      return (
+                        <div key={stockId} className={styles.priceSlider}>
+                          <span className={styles.fieldLabel}>{stock?.ticker ?? stockId}</span>
+                          <input
+                            type="range"
+                            min={1}
+                            max={Math.max(maxPrice, 1000)}
+                            step={1}
+                            value={price}
+                            onChange={(e) => {
+                              const next = new Map(forecastPrices);
+                              next.set(stockId, Number(e.target.value));
+                              setForecastPrices(next);
+                            }}
+                          />
+                          <span className={styles.priceSliderValue}>
+                            {formatCurrency(price)}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className={styles.forecastSummaryRow}>
+              <div className={styles.forecastSummaryStat}>
+                <span className={styles.summaryStatLabel}>
+                  Remaining Shares
+                </span>
+                <span className={styles.summaryStatValue}>
+                  {totalRemaining.toLocaleString()}
+                </span>
+              </div>
+              <div className={styles.forecastSummaryStat}>
+                <span className={styles.summaryStatLabel}>
+                  Projected Value
+                </span>
+                <span
+                  className={`${styles.summaryStatValue} ${styles.money}`}
+                >
+                  {forecastUnit === "dollars"
+                    ? formatCurrency(totalRemainingValue)
+                    : `${totalRemaining.toLocaleString()} shares`}
+                </span>
+              </div>
+            </div>
+
+            {allPoints.length >= 2 && (
+              <div className={styles.forecastChartCard}>
+                <LineChart
+                  x={allPoints.map((p) => p.date)}
+                  barCharts={[
+                    {
+                      name: "Actual Vested",
+                      y: allPoints.map((p) => p.actual),
+                      color: "#4ade80",
+                    },
+                    {
+                      name: "Cumulative Forecast",
+                      y: allPoints.map((p) => p.forecast),
+                      color: "#60a5fa",
+                    },
+                  ]}
+                  legend
+                  legendDirection="h"
+                  lineShape="hv"
+                />
+              </div>
+            )}
+
+            {allPoints.length >= 2 && (() => {
+              const yearlyActual = new Map<string, number>();
+              const yearlyForecast = new Map<string, number>();
+              for (const [date, entries] of actualByDate) {
+                const year = date.slice(0, 4);
+                yearlyActual.set(year, (yearlyActual.get(year) ?? 0) + sumStockValue(entries));
+              }
+              for (const [date, entries] of forecastByDate) {
+                const year = date.slice(0, 4);
+                yearlyForecast.set(year, (yearlyForecast.get(year) ?? 0) + sumStockValue(entries));
+              }
+              const allYears = new Set([...yearlyActual.keys(), ...yearlyForecast.keys()]);
+              const sortedYears = [...allYears].sort();
+              if (sortedYears.length === 0) return null;
+              return (
+                <div className={styles.forecastChartCard}>
+                  <BarChart
+                    x={sortedYears}
+                    barCharts={[
+                      {
+                        name: "Actual Vested",
+                        y: sortedYears.map((y) => yearlyActual.get(y) ?? 0),
+                        color: "#4ade80",
+                      },
+                      {
+                        name: "Forecast",
+                        y: sortedYears.map((y) => yearlyForecast.get(y) ?? 0),
+                        color: "#60a5fa",
+                      },
+                    ]}
+                    legend
+                    legendDirection="h"
+                  />
+                </div>
+              );
+            })()}
+
+            {grantForecasts.length > 1 && (
+              <div className={styles.forecastGrantSelector}>
+                <select
+                  className={styles.fieldInput}
+                  value={selectedForecastGrantId ?? grantForecasts[0].grant.id}
+                  onChange={(e) =>
+                    setSelectedForecastGrantId(e.target.value)
+                  }
+                >
+                  {grantForecasts.map((gf) => (
+                    <option key={gf.grant.id} value={gf.grant.id}>
+                      {gf.grant.name}
+                      {gf.ticker ? ` (${gf.ticker})` : ""}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+
+            {(() => {
+              const activeId =
+                selectedForecastGrantId ?? grantForecasts[0]?.grant.id;
+              const gf = grantForecasts.find(
+                (g) => g.grant.id === activeId,
+              );
+              if (!gf) return null;
+              return (
+                <div className={styles.forecastGrantBlock}>
+                  <div className={styles.tableCard}>
+                    <table className={styles.table}>
+                      <thead>
+                        <tr>
+                          <th>Date</th>
+                          <th className={styles.num}>Shares</th>
+                          <th className={styles.num}>Basis Price</th>
+                          <th className={styles.num}>Projected Value</th>
+                          <th>Status</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {gf.forecast.map((f, idx) => (
+                          <tr
+                            key={idx}
+                            className={
+                              f.isPast ? styles.forecastPastRow : undefined
+                            }
+                          >
+                            <td>{formatShortDate(f.date)}</td>
+                            <td className={styles.num}>
+                              {f.shares.toLocaleString()}
+                            </td>
+                            <td className={styles.num}>
+                              {formatCurrency(f.basisPrice)}
+                            </td>
+                            <td className={styles.num}>
+                              {formatCurrency(f.projectedValue)}
+                            </td>
+                            <td>
+                              <span
+                                className={
+                                  f.isPast
+                                    ? styles.forecastStatusPast
+                                    : styles.forecastStatusFuture
+                                }
+                              >
+                                {f.isPast ? "Vested" : "Upcoming"}
+                              </span>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              );
+            })()}
+          </div>
+        );
+      })()}
+
     </div>
   );
 }

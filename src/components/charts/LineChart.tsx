@@ -9,6 +9,7 @@ interface LineChartProps<T extends Datum> {
   horizontal?: boolean;
   legend?: boolean;
   legendDirection?: "v" | "h";
+  lineShape?: "linear" | "hv" | "vh" | "hvh" | "vhv";
 }
 
 interface LineChartItem {
@@ -23,6 +24,7 @@ export const LineChart = <T extends Datum>({
   horizontal = false,
   legend = true,
   legendDirection = "v",
+  lineShape = "linear",
 }: LineChartProps<T>) => {
   return (
     <div className={styles.container}>
@@ -38,6 +40,7 @@ export const LineChart = <T extends Datum>({
             mode: "lines",
             line: {
               width: 5,
+              shape: lineShape,
             },
           }))}
           layout={{
@@ -56,6 +59,7 @@ export const LineChart = <T extends Datum>({
             dragmode: false,
             showlegend: legend,
             legend: { orientation: legendDirection },
+            yaxis: { rangemode: "tozero" },
           }}
           config={{
             displayModeBar: false,

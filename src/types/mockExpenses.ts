@@ -246,6 +246,12 @@ const generateMockGrants = (stockId: string): GrantMap => {
     stockId,
     grantPrice: 150,
     totalShares: 200,
+    vestingSchedule: {
+      startDate: format(startDate, "yyyy-MM-dd"),
+      totalYears: 4,
+      frequency: "quarterly",
+      distribution: [25, 25, 25, 25],
+    },
   };
   return map;
 };
