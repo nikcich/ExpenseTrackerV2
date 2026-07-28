@@ -78,41 +78,78 @@ export function SSDI() {
     return allMonths.map((label) => rowMap.get(label) ?? { label, earned: 0, deposit: 0, twpStatus: "under" as TwpStatus });
   }, [monthlyRows, year]);
 
-  const xTickColors = useMemo(
-    () => chartMonths.map((m) => {
-      if (m.twpStatus === "exhausted" || m.twpStatus === "cessation") return "#f87171";
-      if (m.twpStatus === "twp") return "#eab308";
-      return "#4ade80";
-    }),
-    [chartMonths]
-  );
-
   return (
     <GenericPage title="SSDI Earnings Tracker" hasRange={false} needsData={false}>
       <div className={styles.container}>
-        <div className={styles.card}>
-          <div className={styles.configRow}>
-            <MonthPills
-              months={availableYears.map((y) => new Date(y, 0, 1))}
-              selectedIndex={availableYears.indexOf(year)}
-              onChange={(i) => {
-                const newYear = availableYears[i];
-                saveConfig({ ...(config ?? { year: newYear, sgaByYear: {} }), year: newYear });
-              }}
-              formatLabel={(d) => String(d.getFullYear())}
-            />
-            <div className={styles.field}>
-              <label className={styles.fieldLabel}>SGA Monthly Amount</label>
-              <input
-                type="number"
-                className={styles.fieldInput}
-                value={sgaAmount}
-                onChange={(e) => {
-                  const newSga = parseFloat(e.target.value) || 0;
-                  saveConfig({ ...(config ?? { year, sgaByYear: {} }), sgaByYear: { ...config?.sgaByYear, [year]: newSga } });
-                }}
-              />
+        <div className={styles.yearPillsRow}>
+          <MonthPills
+            months={availableYears.map((y) => new Date(y, 0, 1))}
+            selectedIndex={availableYears.indexOf(year)}
+            onChange={(i) => {
+              const newYear = availableYears[i];
+              saveConfig({ ...(config ?? { year: newYear, sgaByYear: {} }), year: newYear });
+            }}
+            formatLabel={(d) => String(d.getFullYear())}
+          />
+        </div>
+
+        <div className={styles.topRow}>
+          <div className={styles.overviewCard}>
+            <div className={styles.cardHeader}>
+              <span className={styles.cardTitle}>Overview Status</span>
             </div>
+            <div className={styles.overviewGrid}>
+              <span className={styles.overviewLabel}>TWP Months Used</span>
+              <span className={styles.overviewValue}>{twpCount} / {TWP_LIMIT}</span>
+
+              <span className={styles.overviewLabel}>Cessation Month</span>
+              <span className={styles.overviewValue}>
+                {cessationKey ? formatMonthKeyLabel(cessationKey) : "\u2014"}
+              </span>
+
+              <span className={styles.overviewLabel}>Grace Period Ends</span>
+              <span className={styles.overviewValue}>
+                {gracePeriodEnd ? formatMonthKeyLabel(gracePeriodEnd) : "\u2014"}
+              </span>
+
+              <span className={styles.overviewLabel}>SSA Compliance</span>
+              <span
+                className={styles.overviewValue}
+                style={{
+                  color: isCompliant ? "var(--fg-success, #4ade80)" : "var(--fg-error, #f87171)",
+                }}
+              >
+                {isCompliant ? "OK" : "NON-COMPLIANT"}
+              </span>
+            </div>
+          </div>
+
+          <div className={styles.chartCard}>
+            <div className={styles.cardHeader}>
+              <span className={styles.cardTitle}>Monthly Earnings Overview</span>
+            </div>
+            <BarChart
+              x={chartMonths.map((m) => m.label)}
+              barCharts={[
+                {
+                  name: "Gross Income",
+                  y: chartMonths.map((m) => m.earned),
+                  color: "#3b82f6",
+                },
+                {
+                  name: "Net Income",
+                  y: chartMonths.map((m) => m.deposit),
+                  color: "#6b7280",
+                },
+              ]}
+              legend={true}
+              legendDirection="h"
+              threshold={{
+                value: sgaAmount,
+                label: `SGA $${sgaAmount.toLocaleString()}`,
+                color: "#ef4444",
+              }}
+            />
           </div>
         </div>
 
@@ -185,80 +222,26 @@ export function SSDI() {
           <div className={styles.cardHeader}>
             <span className={styles.cardTitle}>Pay Periods</span>
           </div>
-          <PayPeriodsTable
-            periods={filteredPeriods}
-            getExpenseById={getExpenseById}
-            onUpdate={updatePeriod}
-            onRemove={removePeriod}
-          />
-        </div>
-
-        <div className={styles.earningsRow}>
-          <div className={`${styles.card} ${styles.earningsTable}`}>
-            <div className={styles.cardHeader}>
-              <span className={styles.cardTitle}>Monthly Earnings</span>
-            </div>
-            <MonthlyEarningsTable rows={monthlyRows} />
-          </div>
-          <div className={styles.overviewCard}>
-            <div className={styles.cardHeader}>
-              <span className={styles.cardTitle}>Overview Status</span>
-            </div>
-            <div className={styles.overviewGrid}>
-              <span className={styles.overviewLabel}>TWP Months Used</span>
-              <span className={styles.overviewValue}>{twpCount} / {TWP_LIMIT}</span>
-
-              <span className={styles.overviewLabel}>Cessation Month</span>
-              <span className={styles.overviewValue}>
-                {cessationKey ? formatMonthKeyLabel(cessationKey) : "\u2014"}
-              </span>
-
-              <span className={styles.overviewLabel}>Grace Period Ends</span>
-              <span className={styles.overviewValue}>
-                {gracePeriodEnd ? formatMonthKeyLabel(gracePeriodEnd) : "\u2014"}
-              </span>
-
-              <span className={styles.overviewLabel}>SSA Compliance</span>
-              <span
-                className={styles.overviewValue}
-                style={{
-                  color: isCompliant ? "var(--fg-success, #4ade80)" : "var(--fg-error, #f87171)",
-                }}
-              >
-                {isCompliant ? "OK" : "NON-COMPLIANT"}
-              </span>
-            </div>
+          <div className={styles.scrollTable}>
+            <PayPeriodsTable
+              periods={filteredPeriods}
+              getExpenseById={getExpenseById}
+              onUpdate={updatePeriod}
+              onRemove={removePeriod}
+            />
           </div>
         </div>
 
         <div className={styles.card}>
           <div className={styles.cardHeader}>
-            <span className={styles.cardTitle}>Monthly Earnings Overview</span>
+            <span className={styles.cardTitle}>Monthly Earnings</span>
           </div>
-          <BarChart
-            x={chartMonths.map((m) => m.label)}
-            barCharts={[
-              {
-                name: "Gross Earnings",
-                y: chartMonths.map((m) => m.earned),
-                color: "#3b82f6",
-              },
-              {
-                name: "Deposits",
-                y: chartMonths.map((m) => m.deposit),
-                color: "#6b7280",
-              },
-            ]}
-            legend={true}
-            legendDirection="h"
-            threshold={{
-              value: sgaAmount,
-              label: `SGA $${sgaAmount.toLocaleString()}`,
-              color: "#ef4444",
-            }}
-            xTickColors={xTickColors}
-          />
+          <div className={styles.scrollTable}>
+            <MonthlyEarningsTable rows={monthlyRows} />
+          </div>
         </div>
+
+
       </div>
     </GenericPage>
   );

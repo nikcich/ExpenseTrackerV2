@@ -439,21 +439,34 @@ export const MOCK_BRUSH_RANGE: [number, number] = [
 
 const generateMockSsdiPayPeriods = (): Record<string, { id: string; beginDate: string; endDate: string; depositExpenseId: string; grossEarnings: number }> => {
   const map: Record<string, { id: string; beginDate: string; endDate: string; depositExpenseId: string; grossEarnings: number }> = {};
+  const currentYear = new Date().getFullYear();
   const expenseIds = Object.keys(MOCK_EXPENSES);
-  const salaryIds = expenseIds.filter((id) => MOCK_EXPENSES[id].description === "Salary");
-  for (let i = 0; i < Math.min(4, salaryIds.length); i++) {
+  const salaryIds = expenseIds.filter((id) => {
+    const exp = MOCK_EXPENSES[id];
+    return exp.description === "Salary";
+  }).sort((a, b) => new Date(MOCK_EXPENSES[a].date).getTime() - new Date(MOCK_EXPENSES[b].date).getTime());
+  const allExpenseIds = expenseIds.sort((a, b) => new Date(MOCK_EXPENSES[a].date).getTime() - new Date(MOCK_EXPENSES[b].date).getTime());
+
+  let periodStart = new Date(currentYear, 0, 1);
+  let salaryIdx = 0;
+  const maxPeriods = 22;
+  for (let i = 0; i < maxPeriods; i++) {
+    const periodEnd = new Date(periodStart);
+    periodEnd.setDate(periodEnd.getDate() + 13);
+    if (periodEnd.getFullYear() > currentYear) break;
+
+    const depositExpenseId = salaryIdx < salaryIds.length ? salaryIds[salaryIdx] : allExpenseIds[Math.floor(Math.random() * allExpenseIds.length)];
     const id = uuidv4();
-    const salaryExpense = MOCK_EXPENSES[salaryIds[i]];
-    const depositDate = new Date(salaryExpense.date);
-    const beginDate = new Date(depositDate);
-    beginDate.setDate(beginDate.getDate() - 14);
     map[id] = {
       id,
-      beginDate: format(beginDate, "yyyy-MM-dd"),
-      endDate: format(depositDate, "yyyy-MM-dd"),
-      depositExpenseId: salaryIds[i],
-      grossEarnings: 2800 + Math.round(Math.random() * 400),
+      beginDate: format(periodStart, "yyyy-MM-dd"),
+      endDate: format(periodEnd, "yyyy-MM-dd"),
+      depositExpenseId,
+      grossEarnings: 2700 + Math.round(Math.random() * 600),
     };
+
+    periodStart.setDate(periodStart.getDate() + 14);
+    salaryIdx++;
   }
   return map;
 };

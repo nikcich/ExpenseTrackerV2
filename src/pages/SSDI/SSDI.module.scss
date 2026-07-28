@@ -29,11 +29,9 @@
   color: var(--fg-default, #e0e0e6);
 }
 
-.configRow {
+.yearPillsRow {
   display: flex;
   align-items: center;
-  gap: 1.5rem;
-  flex-wrap: wrap;
 }
 
 .field {
@@ -90,6 +88,11 @@
   overflow-y: auto;
 }
 
+.scrollTable {
+  max-height: 300px;
+  overflow-y: auto;
+}
+
 .table {
   width: 100%;
   border-collapse: collapse;
@@ -98,7 +101,7 @@
 }
 
 .table th {
-  text-align: center;
+  text-align: left;
   padding: 0.5rem 0.75rem;
   border-bottom: 1px solid var(--border-color, #32323c);
   font-weight: 600;
@@ -110,7 +113,7 @@
 .table td {
   padding: 0.5rem 0.75rem;
   border-bottom: 1px solid var(--border-color, #32323c);
-  text-align: center;
+  text-align: left;
 }
 
 .table tr:last-child td {
@@ -170,7 +173,6 @@
 
 .amountCell {
   font-variant-numeric: tabular-nums;
-  text-align: center;
 }
 
 .previewRow {
@@ -208,15 +210,12 @@
   padding: 0.5rem 0;
 }
 
-.earningsRow {
+
+
+.topRow {
   display: flex;
   gap: 1.25rem;
-  align-items: flex-start;
-}
-
-.earningsTable {
-  flex: 1;
-  min-width: 0;
+  flex-wrap: wrap;
 }
 
 .overviewCard {
@@ -224,21 +223,42 @@
   border: 1px solid var(--border-color, #32323c);
   border-radius: 0.75rem;
   padding: 1.25rem;
-  min-width: 260px;
-  width: 280px;
+  flex: 1;
+  min-width: 350px;
+  display: flex;
+  flex-direction: column;
 }
 
 .overviewGrid {
+  flex: 1;
   display: grid;
   grid-template-columns: auto 1fr;
   gap: 0.5rem 1rem;
   align-items: baseline;
+  align-content: center;
+}
+
+.chartCard {
+  background: var(--bg-panel, #19191e);
+  border: 1px solid var(--border-color, #32323c);
+  border-radius: 0.75rem;
+  padding: 1.25rem 1.25rem 0;
+  flex: 9999 1 475px;
+  min-width: 475px;
+  display: flex;
+  flex-direction: column;
+  height: 250px;
+}
+
+.chartCard .cardHeader {
+  margin-bottom: 0.5rem;
 }
 
 .overviewLabel {
   font-size: 0.8rem;
   color: var(--fg-muted, #a0a0ab);
   white-space: nowrap;
+  text-align: left;
 }
 
 .overviewValue {

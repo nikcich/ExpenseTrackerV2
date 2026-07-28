@@ -213,6 +213,11 @@ export function useHasRsuData() {
   return vests.length > 0 || stocks.length > 0 || grants.length > 0 || sales.length > 0;
 }
 
+export function useHasSsdiData() {
+  const { periods } = useSsdiPayPeriods();
+  return periods.length > 0;
+}
+
 const [useCustomCsvDefinitionsStore] = createTauriStoreHook<DynamicCsvDefinition[]>({
   key: KnownStoreKeys.CustomCsvDefinitions,
   defaultValue: [],
