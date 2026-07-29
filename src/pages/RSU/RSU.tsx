@@ -1174,8 +1174,8 @@ export function RSU() {
 
         const allPoints: {
           date: string;
-          actual: number;
-          forecast: number;
+          actual: number | null;
+          forecast: number | null;
         }[] = [];
 
         const grantForecasts = grantsWithSchedule.map((g) => {
@@ -1226,16 +1226,29 @@ export function RSU() {
           (a, b) => new Date(a).getTime() - new Date(b).getTime(),
         );
 
+        const lastActualDate = [...actualByDate.keys()].sort().pop() ?? null;
         let cumActual = 0;
         let cumForecast = 0;
+        let cumForecastAtTransition = 0;
         for (const date of sortedDates) {
           cumActual += sumStockValue(actualByDate.get(date) ?? []);
           cumForecast += sumStockValue(forecastByDate.get(date) ?? []);
-          allPoints.push({
-            date,
-            actual: cumActual,
-            forecast: cumActual + cumForecast,
-          });
+          if (lastActualDate && date <= lastActualDate) {
+            if (date === lastActualDate) {
+              cumForecastAtTransition = cumForecast;
+            }
+            allPoints.push({
+              date,
+              actual: cumActual,
+              forecast: null,
+            });
+          } else {
+            allPoints.push({
+              date,
+              actual: null,
+              forecast: cumActual + (cumForecast - cumForecastAtTransition),
+            });
+          }
         }
 
         const totalRemaining = grantForecasts.reduce(

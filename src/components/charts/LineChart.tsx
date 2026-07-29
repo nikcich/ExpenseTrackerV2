@@ -14,7 +14,7 @@ interface LineChartProps<T extends Datum> {
 
 interface LineChartItem {
   name: string;
-  y: number[];
+  y: (number | null)[];
   color: string;
 }
 
