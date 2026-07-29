@@ -1,0 +1,34 @@
+.pills {
+  display: flex;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+}
+
+.pill {
+  padding: 0.35rem 0.9rem;
+  border-radius: 9999px;
+  border: 1px solid var(--border-color, #3f3f4b);
+  background: transparent;
+  color: var(--fg-muted, #a0a0ab);
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  line-height: 1.4;
+
+  &:hover {
+    border-color: var(--fg-muted, #a0a0ab);
+    color: var(--fg-default, #e8e8ed);
+  }
+}
+
+.pillActive {
+  background: var(--fg-default, #e8e8ed);
+  color: var(--bg-default, #141417);
+  border-color: var(--fg-default, #e8e8ed);
+  font-weight: 600;
+
+  &:hover {
+    color: var(--bg-default, #141417);
+    border-color: var(--fg-default, #e8e8ed);
+  }
+}

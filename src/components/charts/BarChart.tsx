@@ -9,6 +9,12 @@ interface BarChartProps<T extends Datum> {
   horizontal?: boolean;
   legend?: boolean;
   legendDirection?: "v" | "h";
+  threshold?: {
+    value: number;
+    label?: string;
+    color?: string;
+  };
+  xTickColors?: string[];
 }
 
 interface BarChartItem {
@@ -23,7 +29,33 @@ export const BarChart = <T extends Datum>({
   horizontal = false,
   legend = true,
   legendDirection = "v",
+  threshold,
+  xTickColors,
 }: BarChartProps<T>) => {
+  const tickAnnotations = xTickColors?.map((color, i) => ({
+    xref: "x" as const,
+    yref: "paper" as const,
+    x: x[i] as string | number,
+    y: -0.27,
+    text: String(x[i]),
+    showarrow: false,
+    font: { color, size: 10 },
+    textangle: "-20",
+    xanchor: "right" as const,
+  })) ?? [];
+
+  const existingAnnotations = threshold?.label ? [{
+    xref: "paper" as const,
+    yref: "y" as const,
+    x: 1,
+    y: threshold.value,
+    text: threshold.label,
+    showarrow: false,
+    font: { color: threshold.color ?? "#ff4444", size: 12 },
+    xanchor: "right" as const,
+    yshift: 10,
+  }] : [];
+
   return (
     <div className={styles.container}>
       <div className={styles.plotContainer}>
@@ -39,10 +71,10 @@ export const BarChart = <T extends Datum>({
           layout={{
             autosize: true,
             margin: {
-              t: 40,
+              t: 5,
               r: 20,
               l: horizontal ? (legend ? 70 : 20) : 40,
-              b: horizontal ? 25 : legend ? 40 : 80,
+              b: horizontal ? 25 : legend && legendDirection === "h" ? 80 : legend ? 60 : xTickColors ? 140 : 80,
             },
             paper_bgcolor: "transparent",
             plot_bgcolor: "transparent",
@@ -51,7 +83,25 @@ export const BarChart = <T extends Datum>({
             },
             dragmode: false,
             showlegend: legend,
-            legend: { orientation: legendDirection },
+            legend: { orientation: legendDirection, y: legendDirection === "h" ? -0.25 : undefined, x: legendDirection === "h" ? 0.5 : undefined, xanchor: legendDirection === "h" ? "center" : undefined },
+            ...(xTickColors ? { xaxis: { showticklabels: false } } : { xaxis: { tickangle: -20 } }),
+            ...(threshold ? { shapes: [{
+              type: "line",
+              xref: "paper",
+              yref: "y",
+              x0: 0,
+              x1: 1,
+              y0: threshold.value,
+              y1: threshold.value,
+              line: {
+                color: threshold.color ?? "#ff4444",
+                width: 2,
+                dash: "dash",
+              },
+            }] } : {}),
+            ...(tickAnnotations.length > 0 || existingAnnotations.length > 0
+              ? { annotations: [...tickAnnotations, ...existingAnnotations] }
+              : {}),
           }}
           config={{
             displayModeBar: false,

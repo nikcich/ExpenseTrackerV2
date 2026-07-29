@@ -21,6 +21,7 @@ import { Accounts } from "./pages/Accounts/Accounts";
 import { RSU } from "./pages/RSU/RSU";
 import { CSVFormats } from "./pages/CSVFormats/CSVFormats";
 import { useGlobalShortcuts } from "./hooks/useGlobalShortcuts";
+import { SSDI } from "./pages/SSDI/SSDI";
 
 const MockBanner = () => {
   const enabled = useSyncExternalStore(
@@ -146,6 +147,11 @@ export function AppRouter() {
         <Route
           path={Pages.CSVFormats}
           element={<RouteComponent element={<CSVFormats />} />}
+        />
+
+        <Route
+          path={Pages.SSDI}
+          element={<RouteComponent element={<SSDI />} />}
         />
       </Routes>
     </BrowserRouter>

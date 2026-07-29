@@ -1,13 +1,29 @@
 import { BehaviorSubject } from "rxjs";
 import { useEffect, useState } from "react";
+import { invoke } from "@tauri-apps/api/core";
 
-export function createStore<T extends object>(initialState: T) {
+export function createStore<T extends object>(initialState: T, persistKey?: string) {
   const state$ = new BehaviorSubject<T>(initialState);
+
+  if (persistKey) {
+    invoke<Record<string, unknown> | null>("store_get_json_value", { key: persistKey })
+      .then((stored) => {
+        if (stored && typeof stored === "object") {
+          state$.next({ ...initialState, ...stored } as T);
+        }
+      })
+      .catch(() => {});
+  }
 
   const setState = (update: Partial<T> | ((prev: T) => Partial<T>)) => {
     const current = state$.getValue();
     const partial = typeof update === "function" ? update(current) : update;
-    state$.next({ ...current, ...partial });
+    const next = { ...current, ...partial };
+    state$.next(next);
+
+    if (persistKey) {
+      invoke("store_set_json_value", { key: persistKey, value: next }).catch(() => {});
+    }
   };
 
   const getState = () => state$.getValue();

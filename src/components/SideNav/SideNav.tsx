@@ -19,7 +19,8 @@ import { LuFileSpreadsheet } from "react-icons/lu";
 import { Tooltip } from "@/components/ui/tooltip";
 import { enableOverlay, Overlay } from "@/store/OverlayStore";
 import { useSettingsStore } from "@/store/SettingsStore";
-import { useHasRsuData } from "@/store/store";
+import { useHasRsuData, useHasSsdiData } from "@/store/store";
+import { HiOutlineDocumentText } from "react-icons/hi2";
 
 const NavButton = ({ Icon, page, label }: { Icon: React.FC; page: string; label: string }) => {
   const navigate = useNavigate();
@@ -43,6 +44,9 @@ export function SideNav() {
   const rsuTabEnabled = useSettingsStore("rsuTabEnabled");
   const hasRsuData = useHasRsuData();
   const showRsu = rsuTabEnabled || hasRsuData;
+  const hasSsdiData = useHasSsdiData();
+  const ssdiTabEnabled = useSettingsStore("ssdiTabEnabled");
+  const showSsdi = ssdiTabEnabled || hasSsdiData;
 
   return (
     <div className={styles.navContainer}>
@@ -50,6 +54,7 @@ export function SideNav() {
         <NavButton Icon={PiCompassLight} page={Pages.Overview} label="Overview" />
         <NavButton Icon={PiChartPieSlice} page={Pages.Accounts} label="Accounts" />
         {showRsu && <NavButton Icon={FaCoins} page={Pages.RSU} label="RSU" />}
+        {showSsdi && <NavButton Icon={HiOutlineDocumentText} page={Pages.SSDI} label="SSDI" />}
         <NavButton Icon={MdOutlineTrendingUp} page={Pages.Forecast} label="Forecast" />
         <NavButton Icon={FaTable} page={Pages.TableView} label="Data Table" />
         <NavButton Icon={BsAlignMiddle} page={Pages.AverageSpending} label="Average Spending" />

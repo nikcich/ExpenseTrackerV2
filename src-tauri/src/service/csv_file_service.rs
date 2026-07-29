@@ -3,6 +3,7 @@ use crate::definition::csv_definition::{
 };
 use crate::model::expense::Expense;
 use crate::store::app_store::ExpenseStore;
+use chrono::NaiveDate;
 use csv::{ReaderBuilder, StringRecord};
 use std::collections::HashMap;
 use std::error::Error as StdError;
@@ -104,12 +105,15 @@ pub fn open_csv_file_and_find_definitions(
     return Ok(Some(matched));
 }
 
+/// (added_count, duplicate_count, min_date, max_date)
+pub type ParseResult = (u16, u16, Option<NaiveDate>, Option<NaiveDate>);
+
 /// Parse a CSV file with a given definition and update the store
 pub fn parse_csv_file_with_selected_definition(
     expense_store: &ExpenseStore,
     path: String,
     csv_definition_key: CsvDefinitionKey,
-) -> Result<(u16, u16), Box<dyn StdError>> {
+) -> Result<ParseResult, Box<dyn StdError>> {
     let csv_definition = CSV_DEFINITIONS
         .get(&csv_definition_key)
         .ok_or("CSV definition not found")?;
@@ -122,7 +126,7 @@ pub fn parse_csv_file_with_definition(
     expense_store: &ExpenseStore,
     path: String,
     csv_definition: &CsvDefinition,
-) -> Result<(u16, u16), Box<dyn StdError>> {
+) -> Result<ParseResult, Box<dyn StdError>> {
     let file =
         open_file_from_path(&path).map_err(|_| format!("Failed to open file at path: {}", path))?;
     let mut reader = ReaderBuilder::new()
@@ -177,8 +181,11 @@ pub fn parse_csv_file_with_definition(
         expenses_batch.extend(thread_results.iter().cloned());
     }
 
+    let min_date = expenses_batch.iter().map(|e| e.get_date().date()).min();
+    let max_date = expenses_batch.iter().map(|e| e.get_date().date()).max();
+
     if let Ok(result) = expense_store.add_expense_as_batch(expenses_batch, false) {
-        return Ok((result.added_count, result.duplicate_count));
+        return Ok((result.added_count, result.duplicate_count, min_date, max_date));
     }
 
     return Err("Failed to add expenses".into());

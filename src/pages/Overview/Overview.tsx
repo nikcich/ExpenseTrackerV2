@@ -3,7 +3,7 @@ import { useEffect, useMemo, useState, useDeferredValue } from "react";
 import { Spinner, SegmentGroup } from "@chakra-ui/react";
 import { CoreTable } from "@/components/DataTable/DataTable";
 import { AiOutlineInbox } from "react-icons/ai";
-import { MonthPills } from "./MonthPills";
+import { MonthPills } from "@/components/MonthPills/MonthPills";
 import { SummaryCards } from "./SummaryCards";
 import { NetSparkline } from "./NetSparkline";
 import { DonutChart } from "./DonutChart";

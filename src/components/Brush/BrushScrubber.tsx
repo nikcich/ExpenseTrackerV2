@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import * as d3 from "d3";
 import { updateDateRange } from "@/store/RustInterfaceHandlers";
-import { instantBrushRange$ } from "@/store/store";
+import { instantBrushRange$, useImportHistory } from "@/store/store";
 import { debounceTime, distinctUntilChanged } from "rxjs";
 import { useExpenses, useIncome, useSavings } from "@/hooks/expenses";
 import { enableOverlay, Overlay } from "@/store/OverlayStore";
@@ -13,6 +13,15 @@ interface BrushScrubberProps {
 const fractionStart = 0.75;
 const fractionEnd = 1;
 
+function getISOWeekStart(date: Date): Date {
+  const d = new Date(date);
+  const day = d.getDay();
+  const diff = (day === 0 ? -6 : 1) - day;
+  d.setDate(d.getDate() + diff);
+  d.setHours(0, 0, 0, 0);
+  return d;
+}
+
 export const BrushScrubber: React.FC<BrushScrubberProps> = ({
   height = 100,
 }) => {
@@ -23,6 +32,7 @@ export const BrushScrubber: React.FC<BrushScrubberProps> = ({
   const expenses = useExpenses();
   const income = useIncome();
   const savings = useSavings();
+  const { importHistory } = useImportHistory();
 
   useEffect(() => {
     if (!containerRef.current) return;
@@ -83,6 +93,34 @@ export const BrushScrubber: React.FC<BrushScrubberProps> = ({
       .attr("y2", innerHeight / 2)
       .attr("stroke", "#858585ff")
       .attr("stroke-width", 1);
+
+    const importDates = (() => {
+      const raw = importHistory ?? [];
+      const weekMap = new Map<number, string>();
+      for (const d of raw) {
+        const date = new Date(d);
+        const weekKey = getISOWeekStart(date).getTime();
+        const existing = weekMap.get(weekKey);
+        if (!existing || date > new Date(existing)) {
+          weekMap.set(weekKey, d);
+        }
+      }
+      return [...weekMap.values()];
+    })();
+
+    if (importDates.length > 0) {
+      const importGroup = container.append("g").attr("class", "import-lines");
+      importGroup
+        .selectAll("line")
+        .data(importDates)
+        .join("line")
+        .attr("x1", (d) => xScale(new Date(d)))
+        .attr("x2", (d) => xScale(new Date(d)))
+        .attr("y1", 0)
+        .attr("y2", innerHeight)
+        .attr("stroke", "rgba(155, 89, 182, 0.5)")
+        .attr("stroke-width", 1.5);
+    }
 
     container
       .append("g")
@@ -216,7 +254,7 @@ export const BrushScrubber: React.FC<BrushScrubberProps> = ({
       });
 
     return () => sub.unsubscribe();
-  }, [expenses, income, width, height]);
+  }, [expenses, income, savings, importHistory, width, height]);
 
   return (
     <div ref={containerRef} style={{ width: "100%" }}>

@@ -29,6 +29,9 @@ export enum KnownStoreKeys {
   Sales = "sales",
   BalanceSnapshots = "balance_snapshots",
   CustomCsvDefinitions = "custom_csv_definitions",
+  SsdiPayPeriods = "ssdi_pay_periods",
+  SsdiConfig = "ssdi_config",
+  ImportHistory = "import_history",
 }
 
 export type ForecastConfigData = {
@@ -197,3 +200,18 @@ export type PreviewResult = {
   expense: Expense | null;
   error: string | null;
 };
+
+export type SsdiPayPeriod = {
+  id: string;
+  beginDate: string;
+  endDate: string;
+  depositExpenseId: string;
+  grossEarnings: number;
+};
+
+export type SsdiConfig = {
+  year: number;
+  sgaByYear: Record<number, number>;
+};
+
+export type ImportHistory = string[];

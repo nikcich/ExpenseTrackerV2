@@ -4,7 +4,7 @@ import { CheckboxCard, Heading, Switch, Separator, Text, Button } from "@chakra-
 import { setSettingsStore, useSettingsStore } from "@/store/SettingsStore";
 import { setMockMode } from "@/utils/utils";
 import { useAllTags } from "@/utils/tags";
-import { useHasRsuData } from "@/store/store";
+import { useHasRsuData, useHasSsdiData, useSsdiConfig } from "@/store/store";
 import { exportAllData, importAllData } from "@/utils/download";
 import { toaster } from "@/components/ui/toaster";
 import styles from "./Settings.module.scss";
@@ -42,8 +42,13 @@ export function SettingsModal() {
   const disabledTags = useSettingsStore("disabledTags");
   const mockDataEnabled = useSettingsStore("mockDataEnabled");
   const rsuTabEnabled = useSettingsStore("rsuTabEnabled");
+  const ssdiTabEnabled = useSettingsStore("ssdiTabEnabled");
   const allTagsSet = useAllTags();
   const hasRsuData = useHasRsuData();
+  const hasSsdiData = useHasSsdiData();
+  const { config: ssdiConfig, saveConfig: saveSsdiConfig } = useSsdiConfig();
+  const currentYear = new Date().getFullYear();
+  const sgaAmount = ssdiConfig?.sgaByYear?.[currentYear] ?? 1620;
 
   const isAll = disabledTags.length === 0;
 
@@ -188,6 +193,58 @@ export function SettingsModal() {
               ? "RSU tab is always visible when you have RSU data."
               : "RSU tab is hidden by default. Enable it here or add RSU data to make it appear."}
           </Text>
+
+          <CheckboxCard.Root mt={3}>
+            <CheckboxCard.Control>
+              <CheckboxCard.Content>
+                <Switch.Root
+                  colorPalette={"blue"}
+                  checked={ssdiTabEnabled || hasSsdiData}
+                  disabled={hasSsdiData}
+                  onCheckedChange={(changes) => {
+                    setSettingsStore((prev) => ({
+                      ...prev,
+                      ssdiTabEnabled: changes.checked,
+                    }));
+                  }}
+                >
+                  <Switch.HiddenInput />
+                  <Switch.Control />
+                  <Switch.Label>Show SSDI tab</Switch.Label>
+                </Switch.Root>
+              </CheckboxCard.Content>
+            </CheckboxCard.Control>
+          </CheckboxCard.Root>
+          <Text fontSize="sm" color="fg.muted" mt={1}>
+            {hasSsdiData
+              ? "SSDI tab is always visible when you have SSDI data."
+              : "SSDI tab is hidden by default. Enable it here or add SSDI data to make it appear."}
+          </Text>
+
+          <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", marginTop: "0.75rem" }}>
+            <Text fontSize="sm" color="fg.muted" whiteSpace="nowrap">SGA Monthly Amount</Text>
+            <input
+              type="number"
+              style={{
+                background: "transparent",
+                border: "1px solid var(--border-color, #32323c)",
+                borderRadius: "0.375rem",
+                padding: "0.35rem 0.6rem",
+                color: "var(--fg-default, #e0e0e6)",
+                fontSize: "0.85rem",
+                outline: "none",
+                width: "100px",
+              }}
+              value={sgaAmount}
+              onChange={(e) => {
+                const newSga = parseFloat(e.target.value) || 0;
+                saveSsdiConfig({
+                  ...(ssdiConfig ?? { year: currentYear, sgaByYear: {} }),
+                  sgaByYear: { ...ssdiConfig?.sgaByYear, [currentYear]: newSga },
+                });
+              }}
+            />
+          </div>
         </div>
 
         <Separator />

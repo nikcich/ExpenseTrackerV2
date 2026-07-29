@@ -3,10 +3,12 @@ import {
   ExpenseTag,
   ForecastConfigData,
   GrantMap,
+  ImportHistory,
   KnownStoreKeys,
   NonExpenseTags,
   RsuVestsMap,
   SalesMap,
+  SsdiConfig,
   StockMap,
   StoreExpenseMap,
   Tag,
@@ -441,6 +443,53 @@ export const MOCK_BRUSH_RANGE: [number, number] = [
   endDate.getTime(),
 ];
 
+const generateMockSsdiPayPeriods = (): Record<string, { id: string; beginDate: string; endDate: string; depositExpenseId: string; grossEarnings: number }> => {
+  const map: Record<string, { id: string; beginDate: string; endDate: string; depositExpenseId: string; grossEarnings: number }> = {};
+  const currentYear = new Date().getFullYear();
+  const expenseIds = Object.keys(MOCK_EXPENSES);
+  const salaryIds = expenseIds.filter((id) => {
+    const exp = MOCK_EXPENSES[id];
+    return exp.description === "Salary";
+  }).sort((a, b) => new Date(MOCK_EXPENSES[a].date).getTime() - new Date(MOCK_EXPENSES[b].date).getTime());
+  const allExpenseIds = expenseIds.sort((a, b) => new Date(MOCK_EXPENSES[a].date).getTime() - new Date(MOCK_EXPENSES[b].date).getTime());
+
+  let periodStart = new Date(currentYear, 0, 1);
+  let salaryIdx = 0;
+  const maxPeriods = 22;
+  for (let i = 0; i < maxPeriods; i++) {
+    const periodEnd = new Date(periodStart);
+    periodEnd.setDate(periodEnd.getDate() + 13);
+    if (periodEnd.getFullYear() > currentYear) break;
+
+    const depositExpenseId = salaryIdx < salaryIds.length ? salaryIds[salaryIdx] : allExpenseIds[Math.floor(Math.random() * allExpenseIds.length)];
+    const id = uuidv4();
+    map[id] = {
+      id,
+      beginDate: format(periodStart, "yyyy-MM-dd"),
+      endDate: format(periodEnd, "yyyy-MM-dd"),
+      depositExpenseId,
+      grossEarnings: 2700 + Math.round(Math.random() * 600),
+    };
+
+    periodStart.setDate(periodStart.getDate() + 14);
+    salaryIdx++;
+  }
+  return map;
+};
+
+export const MOCK_SSDI_PAY_PERIODS = generateMockSsdiPayPeriods();
+
+export const MOCK_SSDI_CONFIG: SsdiConfig = {
+  year: new Date().getFullYear(),
+  sgaByYear: { [new Date().getFullYear()]: 1620 },
+};
+
+export const MOCK_IMPORT_HISTORY: ImportHistory = [
+  format(subMonths(now, 6), "yyyy-MM-dd"),
+  format(subMonths(now, 3), "yyyy-MM-dd"),
+  format(subMonths(now, 1), "yyyy-MM-dd"),
+];
+
 export const MOCK_DATA_MAP: Partial<Record<KnownStoreKeys, unknown>> = {
   [KnownStoreKeys.Expenses]: MOCK_EXPENSES,
   [KnownStoreKeys.Stocks]: MOCK_STOCKS,
@@ -449,4 +498,7 @@ export const MOCK_DATA_MAP: Partial<Record<KnownStoreKeys, unknown>> = {
   [KnownStoreKeys.Sales]: MOCK_SALES,
   [KnownStoreKeys.BalanceSnapshots]: MOCK_BALANCE_SNAPSHOTS,
   [KnownStoreKeys.ForecastConfig]: MOCK_FORECAST_CONFIG,
+  [KnownStoreKeys.SsdiPayPeriods]: MOCK_SSDI_PAY_PERIODS,
+  [KnownStoreKeys.SsdiConfig]: MOCK_SSDI_CONFIG,
+  [KnownStoreKeys.ImportHistory]: MOCK_IMPORT_HISTORY,
 };

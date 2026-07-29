@@ -4,6 +4,7 @@ type Settings = {
   disabledTags: string[];
   mockDataEnabled: boolean;
   rsuTabEnabled: boolean;
+  ssdiTabEnabled: boolean;
 };
 
 export const { useStore: useSettingsStore, setState: setSettingsStore } =
@@ -11,4 +12,5 @@ export const { useStore: useSettingsStore, setState: setSettingsStore } =
     disabledTags: [],
     mockDataEnabled: false,
     rsuTabEnabled: false,
-  });
+    ssdiTabEnabled: false,
+  }, "settings");
