@@ -3,7 +3,11 @@ import { useCallback, useState } from "react";
 import { Expense, Tag } from "@/types/types";
 import { format, parse } from "date-fns";
 import { MultiSelectInput } from "./MultiSelectInput";
-import { useAllTagsOptions } from "@/utils/tags";
+import { useAllGroups, useAllTagsOptions } from "@/utils/tags";
+import {
+  INCOME_GROUP,
+  SAVINGS_GROUP,
+} from "@/utils/expense-utils";
 import { preventDoubleClick, SHORTCUT_COOLDOWN } from "@/utils/utils";
 
 export const ExpenseForm = ({
@@ -21,12 +25,14 @@ export const ExpenseForm = ({
   const [amount, setAmount] = useState(expense?.amount ?? 0);
   const [description, setDescription] = useState(expense?.description ?? "");
   const [tags, setTags] = useState<string[]>(expense?.tags ?? []);
+  const [group, setGroup] = useState(expense?.group ?? "");
 
-  const ALL_TAGS_OPTIONS = useAllTagsOptions(true);
+  const ALL_TAGS_OPTIONS = useAllTagsOptions();
+  const ALL_GROUPS = useAllGroups();
 
   const onFormSubmit = useCallback(
     preventDoubleClick(
-    (dt: string, a: number, d: string, t: string[]) => {
+    (dt: string, a: number, d: string, t: string[], g: string) => {
       const fmtDate = parse(dt, "yyyy-MM-dd", new Date());
       const formattedDateTime = format(fmtDate, "yyyy-MM-dd'T'HH:mm:ss");
 
@@ -35,6 +41,7 @@ export const ExpenseForm = ({
         amount: a,
         description: d,
         tags: (t as Tag[]) ?? [],
+        group: g.trim() || undefined,
       };
       onSubmit(partial);
     }, SHORTCUT_COOLDOWN),
@@ -48,7 +55,8 @@ export const ExpenseForm = ({
       date !== format(new Date(expense.date), "yyyy-MM-dd") ||
       amount !== expense.amount ||
       description !== expense.description ||
-      !tags.every((v) => expense.tags.includes(v as Tag));
+      !tags.every((v) => expense.tags.includes(v as Tag)) ||
+      (group.trim() || undefined) !== expense.group;
 
     return dirty;
   };
@@ -104,10 +112,34 @@ export const ExpenseForm = ({
         placeholder="Select Tags"
       />
 
+      <Text>Group</Text>
+      <Input
+        type="text"
+        value={group}
+        onChange={(e) => setGroup(e.target.value)}
+        placeholder="Optional (e.g. Japan Trip)"
+        list="expense-form-groups"
+      />
+      <datalist id="expense-form-groups">
+        {ALL_GROUPS.map((g) => (
+          <option key={g} value={g} />
+        ))}
+      </datalist>
+      {group.trim() === INCOME_GROUP && (
+        <Text fontSize="sm" color="fg.muted">
+          Will be classified as Income
+        </Text>
+      )}
+      {group.trim() === SAVINGS_GROUP && (
+        <Text fontSize="sm" color="fg.muted">
+          Will be classified as Savings
+        </Text>
+      )}
+
       <Button
         data-primary="true"
         colorPalette="green"
-        onClick={() => onFormSubmit(date, amount, description, tags)}
+        onClick={() => onFormSubmit(date, amount, description, tags, group)}
         disabled={!isFormDirty() || !isFormValid()}
         style={{ width: "100%" }}
       >

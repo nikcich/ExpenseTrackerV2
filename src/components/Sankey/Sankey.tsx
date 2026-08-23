@@ -2,6 +2,8 @@ export type SankeyNode = {
   id: string;
   label: string;
   color?: string;
+  x?: number;
+  y?: number;
 };
 
 export type SankeyLink = {
@@ -27,6 +29,11 @@ export const Sankey = ({ data }: SankeyProps) => {
   // Build node index map
   const nodeIndex = new Map<string, number>();
   data.nodes.forEach((node, i) => nodeIndex.set(node.id, i));
+
+  const hasNodePositions =
+    data.nodes.length > 0 &&
+    data.nodes.every((n) => n.x !== undefined && n.y !== undefined);
+
   return (
     <div className={styles.container}>
       <div className={styles.plotContainer}>
@@ -40,6 +47,12 @@ export const Sankey = ({ data }: SankeyProps) => {
                 thickness: 20,
                 label: data.nodes.map((n) => n.label),
                 color: data.nodes.map((n) => n.color ?? "#ccc"),
+                ...(hasNodePositions
+                  ? {
+                      x: data.nodes.map((n) => n.x!),
+                      y: data.nodes.map((n) => n.y!),
+                    }
+                  : {}),
               },
               link: {
                 source: data.links.map((l) => nodeIndex.get(l.source)!),

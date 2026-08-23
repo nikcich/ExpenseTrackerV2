@@ -63,3 +63,39 @@ export const useAllTagsOptions = (includeNonExpenseTags?: boolean) => {
     [tags]
   );
 };
+
+export const useAllGroups = () => {
+  const expenses = useExpenses();
+  const savings = useSavings();
+  const income = useIncome();
+
+  const prevRef = useRef<string[] | null>(null);
+
+  return useMemo(() => {
+    const next = new Set<string>();
+
+    for (const e of expenses) {
+      if (e.group) next.add(e.group);
+    }
+    for (const e of savings) {
+      if (e.group) next.add(e.group);
+    }
+    for (const e of income) {
+      if (e.group) next.add(e.group);
+    }
+
+    const sorted = [...next].sort((a, b) => a.localeCompare(b));
+    const prev = prevRef.current;
+
+    if (
+      prev &&
+      prev.length === sorted.length &&
+      prev.every((g, i) => g === sorted[i])
+    ) {
+      return prev; // preserve reference
+    }
+
+    prevRef.current = sorted;
+    return sorted;
+  }, [expenses, savings, income]);
+};

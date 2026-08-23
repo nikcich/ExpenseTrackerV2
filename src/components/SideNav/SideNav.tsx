@@ -14,6 +14,7 @@ import { BsAlignMiddle } from "react-icons/bs";
 import { TbChartSankey } from "react-icons/tb";
 import { MdOutlineTrendingUp } from "react-icons/md";
 import { PiCompassLight, PiChartPieSlice } from "react-icons/pi";
+import { LuLayers } from "react-icons/lu";
 import { FaCoins } from "react-icons/fa";
 import { LuFileSpreadsheet } from "react-icons/lu";
 import { Tooltip } from "@/components/ui/tooltip";
@@ -56,6 +57,7 @@ export function SideNav() {
         {showRsu && <NavButton Icon={FaCoins} page={Pages.RSU} label="RSU" />}
         {showSsdi && <NavButton Icon={HiOutlineDocumentText} page={Pages.SSDI} label="SSDI" />}
         <NavButton Icon={MdOutlineTrendingUp} page={Pages.Forecast} label="Forecast" />
+        <NavButton Icon={LuLayers} page={Pages.Groups} label="Groups" />
         <NavButton Icon={FaTable} page={Pages.TableView} label="Data Table" />
         <NavButton Icon={BsAlignMiddle} page={Pages.AverageSpending} label="Average Spending" />
         <NavButton

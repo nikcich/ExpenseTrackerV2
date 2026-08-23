@@ -1,3 +1,4 @@
+import { memo } from "react";
 import Plot from "react-plotly.js";
 import { Layout } from "plotly.js";
 import { chartDateCompare } from "@/utils/utils";
@@ -49,7 +50,7 @@ const layout: Partial<Layout> = {
   dragmode: false,
 };
 
-export function StackedBarChart({
+export const StackedBarChart = memo(function StackedBarChart({
   data,
   legend = true,
   legendDirection = "v",
@@ -72,4 +73,4 @@ export function StackedBarChart({
       useResizeHandler={true}
     />
   );
-}
+});

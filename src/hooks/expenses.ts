@@ -1,7 +1,8 @@
 import { useSettingsStore } from "@/store/SettingsStore";
 import { useDebouncedBrushRange, useExpensesStore } from "@/store/store";
-import { Expense, NonExpenseTags } from "@/types/types";
+import { Expense } from "@/types/types";
 import { parseDate } from "@/utils/utils";
+import { getExpenseKind } from "@/utils/expense-utils";
 import { useMemo } from "react";
 import * as d3 from "d3";
 
@@ -9,12 +10,7 @@ export const useExpenses = () => {
   const { value } = useExpensesStore();
 
   const expenses = useMemo(
-    () =>
-      value?.filter((e) => {
-        const isIncome = e.tags.includes(NonExpenseTags.Income);
-        const isSavings = e.tags.includes(NonExpenseTags.Savings);
-        return !isIncome && !isSavings;
-      }) ?? [],
+    () => value?.filter((e) => getExpenseKind(e) === "expense") ?? [],
     [value]
   );
   return expenses;
@@ -24,6 +20,7 @@ export const useFilteredExpenses = () => {
   const [range] = useDebouncedBrushRange();
   const expenses = useExpenses();
   const disabledTags = useSettingsStore("disabledTags");
+  const disabledGroups = useSettingsStore("disabledGroups");
 
   const filtered = useMemo(() => {
     if (!range) return expenses;
@@ -34,10 +31,11 @@ export const useFilteredExpenses = () => {
       })
       .filter(
         (expense) =>
-          !disabledTags.some((tag) => expense.tags.includes(tag)) ||
-          expense.tags.length === 0
+          (!disabledTags.some((tag) => expense.tags.includes(tag)) ||
+            expense.tags.length === 0) &&
+          (!expense.group || !disabledGroups.includes(expense.group))
       );
-  }, [range, expenses]);
+  }, [range, expenses, disabledTags, disabledGroups]);
 
   return filtered;
 };
@@ -46,8 +44,7 @@ export const useIncome = () => {
   const { value } = useExpensesStore();
 
   const expenses = useMemo(
-    () =>
-      value?.filter((e) => e.tags.includes(NonExpenseTags.Income)) ?? [],
+    () => value?.filter((e) => getExpenseKind(e) === "income") ?? [],
     [value]
   );
   return expenses;
@@ -72,7 +69,7 @@ export const useSavings = () => {
   const { value } = useExpensesStore();
 
   const savings = useMemo(() => {
-    return value?.filter((e) => e.tags.includes(NonExpenseTags.Savings)) ?? [];
+    return value?.filter((e) => getExpenseKind(e) === "savings") ?? [];
   }, [value]);
   return savings;
 };

@@ -22,6 +22,8 @@ import { RSU } from "./pages/RSU/RSU";
 import { CSVFormats } from "./pages/CSVFormats/CSVFormats";
 import { useGlobalShortcuts } from "./hooks/useGlobalShortcuts";
 import { SSDI } from "./pages/SSDI/SSDI";
+import { SelectionInsights } from "./pages/SelectionInsights/SelectionInsights";
+import { Groups } from "./pages/Groups/Groups";
 
 const MockBanner = () => {
   const enabled = useSyncExternalStore(
@@ -152,6 +154,21 @@ export function AppRouter() {
         <Route
           path={Pages.SSDI}
           element={<RouteComponent element={<SSDI />} />}
+        />
+
+        <Route
+          path={Pages.SelectionInsights}
+          element={<RouteComponent element={<SelectionInsights />} />}
+        />
+
+        <Route
+          path={Pages.Groups}
+          element={<RouteComponent element={<Groups />} />}
+        />
+
+        <Route
+          path={`${Pages.Groups}/:groupName`}
+          element={<RouteComponent element={<Groups />} />}
         />
       </Routes>
     </BrowserRouter>

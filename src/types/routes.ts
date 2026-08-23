@@ -12,4 +12,6 @@ export enum Pages {
   Forecast = "/forecast",
   CSVFormats = "/csv-formats",
   SSDI = "/ssdi",
+  SelectionInsights = "/selection-insights",
+  Groups = "/groups",
 }

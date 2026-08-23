@@ -1,6 +1,17 @@
 import { ReactNode } from "react";
 import styles from "./ChartCard.module.scss";
 
-export function ChartCard({ children }: { children: ReactNode }) {
-  return <div className={styles.card}>{children}</div>;
+export function ChartCard({
+  children,
+  toolbar,
+}: {
+  children: ReactNode;
+  toolbar?: ReactNode;
+}) {
+  return (
+    <div className={styles.card}>
+      {toolbar && <div className={styles.toolbar}>{toolbar}</div>}
+      {children}
+    </div>
+  );
 }

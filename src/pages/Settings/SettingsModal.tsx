@@ -3,7 +3,7 @@ import { Overlay, closeAllOverlays } from "@/store/OverlayStore";
 import { CheckboxCard, Heading, Switch, Separator, Text, Button } from "@chakra-ui/react";
 import { setSettingsStore, useSettingsStore } from "@/store/SettingsStore";
 import { setMockMode } from "@/utils/utils";
-import { useAllTags } from "@/utils/tags";
+import { useAllGroups, useAllTags } from "@/utils/tags";
 import { useHasRsuData, useHasSsdiData, useSsdiConfig } from "@/store/store";
 import { exportAllData, importAllData } from "@/utils/download";
 import { toaster } from "@/components/ui/toaster";
@@ -40,10 +40,12 @@ const CustomCheckBox = ({
 
 export function SettingsModal() {
   const disabledTags = useSettingsStore("disabledTags");
+  const disabledGroups = useSettingsStore("disabledGroups");
   const mockDataEnabled = useSettingsStore("mockDataEnabled");
   const rsuTabEnabled = useSettingsStore("rsuTabEnabled");
   const ssdiTabEnabled = useSettingsStore("ssdiTabEnabled");
   const allTagsSet = useAllTags();
+  const allGroups = useAllGroups();
   const hasRsuData = useHasRsuData();
   const hasSsdiData = useHasSsdiData();
   const { config: ssdiConfig, saveConfig: saveSsdiConfig } = useSsdiConfig();
@@ -292,6 +294,41 @@ export function SettingsModal() {
             ))}
           </div>
         </div>
+
+        {allGroups.length > 0 && (
+          <>
+            <Separator />
+            <div>
+              <Heading size="sm" mb={2}>Enabled Groups</Heading>
+              <Text fontSize="sm" color="fg.muted" mb={3}>
+                Disabled groups are excluded from Overview and chart pages.
+              </Text>
+              <div className={styles.switchContainer}>
+                {allGroups.map((group) => (
+                  <CustomCheckBox
+                    key={group}
+                    checked={!disabledGroups.includes(group)}
+                    onChange={(checked) => {
+                      setSettingsStore((prev) => {
+                        const groupsArr = !checked
+                          ? prev.disabledGroups.includes(group)
+                            ? prev.disabledGroups
+                            : [...prev.disabledGroups, group]
+                          : prev.disabledGroups.filter((g) => g !== group);
+
+                        return {
+                          ...prev,
+                          disabledGroups: groupsArr,
+                        };
+                      });
+                    }}
+                    label={group}
+                  />
+                ))}
+              </div>
+            </div>
+          </>
+        )}
       </div>
     </GenericModal>
   );

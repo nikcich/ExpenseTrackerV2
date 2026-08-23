@@ -7,6 +7,8 @@ pub struct Expense {
     description: String,
     amount: f64,
     tags: Vec<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    group: Option<String>,
     date: NaiveDateTime,
 }
 
@@ -17,6 +19,7 @@ impl Default for Expense {
             description: String::default(),
             amount: f64::default(),
             tags: Vec::default(),
+            group: Option::default(),
             date: NaiveDateTime::default(),
         };
     }
@@ -29,6 +32,7 @@ impl Expense {
             description: description,
             amount: amount,
             tags: Vec::default(),
+            group: Option::default(),
             date: date,
         };
     }
@@ -71,5 +75,13 @@ impl Expense {
 
     pub fn get_tags(&self) -> &Vec<String> {
         &self.tags
+    }
+
+    pub fn set_group(&mut self, group: Option<String>) {
+        self.group = group;
+    }
+
+    pub fn get_group(&self) -> Option<&str> {
+        self.group.as_deref()
     }
 }

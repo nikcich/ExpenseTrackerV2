@@ -3,6 +3,7 @@ import { GenericPage } from "@/components/GenericPage/GenericPage";
 import { useFilteredExpenses } from "@/hooks/expenses";
 import {
   byDay,
+  byGroup,
   byMonth,
   byTag,
   byYear,
@@ -20,18 +21,24 @@ export function TagStackedBarChart() {
   const [mode, setMode] = useState<Mode>(Mode.MONTHLY);
   const filteredExpenses = useFilteredExpenses();
 
+  const dateKeyFn =
+    mode === Mode.MONTHLY
+      ? byMonth
+      : mode === Mode.YEARLY
+        ? byYear
+        : byDay;
+
   const traces = useMemo(() => {
-    const grouped = (() => {
-      if (mode === Mode.MONTHLY) {
-        return groupAndSumExpenses(filteredExpenses, byTag, byMonth);
-      } else if (mode === Mode.YEARLY) {
-        return groupAndSumExpenses(filteredExpenses, byTag, byYear);
-      } else {
-        return groupAndSumExpenses(filteredExpenses, byTag, byDay);
-      }
-    })();
-    return parseStackedFormat(grouped);
-  }, [filteredExpenses, mode]);
+    return parseStackedFormat(
+      groupAndSumExpenses(filteredExpenses, byTag, dateKeyFn)
+    );
+  }, [filteredExpenses, dateKeyFn]);
+
+  const groupTraces = useMemo(() => {
+    return parseStackedFormat(
+      groupAndSumExpenses(filteredExpenses, byGroup, dateKeyFn)
+    );
+  }, [filteredExpenses, dateKeyFn]);
 
   return (
     <GenericPage
@@ -50,7 +57,7 @@ export function TagStackedBarChart() {
       }
     >
       <div style={{ padding: "1.5rem 2rem", height: "100%", display: "flex", flexDirection: "column" }}>
-        <TagStackedBarChartCard traces={traces} />
+        <TagStackedBarChartCard traces={traces} groupTraces={groupTraces} />
       </div>
     </GenericPage>
   );

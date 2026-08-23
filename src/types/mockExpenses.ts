@@ -5,7 +5,6 @@ import {
   GrantMap,
   ImportHistory,
   KnownStoreKeys,
-  NonExpenseTags,
   RsuVestsMap,
   SalesMap,
   SsdiConfig,
@@ -16,6 +15,7 @@ import {
 
 import { v4 as uuidv4 } from "uuid";
 import { format, subMonths, addMonths } from "date-fns";
+import { INCOME_GROUP, SAVINGS_GROUP } from "@/utils/expense-utils";
 
 const now = new Date();
 const startDate = subMonths(now, 12);
@@ -55,40 +55,93 @@ const addExpense = (
   amount: number,
   tags: Tag[],
   description: string,
+  group?: string,
 ) => {
   const id = uuidv4();
   map[id] = {
     id,
     amount: roundAmt(amount),
     tags,
+    ...(group ? { group } : {}),
     date: format(date, "yyyy-MM-dd'T'HH:mm:ss"),
     description,
   };
 };
 
+const addGroupedExpenses = (
+  map: StoreExpenseMap,
+  entries: {
+    date: Date;
+    amount: number;
+    tags: Tag[];
+    description: string;
+  }[],
+  group: string,
+) => {
+  for (const e of entries) {
+    addExpense(map, e.date, e.amount, e.tags, e.description, group);
+  }
+};
+
 const generateRealisticExpenses = (from: Date, to: Date): StoreExpenseMap => {
   const map: StoreExpenseMap = {};
   let current = new Date(from.getFullYear(), from.getMonth(), 1);
+  let monthIndex = 0;
 
   while (current <= to) {
     const year = current.getFullYear();
     const month = current.getMonth();
     const daysInMonth = new Date(year, month + 1, 0).getDate();
 
+    if (monthIndex === 3) {
+      addGroupedExpenses(
+        map,
+        [
+          { date: new Date(year, month, 6), amount: 850, tags: [ExpenseTag.Vacation_Travel], description: "Flight to Tokyo" },
+          { date: new Date(year, month, 6), amount: 240, tags: [ExpenseTag.Vacation_Travel], description: "Hotel — Shinjuku (night 1)" },
+          { date: new Date(year, month, 7), amount: 38, tags: [ExpenseTag.Food], description: "Ramen dinner" },
+          { date: new Date(year, month, 7), amount: 22, tags: [ExpenseTag.Transportation], description: "Narita Express" },
+          { date: new Date(year, month, 8), amount: 55, tags: [ExpenseTag.Entertainment], description: "TeamLab Planets" },
+          { date: new Date(year, month, 8), amount: 240, tags: [ExpenseTag.Vacation_Travel], description: "Hotel — Shinjuku (night 2)" },
+          { date: new Date(year, month, 9), amount: 46, tags: [ExpenseTag.Food], description: "Izakaya dinner" },
+          { date: new Date(year, month, 9), amount: 28, tags: [ExpenseTag.Transportation], description: "Metro day pass" },
+          { date: new Date(year, month, 10), amount: 95, tags: [ExpenseTag.Shopping], description: "Souvenirs — Nakamise" },
+          { date: new Date(year, month, 10), amount: 32, tags: [ExpenseTag.Food], description: "Sushi breakfast" },
+        ],
+        "Japan Trip",
+      );
+    }
+
+    if (monthIndex === 7) {
+      addGroupedExpenses(
+        map,
+        [
+          { date: new Date(year, month, 4), amount: 320, tags: [ExpenseTag.One_Off], description: "Tile order" },
+          { date: new Date(year, month, 12), amount: 145, tags: [ExpenseTag.One_Off], description: "Plumber call-out" },
+          { date: new Date(year, month, 19), amount: 210, tags: [ExpenseTag.Shopping], description: "Vanity + mirror" },
+          { date: new Date(year, month, 26), amount: 88, tags: [ExpenseTag.One_Off], description: "Paint & sealant" },
+        ],
+        "Bathroom Reno",
+      );
+    }
+    monthIndex++;
+
     // Semimonthly salary (15th + last day) — ~$4,600/month after tax on $80k/yr
     addExpense(
       map,
       new Date(year, month, 15),
       2300,
-      [NonExpenseTags.Income],
+      ["Paycheck"],
       "Salary",
+      INCOME_GROUP,
     );
     addExpense(
       map,
       new Date(year, month, daysInMonth),
       2300,
-      [NonExpenseTags.Income],
+      ["Paycheck"],
       "Salary",
+      INCOME_GROUP,
     );
 
     // Rent — 1st
@@ -215,8 +268,9 @@ const generateRealisticExpenses = (from: Date, to: Date): StoreExpenseMap => {
       map,
       new Date(year, month, daysInMonth),
       600,
-      [NonExpenseTags.Savings],
+      ["Transfer"],
       "Monthly Savings",
+      SAVINGS_GROUP,
     );
 
     current = new Date(year, month + 1, 1);

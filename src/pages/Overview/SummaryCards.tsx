@@ -1,8 +1,9 @@
+import { memo } from "react";
 import { Delta } from "./Delta";
 import { formatCurrency } from "@/utils/utils";
 import styles from "./Overview.module.scss";
 
-export function SummaryCards({
+export const SummaryCards = memo(function SummaryCards({
   realIncome,
   totalSpent,
   net,
@@ -83,4 +84,4 @@ export function SummaryCards({
       ))}
     </div>
   );
-}
+});

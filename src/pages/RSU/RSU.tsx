@@ -1240,7 +1240,7 @@ export function RSU() {
             allPoints.push({
               date,
               actual: cumActual,
-              forecast: null,
+              forecast: date === lastActualDate ? cumActual : null,
             });
           } else {
             allPoints.push({
@@ -1267,14 +1267,6 @@ export function RSU() {
                 Vesting Forecast
               </span>
               <div className={styles.forecastControls}>
-                <SegmentGroup.Root
-                  value={forecastUnit}
-                  onValueChange={(e) => setForecastUnit(e.value as "shares" | "dollars")}
-                  size="sm"
-                >
-                  <SegmentGroup.Indicator />
-                  <SegmentGroup.Items items={["shares", "dollars"]} />
-                </SegmentGroup.Root>
                 {forecastUnit === "dollars" && (
                   <div className={styles.priceInputs}>
                     {[...forecastPrices.entries()].map(([stockId, price]) => {
@@ -1295,14 +1287,34 @@ export function RSU() {
                               setForecastPrices(next);
                             }}
                           />
-                          <span className={styles.priceSliderValue}>
-                            {formatCurrency(price)}
-                          </span>
+                          <input
+                            type="number"
+                            min={1}
+                            step="any"
+                            value={price}
+                            onChange={(e) => {
+                              const value = Number(e.target.value);
+                              if (Number.isFinite(value)) {
+                                const next = new Map(forecastPrices);
+                                next.set(stockId, value);
+                                setForecastPrices(next);
+                              }
+                            }}
+                            className={styles.priceInput}
+                          />
                         </div>
                       );
                     })}
                   </div>
                 )}
+                <SegmentGroup.Root
+                  value={forecastUnit}
+                  onValueChange={(e) => setForecastUnit(e.value as "shares" | "dollars")}
+                  size="sm"
+                >
+                  <SegmentGroup.Indicator />
+                  <SegmentGroup.Items items={["shares", "dollars"]} />
+                </SegmentGroup.Root>
               </div>
             </div>
 
@@ -1335,14 +1347,14 @@ export function RSU() {
                   x={allPoints.map((p) => p.date)}
                   barCharts={[
                     {
-                      name: "Actual Vested",
-                      y: allPoints.map((p) => p.actual),
-                      color: "#4ade80",
-                    },
-                    {
                       name: "Cumulative Forecast",
                       y: allPoints.map((p) => p.forecast),
                       color: "#60a5fa",
+                    },
+                    {
+                      name: "Actual Vested",
+                      y: allPoints.map((p) => p.actual),
+                      color: "#4ade80",
                     },
                   ]}
                   legend

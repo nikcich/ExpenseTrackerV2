@@ -24,13 +24,14 @@ Components must accept data via props — never call hooks or fetch data interna
 - Card/chart component: pure rendering from props
 
 Existing reusable card components in `src/components/charts/`:
-- `ChartCard` — dark card wrapper (var `--bg-panel`, border `--border-color`, border-radius 0.75rem, padding 1.25rem)
+- `ChartCard` — dark card wrapper (var `--bg-panel`, border `--border-color`, border-radius 0.75rem, padding 1.25rem); optional `toolbar` prop renders a right-aligned slot above the chart
+- `BreakdownToggle` — TAGS/GROUPS segmented control (`Breakdown` type); used by tag-based charts to switch aggregation
 - `SankeyCard` — accepts `SankeyData`
 - `YearToDateChartCard` — accepts `charts` + `groups`
 - `GroupedBarChartCard` — accepts `barCharts` + `groups`
 - `RangeIncomeExpenseChartCard` — accepts `totalExpenses`/`totalIncome`/`totalSavings`
-- `AverageSpendingCard` — accepts `traces`
-- `TagStackedBarChartCard` — accepts `traces`
+- `AverageSpendingCard` — accepts `traces` + optional `groupTraces` (toggle shown when provided)
+- `TagStackedBarChartCard` — accepts `traces` + optional `groupTraces` (toggle shown when provided)
 
 ### Styling
 
@@ -86,14 +87,32 @@ Rendered via `OverlayStore` enum + `GenericModal` pattern in `src/Overlays.tsx`.
 ### Expense Data Model
 
 ```
-Expense { id: string; amount: number; tags: Tag[]; date: string; description: string }
+Expense { id: string; amount: number; tags: Tag[]; group?: string; date: string; description: string }
 Tag = ExpenseTag | NonExpenseTags | string
 ExpenseTag enum: Food, Utilities, Rent/Mortgage, Transportation, Entertainment, Health/Med, Shopping, Debt, Gifts, Misc, Motorcycle, Work, Gas, One_Off, Insurance, Credit_Repayment, Vacation/Travel
-NonExpenseTags: Income, Savings
+NonExpenseTags: Income, Savings (legacy — no longer offered in tag pickers)
 Mode enum: MONTHLY, DAILY, YEARLY
 ```
 
+**Groups** are a second, orthogonal dimension on top of tags: tags = *what* the money was (Food, Gas), `group` = *what it was part of* (e.g. "Japan Trip", "Bathroom Reno"). An expense belongs to at most one group (free-form string, no enum). The Rust `Expense` struct (`src-tauri/src/model/expense.rs`) mirrors this with `Option<String>` + `#[serde(default)]`, so old stored data without the field deserializes fine. Key pieces:
+- `useAllGroups()` in `src/utils/tags.ts` — collects distinct groups from all entries (sorted, reference-stable)
+- Bulk assignment: select rows in TableView → "Set Group" → `GroupModal` (Overlay enum) → `UpdateBulkExpenses`
+- Per-expense field in `ExpenseForm` (text input with datalist of existing groups)
+- `disabledGroups` in SettingsStore — same pattern as `disabledTags`; toggleable per-group in Settings modal when groups exist. Consumed everywhere `disabledTags` is: Overview page filter and `useFilteredExpenses()` (chart pages) — entries whose `group` is disabled are excluded.
+- **Groups page** (`/groups`) — grid of group cards (single signed total: positive red = spent, negative green = net reimbursement; reserved Income/Savings groups labeled accordingly) → click through to `/groups/:groupName` detail. Both list and detail render via the shared `InsightsView` component (`src/components/InsightsView/`), which is props-driven (takes `items: Expense[]`, plus `variant?: "selection" | "group"` — group variant shows one signed-total stat instead of the Spent/Income/Net/Savings cards, since non-reserved groups can never contain income/savings entries). SelectionInsights page reuses the same `InsightsView` with the default selection variant. Group detail has Rename (inline editor, bulk-updates all items via `UpdateBulkExpenses`, navigates to new name) and Clear Group (two-click confirm, removes group from all items) actions — hidden for reserved Income/Savings groups since reassigning those entries would reclassify them.
+- Mock data: mock expenses include a "Japan Trip" and "Bathroom Reno" group
+
 Note: "Retirement" was removed from NonExpenseTags and is now treated as a normal expense tag. The `useRetirement`/`useFilteredRetirement` hooks were removed.
+
+### Classification (Income / Savings / Expense)
+
+Classification is **group-based**, with a legacy tag fallback so old stored data keeps working:
+
+- `getExpenseKind(e)` in `src/utils/expense-utils.ts` is the single source of truth: returns `"income"` if `e.group === INCOME_GROUP` (or legacy fallback `tags.includes("Income")`), `"savings"` if `e.group === SAVINGS_GROUP` (or legacy `tags.includes("Savings")`), else `"expense"`. Priority: income before savings.
+- Constants: `INCOME_GROUP = "Income"`, `SAVINGS_GROUP = "Savings"` (from `NonExpenseTags`) in `src/utils/expense-utils.ts`.
+- All classification consumers route through it: `useExpenses()` (expense-kind only), `useIncome()`, `useSavings()`, Overview utils (`computeMonthData` etc.), Groups page summaries, InsightsView, TableView type filters, DataTable chip coloring (group chip green/yellow/purple by kind).
+- Income/savings entries can carry real tags now (e.g. "Paycheck"). To create/reclassify entries, set group to "Income"/"Savings" — via ExpenseForm or TableView "Set Group" bulk action; both modals show a "Will be classified as…" hint when the reserved name is typed (deliberate, not blocked).
+- `ALL_TAGS` no longer includes `NonExpenseTags`, and `ExpenseForm`/`TagModal` call `useAllTagsOptions()` without the flag, so pickers never offer the pseudo-tags. `useQuickTag` also skips them. Legacy tags on stored data are still honored by the fallback.
 
 ### Mock Data System
 

@@ -1,8 +1,8 @@
-import { useMemo } from "react";
+import { memo, useMemo } from "react";
 import { Sparkline } from "@/components/Sparkline/Sparkline";
 import { formatMonthShort } from "@/utils/utils";
 
-export function NetSparkline({
+export const NetSparkline = memo(function NetSparkline({
   data,
   months,
   selectedIndex,
@@ -36,4 +36,4 @@ export function NetSparkline({
       emptyText="No data"
     />
   );
-}
+});

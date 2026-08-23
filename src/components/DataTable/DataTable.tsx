@@ -8,7 +8,8 @@ import {
   useRef,
   useState,
 } from "react";
-import { Expense, NonExpenseTags, Tag } from "@/types/types";
+import { Expense, Tag } from "@/types/types";
+import { getExpenseKind, ExpenseKind } from "@/utils/expense-utils";
 import { BrushScrubber } from "../Brush/BrushScrubber";
 import { GenericPage } from "../GenericPage/GenericPage";
 import { Tag as TagComp } from "@chakra-ui/react";
@@ -22,20 +23,27 @@ import { format } from "date-fns";
 import { useQuickTag } from "@/hooks/useQuickTag";
 import { RadialActions } from "../RadialActions/RadialActions";
 
-const TagCell = ({ tags }: { tags: Tag[] }) => {
+const TagCell = ({
+  tags,
+  group,
+  kind,
+}: {
+  tags: Tag[];
+  group?: string;
+  kind: ExpenseKind;
+}) => {
+  const groupPalette =
+    kind === "income" ? "green" : kind === "savings" ? "yellow" : "purple";
+
   return (
-    <div>
+    <div className={styles.tagCell}>
+      {group && (
+        <TagComp.Root key={group} colorPalette={groupPalette}>
+          <TagComp.Label>{group}</TagComp.Label>
+        </TagComp.Root>
+      )}
       {tags.map((tag) => (
-        <TagComp.Root
-          key={tag}
-          colorPalette={
-            tag === NonExpenseTags.Income
-              ? "green"
-              : tag === NonExpenseTags.Savings
-                ? "yellow"
-                : "orange"
-          }
-        >
+        <TagComp.Root key={tag} colorPalette="orange">
           <TagComp.Label>{tag}</TagComp.Label>
         </TagComp.Root>
       ))}
@@ -87,10 +95,11 @@ export const DataTable = ({ items }: { items: Expense[] }) => {
       const searchStr = deferredSearch.toLowerCase();
       const matchesDescription = item.description.toLowerCase().includes(searchStr);
       const matchesTags = item.tags.some((t) => t.toLowerCase().includes(searchStr));
+      const matchesGroup = item.group?.toLowerCase().includes(searchStr) ?? false;
       const matchesAmount = item.amount.toFixed(2).includes(searchStr);
       const matchesDate = format(new Date(item.date), "MM-dd-yyyy").includes(searchStr) || item.date.includes(searchStr);
 
-      return matchesDescription || matchesTags || matchesAmount || matchesDate;
+      return matchesDescription || matchesTags || matchesGroup || matchesAmount || matchesDate;
     });
   }, [items, deferredSearch]);
 
@@ -214,7 +223,7 @@ const TableRow = memo<RowProps>(
         )}
 
         <td className={styles.leftCenterContent}>
-          <TagCell tags={item.tags} />
+          <TagCell tags={item.tags} group={item.group} kind={getExpenseKind(item)} />
         </td>
 
         <td className={styles.leftCenterContent}>
@@ -382,7 +391,7 @@ export const CoreTable = memo(({ items, selectable = true }: { items: Expense[];
               className={styles.leftCenterContent}
             >
               <span className={styles.header}>
-                Tags
+                Groups/Tags
                 {sortColumn === "tags" &&
                   (sortDirection === "asc" ? (
                     <FaChevronUp size={14} />

@@ -1,0 +1,123 @@
+.page {
+  padding: 1.5rem 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  height: 100%;
+  overflow-y: auto;
+}
+
+.emptyState {
+  flex: 1;
+}
+
+.renameCard {
+  background: var(--bg-panel, #19191e);
+  border: 1px solid var(--border-color, #32323c);
+  border-radius: 0.75rem;
+  padding: 1rem 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.renameActions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.5rem;
+}
+
+.fieldInput {
+  background: var(--bg-default, #141417);
+  border: 1px solid var(--border-color, #32323c);
+  border-radius: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  color: var(--fg-default, #e8e8ed);
+  font-size: 0.9rem;
+  outline: none;
+
+  &:focus {
+    border-color: var(--fg-muted, #a0a0ab);
+  }
+}
+
+.groupGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 1rem;
+}
+
+.groupCard {
+  background: var(--bg-panel, #19191e);
+  border: 1px solid var(--border-color, #32323c);
+  border-radius: 0.75rem;
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  cursor: pointer;
+  transition: border-color 0.15s ease;
+
+  &:hover {
+    border-color: var(--fg-muted, #a0a0ab);
+  }
+}
+
+.groupName {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--fg-default, #e8e8ed);
+}
+
+.groupMetaRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.75rem;
+  color: var(--fg-subtle, #6b6b7b);
+}
+
+.groupStats {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.5rem;
+}
+
+.groupStat {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  background: var(--bg-default, #141417);
+  border: 1px solid var(--border-color, #32323c);
+  border-radius: 0.5rem;
+  padding: 0.6rem 0.85rem;
+}
+
+.statValue {
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: var(--fg-default, #e8e8ed);
+  line-height: 1.2;
+  font-variant-numeric: tabular-nums;
+}
+
+.cardLabel {
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--fg-muted, #a0a0ab);
+  font-weight: 500;
+}
+
+.valuePos {
+  color: var(--fg-success, #4ade80);
+}
+
+.valueNeg {
+  color: var(--fg-error, #f87171);
+}
+
+.valueNeutral {
+  color: var(--fg-warning, #eab308);
+}

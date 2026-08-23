@@ -5,6 +5,7 @@ export enum Overlay {
   EditModal = "EditModal",
   ManualModal = "ManualModal",
   TagModal = "TagModal",
+  GroupModal = "GroupModal",
   SettingsModal = "SettingsModal",
   HelpModal = "HelpModal",
 }

@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { memo, useMemo, useState } from "react";
 import * as d3 from "d3";
 import { formatCurrency } from "@/utils/utils";
 import styles from "./Overview.module.scss";
@@ -26,7 +26,7 @@ const VB_RADIUS = VB / 2;
 const THICKNESS = 50;
 const INNER_R = VB_RADIUS - THICKNESS;
 
-export function DonutChart({
+export const DonutChart = memo(function DonutChart({
   categories,
   totalSpent,
   disabledCategories,
@@ -138,4 +138,4 @@ export function DonutChart({
       </div>
     </div>
   );
-}
+});

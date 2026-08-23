@@ -62,6 +62,7 @@ export type Expense = {
   id: string;
   amount: number;
   tags: Tag[];
+  group?: string;
   date: string;
   description: string;
 };
@@ -103,10 +104,7 @@ export enum NonExpenseTags {
 
 export type Tag = ExpenseTag | NonExpenseTags | string;
 
-export const ALL_TAGS: Tag[] = [
-  ...Object.values(ExpenseTag),
-  ...Object.values(NonExpenseTags),
-];
+export const ALL_TAGS: Tag[] = [...Object.values(ExpenseTag)];
 
 export type Stock = {
   id: string;

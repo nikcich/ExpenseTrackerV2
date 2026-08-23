@@ -1,6 +1,7 @@
+import { memo } from "react";
 import styles from "./MonthPills.module.scss";
 
-export function MonthPills({
+export const MonthPills = memo(function MonthPills({
   months,
   selectedIndex,
   onChange,
@@ -27,4 +28,4 @@ export function MonthPills({
       ))}
     </div>
   );
-}
+});

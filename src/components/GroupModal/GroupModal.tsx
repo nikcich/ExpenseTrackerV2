@@ -1,24 +1,24 @@
 import { closeAllOverlays, Overlay } from "@/store/OverlayStore";
 import { GenericModal } from "../GenericModal/GenericModal";
-import { Alert, Button, Spinner, Text, VStack } from "@chakra-ui/react";
+import { Alert, Button, Input, Spinner, Text, VStack } from "@chakra-ui/react";
 import { useCallback, useState } from "react";
 import { setSelection, useSelection } from "@/store/SelectionStore";
 import { useGetExpenseById } from "@/hooks/expenses";
-import { API, Expense, Response, Tag } from "@/types/types";
+import { API, Expense, Response } from "@/types/types";
 import { invoke } from "@tauri-apps/api/core";
-import { MultiSelectInput } from "../ExpenseForm/MultiSelectInput";
-import { useAllTagsOptions } from "@/utils/tags";
+import { useAllGroups } from "@/utils/tags";
+import { INCOME_GROUP, SAVINGS_GROUP } from "@/utils/expense-utils";
 import { preventDoubleClick, SHORTCUT_COOLDOWN } from "@/utils/utils";
 
-export const TagModal = () => {
+export const GroupModal = () => {
   const onClose = useCallback(() => {
     setResult(null);
-    setTags([]);
+    setGroup("");
     setSelection([]);
     closeAllOverlays();
   }, []);
 
-  const ALL_TAGS_OPTIONS = useAllTagsOptions();
+  const ALL_GROUPS = useAllGroups();
 
   const selection = useSelection();
   const [result, setResult] = useState<
@@ -27,15 +27,15 @@ export const TagModal = () => {
 
   const [loading, setLoading] = useState(false);
 
-  const [tags, setTags] = useState<string[]>([]);
+  const [group, setGroup] = useState("");
 
   const getExpenseById = useGetExpenseById();
 
   const handleSave = useCallback(
     preventDoubleClick(
-    async (tagsStr: string[]) => {
+    async (groupStr: string) => {
       setLoading(true);
-      const tags = tagsStr as Tag[];
+      const nextGroup = groupStr.trim() || undefined;
 
       const hashes = selection.filter((expenseId) => {
         const expense = getExpenseById(expenseId);
@@ -47,7 +47,7 @@ export const TagModal = () => {
 
         return {
           ...expense,
-          tags,
+          group: nextGroup,
         };
       });
 
@@ -63,7 +63,7 @@ export const TagModal = () => {
   );
 
   return (
-    <GenericModal overlay={Overlay.TagModal}>
+    <GenericModal overlay={Overlay.GroupModal}>
       {loading && <Spinner />}
       {!loading && (
         <>
@@ -84,18 +84,34 @@ export const TagModal = () => {
             )}
           </div>
           <Text fontSize="lg" mb={4}>
-            Tag Selected Expenses ({selection.length})
+            Set Group for Selected Expenses ({selection.length})
           </Text>
           <VStack>
-            <MultiSelectInput
-              options={ALL_TAGS_OPTIONS}
-              value={ALL_TAGS_OPTIONS.filter((o) => tags.includes(o.value))}
-              onChange={(v) => {
-                setTags(v);
-              }}
-              label="Tags"
-              placeholder="Select Tags"
+            <Input
+              type="text"
+              value={group}
+              onChange={(e) => setGroup(e.target.value)}
+              placeholder="Group name (e.g. Japan Trip)"
+              list="group-modal-groups"
             />
+            <datalist id="group-modal-groups">
+              {ALL_GROUPS.map((g) => (
+                <option key={g} value={g} />
+              ))}
+            </datalist>
+            {group.trim() === INCOME_GROUP && (
+              <Text fontSize="sm" color="green.400">
+                Will be classified as Income
+              </Text>
+            )}
+            {group.trim() === SAVINGS_GROUP && (
+              <Text fontSize="sm" color="yellow.400">
+                Will be classified as Savings
+              </Text>
+            )}
+            <Text fontSize="sm" color="fg.muted">
+              Leave empty to remove the selected expenses from their group.
+            </Text>
           </VStack>
 
           <div
@@ -111,7 +127,7 @@ export const TagModal = () => {
               Cancel
             </Button>
 
-            <Button data-primary="true" colorPalette="green" onClick={() => handleSave(tags)}>
+            <Button data-primary="true" colorPalette="green" onClick={() => handleSave(group)}>
               Save
             </Button>
           </div>

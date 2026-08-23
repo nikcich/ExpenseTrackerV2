@@ -1,3 +1,4 @@
+import { memo } from "react";
 import Plot from "react-plotly.js";
 import styles from "./BarChart.module.scss";
 
@@ -18,14 +19,14 @@ interface LineChartItem {
   color: string;
 }
 
-export const LineChart = <T extends Datum>({
+export const LineChart = memo(function LineChart<T extends Datum>({
   x,
   barCharts,
   horizontal = false,
   legend = true,
   legendDirection = "v",
   lineShape = "linear",
-}: LineChartProps<T>) => {
+}: LineChartProps<T>) {
   return (
     <div className={styles.container}>
       <div className={styles.plotContainer}>
@@ -72,4 +73,4 @@ export const LineChart = <T extends Datum>({
       </div>
     </div>
   );
-};
+});

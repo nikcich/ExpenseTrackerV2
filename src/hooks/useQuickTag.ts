@@ -5,6 +5,7 @@ import { useOverlayStore } from "@/store/OverlayStore";
 import { setSelection, useSelection } from "@/store/SelectionStore";
 import { API, Expense } from "@/types/types";
 import { Pages } from "@/types/routes";
+import { INCOME_GROUP, SAVINGS_GROUP } from "@/utils/expense-utils";
 import { invoke } from "@tauri-apps/api/core";
 import { RadialAction } from "@/components/RadialActions/RadialActions";
 
@@ -41,6 +42,7 @@ export const useQuickTag = () => {
     const counts = new Map<string, number>();
     for (const expense of expenses) {
       for (const tag of expense.tags) {
+        if (tag === INCOME_GROUP || tag === SAVINGS_GROUP) continue;
         counts.set(tag, (counts.get(tag) || 0) + 1);
       }
     }

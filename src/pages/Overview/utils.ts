@@ -1,5 +1,6 @@
-import { Expense, NonExpenseTags } from "@/types/types";
+import { Expense } from "@/types/types";
 import { parseDate } from "@/utils/utils";
+import { getExpenseKind } from "@/utils/expense-utils";
 import { getMonth, getYear, subMonths } from "date-fns";
 
 export type MonthData = {
@@ -47,9 +48,10 @@ export function computeMonthData(expenses: Expense[], target: Date): MonthData {
     if (getYear(parseDate(e.date)) !== getYear(target)) continue;
     if (getMonth(parseDate(e.date)) !== getMonth(target)) continue;
 
-    if (e.tags.includes(NonExpenseTags.Income)) {
+    const kind = getExpenseKind(e);
+    if (kind === "income") {
       income.push(e);
-    } else if (e.tags.includes(NonExpenseTags.Savings)) {
+    } else if (kind === "savings") {
       savings += e.amount;
     } else {
       spent.push(e);
@@ -81,9 +83,10 @@ export function computeYearData(expenses: Expense[], target: Date): MonthData {
   for (const e of expenses) {
     if (getYear(parseDate(e.date)) !== year) continue;
 
-    if (e.tags.includes(NonExpenseTags.Income)) {
+    const kind = getExpenseKind(e);
+    if (kind === "income") {
       income.push(e);
-    } else if (e.tags.includes(NonExpenseTags.Savings)) {
+    } else if (kind === "savings") {
       savings += e.amount;
     } else {
       spent.push(e);
@@ -112,9 +115,10 @@ export function computeAllData(expenses: Expense[]): MonthData {
   let savings = 0;
 
   for (const e of expenses) {
-    if (e.tags.includes(NonExpenseTags.Income)) {
+    const kind = getExpenseKind(e);
+    if (kind === "income") {
       income.push(e);
-    } else if (e.tags.includes(NonExpenseTags.Savings)) {
+    } else if (kind === "savings") {
       savings += e.amount;
     } else {
       spent.push(e);
@@ -149,9 +153,10 @@ export function computeYtdFromExpenses(expenses: Expense[], selectedMonth: Date)
     if (d.getFullYear() !== year) continue;
     if (d > cutoff) continue;
 
-    if (e.tags.includes(NonExpenseTags.Income)) {
+    const kind = getExpenseKind(e);
+    if (kind === "income") {
       ytdIncome += Math.abs(e.amount);
-    } else if (e.tags.includes(NonExpenseTags.Savings)) {
+    } else if (kind === "savings") {
       ytdSavings += e.amount;
     } else {
       ytdSpent += e.amount;

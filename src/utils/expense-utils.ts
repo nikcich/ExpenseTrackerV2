@@ -1,6 +1,21 @@
-import { Expense } from "@/types/types";
+import { Expense, NonExpenseTags } from "@/types/types";
 import { parseDate } from "./utils";
 import { format } from "date-fns";
+
+export const INCOME_GROUP = NonExpenseTags.Income;
+export const SAVINGS_GROUP = NonExpenseTags.Savings;
+
+export type ExpenseKind = "income" | "savings" | "expense";
+
+export function getExpenseKind(e: Expense): ExpenseKind {
+  if (e.group === INCOME_GROUP || e.tags.includes(INCOME_GROUP)) {
+    return "income";
+  }
+  if (e.group === SAVINGS_GROUP || e.tags.includes(SAVINGS_GROUP)) {
+    return "savings";
+  }
+  return "expense";
+}
 
 export function groupBy<T>(
   items: T[],
@@ -94,4 +109,10 @@ export const byTag = (e: Expense) => {
     return ["Untagged"];
   }
   return !emptyTag ? e.tags : ["Untagged"];
+};
+export const byGroup = (e: Expense) => {
+  const kind = getExpenseKind(e);
+  if (kind === "income") return INCOME_GROUP;
+  if (kind === "savings") return SAVINGS_GROUP;
+  return e.group ?? "Ungrouped";
 };

@@ -3,7 +3,11 @@ import {
   useFilteredExpenses,
   useFilteredSavings,
 } from "@/hooks/expenses";
-import { byTag, groupAndSumExpenses } from "@/utils/expense-utils";
+import {
+  byGroup,
+  byTag,
+  groupAndSumExpenses,
+} from "@/utils/expense-utils";
 import { useMemo } from "react";
 import {
   parseStackedFormat,
@@ -11,6 +15,7 @@ import {
 import { BrushScrubber } from "@/components/Brush/BrushScrubber";
 import { useDebouncedBrushRange } from "@/store/store";
 import { AverageSpendingCard } from "@/components/charts/AverageSpendingCard";
+import { Expense } from "@/types/types";
 
 const addTopLevelGroup = (
   data: {
@@ -52,20 +57,24 @@ export function AverageSpending() {
   const filteredSavings = useFilteredSavings();
   const [range] = useDebouncedBrushRange();
 
-  const traces = useMemo(() => {
-    const tagGrouped = groupAndSumExpenses(
-      [...filteredExpenses, ...filteredSavings],
-      byTag
-    );
-    const topLevelGrouped = addTopLevelGroup(tagGrouped, "Range Average");
-    const averaged = averageSums(topLevelGrouped, range);
-    return parseStackedFormat(averaged);
+  const { traces, groupTraces } = useMemo(() => {
+    const build = (keyFn: (e: Expense) => string | string[]) =>
+      parseStackedFormat(
+        averageSums(
+          addTopLevelGroup(
+            groupAndSumExpenses([...filteredExpenses, ...filteredSavings], keyFn),
+            "Range Average"
+          ),
+          range
+        )
+      );
+    return { traces: build(byTag), groupTraces: build(byGroup) };
   }, [filteredExpenses, filteredSavings, range]);
 
   return (
     <GenericPage title="Average Monthly Spending" footer={<BrushScrubber />}>
       <div style={{ padding: "1.5rem 2rem", height: "100%", display: "flex", flexDirection: "column" }}>
-        <AverageSpendingCard traces={traces} />
+        <AverageSpendingCard traces={traces} groupTraces={groupTraces} />
       </div>
     </GenericPage>
   );

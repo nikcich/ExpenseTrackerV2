@@ -1,0 +1,141 @@
+.page {
+  padding: 1.5rem 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  height: 100%;
+  overflow-y: auto;
+}
+
+.emptyState {
+  flex: 1;
+}
+
+.summaryRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.summaryCard {
+  background: var(--bg-panel, #19191e);
+  border: 1px solid var(--border-color, #32323c);
+  border-radius: 0.75rem;
+  padding: 1rem 1.25rem;
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  flex: 1 1 220px;
+  min-width: 200px;
+}
+
+.cardLabel {
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--fg-muted, #a0a0ab);
+  font-weight: 500;
+}
+
+.cardValue {
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: var(--fg-default, #e8e8ed);
+  line-height: 1.2;
+  font-variant-numeric: tabular-nums;
+}
+
+.cardCaption {
+  font-size: 0.7rem;
+  color: var(--fg-subtle, #6b6b7b);
+}
+
+.valuePos {
+  color: var(--fg-success, #4ade80);
+}
+
+.valueNeg {
+  color: var(--fg-error, #f87171);
+}
+
+.valueNeutral {
+  color: var(--fg-warning, #eab308);
+}
+
+.metaCard {
+  background: var(--bg-panel, #19191e);
+  border: 1px solid var(--border-color, #32323c);
+  border-radius: 0.75rem;
+  padding: 1rem 1.25rem;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.metaItem {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.metaValue {
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: var(--fg-default, #e8e8ed);
+  line-height: 1.2;
+  font-variant-numeric: tabular-nums;
+}
+
+.card {
+  background: var(--bg-panel, #19191e);
+  border: 1px solid var(--border-color, #32323c);
+  border-radius: 0.75rem;
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  min-height: 0;
+}
+
+.cardHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.cardTitle {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--fg-default, #e8e8ed);
+}
+
+.chartRow {
+  display: flex;
+  gap: 1.25rem;
+  flex-wrap: wrap;
+
+  > .card {
+    flex: 1 1 400px;
+    min-width: 300px;
+    min-height: 300px;
+  }
+}
+
+.chartBody {
+  flex: 1;
+  min-height: 240px;
+}
+
+.tableCard {
+  flex: 1;
+  min-height: 320px;
+}
+
+.tableWrapper {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}

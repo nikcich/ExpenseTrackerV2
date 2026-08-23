@@ -425,11 +425,28 @@
   gap: 0.5rem;
 }
 
-.priceSliderValue {
+.priceInput {
+  width: 4.5rem;
+  padding: 0.25rem 0.4rem;
+  border-radius: 0.35rem;
+  border: 1px solid var(--border-color, #32323c);
+  background: var(--bg-panel, #19191e);
+  color: var(--fg-default, #e8e8ed);
   font-size: 0.8rem;
   font-variant-numeric: tabular-nums;
-  color: var(--fg-default, #e8e8ed);
-  min-width: 4rem;
+  outline: none;
+  box-sizing: border-box;
+  -moz-appearance: textfield;
+
+  &::-webkit-outer-spin-button,
+  &::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+
+  &:focus {
+    border-color: var(--fg-muted, #a0a0ab);
+  }
 }
 
 .priceSlider input[type="range"] {

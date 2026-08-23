@@ -6,7 +6,8 @@ import {
   useFilteredSavings,
 } from "@/hooks/expenses";
 import { useExpensesStore, useCustomCsvDefinitions, useImportHistory } from "@/store/store";
-import { API, NonExpenseTags, Response } from "@/types/types";
+import { API, Response } from "@/types/types";
+import { getExpenseKind } from "@/utils/expense-utils";
 import { createTauriInvoker } from "@/utils/utils";
 import { downloadExpensesCSV } from "@/utils/download";
 import { invoke } from "@tauri-apps/api/core";
@@ -14,7 +15,7 @@ import { open } from "@tauri-apps/plugin-dialog";
 import { revealItemInDir } from "@tauri-apps/plugin-opener";
 import { toaster } from "@/components/ui/toaster";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import {
   Button,
   CloseButton,
@@ -27,6 +28,7 @@ import { LuFilter } from "react-icons/lu";
 import { BsThreeDotsVertical } from "react-icons/bs";
 import { enableOverlay, Overlay } from "@/store/OverlayStore";
 import { useSelection, setSelection } from "@/store/SelectionStore";
+import { Pages } from "@/types/routes";
 
 type CsvParseResponse = {
   message: string;
@@ -275,9 +277,10 @@ export function TableView() {
 
   const typeFilteredItems = useMemo(() => {
     return allItems.filter((item) => {
-      const isIncome = item.tags.includes(NonExpenseTags.Income);
-      const isSavings = item.tags.includes(NonExpenseTags.Savings);
-      const isUntagged = item.tags.length === 0;
+      const kind = getExpenseKind(item);
+      const isIncome = kind === "income";
+      const isSavings = kind === "savings";
+      const isUntagged = !isIncome && !isSavings && item.tags.length === 0;
       const isExpense = !isIncome && !isSavings && !isUntagged;
 
       if (!includeIncome && isIncome) return false;
@@ -289,6 +292,7 @@ export function TableView() {
   }, [allItems, includeIncome, includeExpenses, includeSavings, includeUntagged]);
 
   const location = useLocation();
+  const navigate = useNavigate();
 
   useEffect(() => {
     if (location.state?.csvImport) {
@@ -473,10 +477,22 @@ export function TableView() {
                     <>
                       <Menu.Separator />
                       <Menu.Item
+                        value="inspect-selection"
+                        onClick={() => navigate(Pages.SelectionInsights)}
+                      >
+                        Inspect Selection
+                      </Menu.Item>
+                      <Menu.Item
                         value="tag-selection"
                         onClick={() => enableOverlay(Overlay.TagModal)}
                       >
                         Tag Selection
+                      </Menu.Item>
+                      <Menu.Item
+                        value="group-selection"
+                        onClick={() => enableOverlay(Overlay.GroupModal)}
+                      >
+                        Set Group
                       </Menu.Item>
                       <Menu.Item
                         value="modify-selection"
