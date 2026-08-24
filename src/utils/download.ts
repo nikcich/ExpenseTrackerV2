@@ -3,9 +3,10 @@ import { save, open } from "@tauri-apps/plugin-dialog";
 import { invoke } from "@tauri-apps/api/core";
 
 function exportExpensesToCSV(expenses: Expense[]): string {
-  const header = ["Tags", "Date", "Description", "Amount"];
+  const header = ["Group", "Tags", "Date", "Description", "Amount"];
 
   const rows = expenses.map((expense) => {
+    const group = expense.group ?? "";
     const firstTag = expense.tags[0] || "";
     const date = expense.date;
     const description = expense.description.replace(/"/g, '""');
@@ -15,6 +16,7 @@ function exportExpensesToCSV(expenses: Expense[]): string {
       /[",\n]/.test(value) ? `"${value}"` : value;
 
     return [
+      formatValue(group),
       formatValue(firstTag),
       formatValue(date),
       formatValue(description),

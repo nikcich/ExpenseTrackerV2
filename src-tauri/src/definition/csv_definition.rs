@@ -25,6 +25,7 @@ pub enum CsvColumnRole {
     Description,
     Amount,
     Tag,          // A column that serves as the tag indicator
+    Group,        // A column that serves as the group indicator (optional per expense)
     Currency,     // A column that serves as the currency indicator
     CreditAmount, // A column that serves as the credit amount (stores the amount as a float)
     CreditDebit, // A column that serves as the credit/debit indicator (string that says "Credit" or "Debit")
@@ -151,6 +152,11 @@ impl CsvColumnRole {
             (CsvColumnRole::Tag, ParsedValue::String(tag)) => {
                 if !tag.is_empty() {
                     expense.add_tag(&tag);
+                }
+            }
+            (CsvColumnRole::Group, ParsedValue::String(group)) => {
+                if !group.is_empty() {
+                    expense.set_group(Some(group));
                 }
             }
             (CsvColumnRole::Currency, ParsedValue::String(currency)) => {
@@ -443,6 +449,7 @@ pub enum CsvDefinitionKey {
     Max,
     NavyFederal,
     ExpenseTrackerBackup,
+    ExpenseTrackerV2,
 }
 
 /// Helper function that builds a column map from a list of (role, index, datatype) pairs.
@@ -724,6 +731,39 @@ pub fn build_definitions() -> HashMap<CsvDefinitionKey, CsvDefinition> {
                 (
                     CsvColumnRole::Amount,
                     CsvColumnInfo::required_content(3, CsvColumnDataType::Float(&STANDARD)),
+                ),
+            ],
+        ),
+    );
+
+    map.insert(
+        CsvDefinitionKey::ExpenseTrackerV2,
+        CsvDefinition::new(
+            "Expense Tracker V2 Export",
+            true,
+            vec![
+                (
+                    CsvColumnRole::Group,
+                    CsvColumnInfo::optional_content(0, CsvColumnDataType::String),
+                ),
+                (
+                    CsvColumnRole::Tag,
+                    CsvColumnInfo::optional_content(1, CsvColumnDataType::String),
+                ),
+                (
+                    CsvColumnRole::Date,
+                    CsvColumnInfo::required_content(
+                        2,
+                        CsvColumnDataType::DateTimeObject("%Y-%m-%dT%H:%M:%S"),
+                    ),
+                ),
+                (
+                    CsvColumnRole::Description,
+                    CsvColumnInfo::required_content(3, CsvColumnDataType::String),
+                ),
+                (
+                    CsvColumnRole::Amount,
+                    CsvColumnInfo::required_content(4, CsvColumnDataType::Float(&STANDARD)),
                 ),
             ],
         ),

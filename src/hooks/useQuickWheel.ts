@@ -10,27 +10,34 @@ import { invoke } from "@tauri-apps/api/core";
 import { RadialAction } from "@/components/RadialActions/RadialActions";
 
 const BULK_DELAY_MS = 2000;
-const TOP_TAG_COUNT = 8;
+const TOP_ACTION_COUNT = 8;
 
-export const useQuickTag = () => {
+export type WheelMode = "tags" | "groups";
+
+export const useQuickWheel = () => {
   const location = useLocation();
   const selection = useSelection();
   const visibleOverlay = useOverlayStore("visibleOverlay");
   const { value: expenses } = useExpensesStore();
 
   const [isActive, setIsActive] = useState(false);
+  const [mode, setMode] = useState<WheelMode | null>(null);
   const [position, setPosition] = useState({ x: 0, y: 0 });
-  const [hoveredTag, setHoveredTag] = useState<string | null>(null);
+  const [hoveredAction, setHoveredAction] = useState<string | null>(null);
   const [hoveredRowId, setHoveredRowIdState] = useState<string | null>(null);
 
   const hoveredRowIdRef = useRef<string | null>(null);
-  const hoveredTagRef = useRef<string | null>(null);
+  const hoveredColumnRef = useRef<WheelMode | null>(null);
+  const hoveredActionRef = useRef<string | null>(null);
+  const modeRef = useRef<WheelMode | null>(null);
   const bulkTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isBulkRef = useRef(false);
   const isActiveRef = useRef(false);
   const mousePosRef = useRef({ x: 0, y: 0 });
-  const applyTagRef = useRef<(tag: string) => Promise<void>>(async () => {});
-  const hoverTagLeaveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
+  const applyValueRef = useRef<(value: string) => Promise<void>>(
+    async () => {},
+  );
+  const hoverLeaveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
     null,
   );
   const lockedRowIdRef = useRef<string | null>(null);
@@ -48,8 +55,20 @@ export const useQuickTag = () => {
     }
     return [...counts.entries()]
       .sort((a, b) => b[1] - a[1])
-      .slice(0, TOP_TAG_COUNT)
+      .slice(0, TOP_ACTION_COUNT)
       .map(([tag]) => tag);
+  }, [expenses]);
+
+  const frequentGroups = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const expense of expenses) {
+      if (!expense.group) continue;
+      counts.set(expense.group, (counts.get(expense.group) || 0) + 1);
+    }
+    return [...counts.entries()]
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, TOP_ACTION_COUNT)
+      .map(([group]) => group);
   }, [expenses]);
 
   const getExpenseById = useCallback(
@@ -105,21 +124,69 @@ export const useQuickTag = () => {
     [getExpenseById],
   );
 
-  applyTagRef.current = applyTag;
+  const applyGroup = useCallback(
+    async (group: string) => {
+      if (isBulkRef.current) {
+        const selectedExpenses = lockedSelectionRef.current
+          .map((id) => getExpenseById(id))
+          .filter((e): e is Expense => e !== undefined);
+
+        if (selectedExpenses.length === 0) return;
+
+        const allHaveGroup = selectedExpenses.every((e) => e.group === group);
+
+        const expensesToUpdate = allHaveGroup
+          ? selectedExpenses
+          : selectedExpenses.filter((e) => e.group !== group);
+
+        if (expensesToUpdate.length === 0) return;
+
+        await invoke(API.UpdateBulkExpenses, {
+          hashes: expensesToUpdate.map((e) => e.id),
+          expenses: expensesToUpdate.map((e) => ({
+            ...e,
+            group: allHaveGroup ? undefined : group,
+          })),
+        });
+
+        setSelection([]);
+      } else {
+        const rowId = lockedRowIdRef.current;
+        if (!rowId) return;
+
+        const expense = getExpenseById(rowId);
+        if (!expense) return;
+
+        await invoke(API.UpdateExpense, {
+          hash: rowId,
+          expense: {
+            ...expense,
+            group: expense.group === group ? undefined : group,
+          },
+        });
+      }
+    },
+    [getExpenseById],
+  );
+
+  applyValueRef.current = (value: string) =>
+    modeRef.current === "groups" ? applyGroup(value) : applyTag(value);
 
   const cleanup = useCallback(() => {
     if (bulkTimerRef.current) {
       clearTimeout(bulkTimerRef.current);
       bulkTimerRef.current = null;
     }
-    if (hoverTagLeaveTimeoutRef.current) {
-      clearTimeout(hoverTagLeaveTimeoutRef.current);
-      hoverTagLeaveTimeoutRef.current = null;
+    if (hoverLeaveTimeoutRef.current) {
+      clearTimeout(hoverLeaveTimeoutRef.current);
+      hoverLeaveTimeoutRef.current = null;
     }
     setIsActive(false);
     isActiveRef.current = false;
-    setHoveredTag(null);
-    hoveredTagRef.current = null;
+    setMode(null);
+    modeRef.current = null;
+    setHoveredAction(null);
+    hoveredActionRef.current = null;
     lockedRowIdRef.current = null;
     lockedSelectionRef.current = [];
     isBulkRef.current = false;
@@ -131,19 +198,23 @@ export const useQuickTag = () => {
     setHoveredRowIdState(id);
   }, []);
 
-  const onTagEnter = useCallback((tag: string) => {
-    if (hoverTagLeaveTimeoutRef.current) {
-      clearTimeout(hoverTagLeaveTimeoutRef.current);
-      hoverTagLeaveTimeoutRef.current = null;
-    }
-    hoveredTagRef.current = tag;
-    setHoveredTag(tag);
+  const setHoveredColumn = useCallback((col: WheelMode | null) => {
+    hoveredColumnRef.current = col;
   }, []);
 
-  const onTagLeave = useCallback(() => {
-    hoverTagLeaveTimeoutRef.current = setTimeout(() => {
-      hoveredTagRef.current = null;
-      setHoveredTag(null);
+  const onActionEnter = useCallback((action: string) => {
+    if (hoverLeaveTimeoutRef.current) {
+      clearTimeout(hoverLeaveTimeoutRef.current);
+      hoverLeaveTimeoutRef.current = null;
+    }
+    hoveredActionRef.current = action;
+    setHoveredAction(action);
+  }, []);
+
+  const onActionLeave = useCallback(() => {
+    hoverLeaveTimeoutRef.current = setTimeout(() => {
+      hoveredActionRef.current = null;
+      setHoveredAction(null);
     }, 80);
   }, []);
 
@@ -157,9 +228,8 @@ export const useQuickTag = () => {
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key !== "Control") return;
 
-      const { x, y } = mousePosRef.current;
-      const el = document.elementFromPoint(x, y) as HTMLElement | null;
-      if (!el?.closest("tr")) return;
+      const targetMode = hoveredColumnRef.current;
+      if (!targetMode) return;
 
       if (visibleOverlay !== undefined) return;
       if (!isTableView) return;
@@ -167,12 +237,16 @@ export const useQuickTag = () => {
 
       e.preventDefault();
 
+      const { x, y } = mousePosRef.current;
+
       if (selectionRef.current.length > 0) {
         isBulkRef.current = true;
         lockedSelectionRef.current = [...selectionRef.current];
         bulkTimerRef.current = setTimeout(() => {
           setIsActive(true);
           isActiveRef.current = true;
+          setMode(targetMode);
+          modeRef.current = targetMode;
           setPosition({ x, y });
         }, BULK_DELAY_MS);
       } else {
@@ -181,6 +255,8 @@ export const useQuickTag = () => {
         lockedRowIdRef.current = hoveredRowIdRef.current;
         setIsActive(true);
         isActiveRef.current = true;
+        setMode(targetMode);
+        modeRef.current = targetMode;
         setPosition({ x, y });
       }
     };
@@ -198,8 +274,8 @@ export const useQuickTag = () => {
         return;
       }
 
-      if (isActiveRef.current && hoveredTagRef.current) {
-        applyTagRef.current(hoveredTagRef.current);
+      if (isActiveRef.current && hoveredActionRef.current) {
+        applyValueRef.current(hoveredActionRef.current);
       }
 
       cleanup();
@@ -214,48 +290,57 @@ export const useQuickTag = () => {
       document.removeEventListener("keydown", onKeyDown);
       document.removeEventListener("keyup", onKeyUp);
     };
-  }, [location.pathname, visibleOverlay]);
+  }, [location.pathname, visibleOverlay, cleanup]);
 
-  const appliedTagSet: Set<string> = useMemo(() => {
+  const appliedActionIds: Set<string> = useMemo(() => {
+    const pickValues = (expense: Expense): string[] =>
+      modeRef.current === "groups"
+        ? expense.group
+          ? [expense.group]
+          : []
+        : expense.tags;
+
     if (isBulkRef.current && selection.length > 0) {
-      const tagSets = selection
+      const rows = selection
         .map((id) => getExpenseById(id))
-        .filter((e): e is Expense => e !== undefined)
-        .map((e) => new Set(e.tags));
+        .filter((e): e is Expense => e !== undefined);
 
-      if (tagSets.length === 0) return new Set();
-      const common = tagSets[0];
-      for (let i = 1; i < tagSets.length; i++) {
-        for (const t of common) {
-          if (!tagSets[i].has(t)) common.delete(t);
+      if (rows.length === 0) return new Set();
+
+      const common = new Set(pickValues(rows[0]));
+      for (let i = 1; i < rows.length; i++) {
+        for (const v of common) {
+          if (!pickValues(rows[i]).includes(v)) common.delete(v);
         }
       }
       return common;
     }
 
     if (hoveredRowId) {
-      return new Set(getExpenseById(hoveredRowId)?.tags ?? []);
+      const expense = getExpenseById(hoveredRowId);
+      return expense ? new Set(pickValues(expense)) : new Set();
     }
     return new Set();
   }, [hoveredRowId, selection, getExpenseById, isActive]);
 
   const actions: RadialAction[] = useMemo(
     () =>
-      frequentTags.map((tag) => ({
-        id: tag,
-        label: tag,
-        active: appliedTagSet.has(tag),
+      (mode === "groups" ? frequentGroups : frequentTags).map((label) => ({
+        id: label,
+        label,
+        active: appliedActionIds.has(label),
       })),
-    [frequentTags, appliedTagSet],
+    [mode, frequentGroups, frequentTags, appliedActionIds],
   );
 
   return {
     isActive,
     position,
     actions,
-    hoveredAction: hoveredTag,
+    hoveredAction,
     setHoveredRowId,
-    onActionEnter: onTagEnter,
-    onActionLeave: onTagLeave,
+    setHoveredColumn,
+    onActionEnter,
+    onActionLeave,
   };
 };

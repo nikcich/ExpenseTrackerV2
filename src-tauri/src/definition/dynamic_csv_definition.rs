@@ -15,6 +15,7 @@ pub struct DynamicCsvDefinition {
     pub description_column: DynamicSimpleColumn,
     pub amount_column: DynamicAmountColumn,
     pub tag_column: Option<DynamicSimpleColumn>,
+    pub group_column: Option<DynamicSimpleColumn>,
     pub credit_debit_column: Option<DynamicCreditDebitColumn>,
 }
 
@@ -90,6 +91,13 @@ impl From<&DynamicCsvDefinition> for CsvDefinition {
             expected_columns.insert(
                 CsvColumnRole::Tag,
                 CsvColumnInfo::optional_content(tag.index, CsvColumnDataType::String),
+            );
+        }
+
+        if let Some(ref group) = dyn_def.group_column {
+            expected_columns.insert(
+                CsvColumnRole::Group,
+                CsvColumnInfo::optional_content(group.index, CsvColumnDataType::String),
             );
         }
 

@@ -190,6 +190,7 @@ export type DynamicCsvDefinition = {
   descriptionColumn: { index: number };
   amountColumn: { index: number; inverted: boolean };
   tagColumn?: { index: number };
+  groupColumn?: { index: number };
   creditDebitColumn?: { index: number; creditQuery: string };
 };
 

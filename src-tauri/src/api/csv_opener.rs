@@ -93,6 +93,7 @@ pub fn parse_csv_from_path(
         "Max" => Some(CsvDefinitionKey::Max),
         "NavyFederal" => Some(CsvDefinitionKey::NavyFederal),
         "ExpenseTrackerBackup" => Some(CsvDefinitionKey::ExpenseTrackerBackup),
+        "ExpenseTrackerV2" => Some(CsvDefinitionKey::ExpenseTrackerV2),
         _ => None,
     } {
         match CSV_DEFINITIONS.get(&builtin_key) {

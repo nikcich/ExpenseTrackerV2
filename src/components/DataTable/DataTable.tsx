@@ -20,28 +20,33 @@ import { setSelection, useSelection } from "@/store/SelectionStore";
 import { enableOverlay, Overlay } from "@/store/OverlayStore";
 import { debounce } from "lodash";
 import { format } from "date-fns";
-import { useQuickTag } from "@/hooks/useQuickTag";
+import { useQuickWheel } from "@/hooks/useQuickWheel";
 import { RadialActions } from "../RadialActions/RadialActions";
 
-const TagCell = ({
-  tags,
+const kindPalette = (kind: ExpenseKind) =>
+  kind === "income" ? "green" : kind === "savings" ? "yellow" : "purple";
+
+const GroupCell = ({
   group,
   kind,
 }: {
-  tags: Tag[];
   group?: string;
   kind: ExpenseKind;
 }) => {
-  const groupPalette =
-    kind === "income" ? "green" : kind === "savings" ? "yellow" : "purple";
-
   return (
     <div className={styles.tagCell}>
       {group && (
-        <TagComp.Root key={group} colorPalette={groupPalette}>
+        <TagComp.Root colorPalette={kindPalette(kind)}>
           <TagComp.Label>{group}</TagComp.Label>
         </TagComp.Root>
       )}
+    </div>
+  );
+};
+
+const TagsCell = ({ tags }: { tags: Tag[] }) => {
+  return (
+    <div className={styles.tagCell}>
       {tags.map((tag) => (
         <TagComp.Root key={tag} colorPalette="orange">
           <TagComp.Label>{tag}</TagComp.Label>
@@ -186,18 +191,24 @@ type RowProps = {
   onEdit: (id: string) => void;
   onMouseEnter: () => void;
   onMouseLeave: () => void;
+  onCellHover: (col: "groups" | "tags" | null) => void;
   index: number;
   selectable: boolean;
 };
 
-const GRID_WITH_CHECK = "50px 150px 150px 1fr 100px";
-const GRID_NO_CHECK = "150px 150px 1fr 100px";
+const GRID_WITH_CHECK = "50px 130px 150px 150px 1fr 100px";
+const GRID_NO_CHECK = "130px 150px 150px 1fr 100px";
 
 const TableRow = memo<RowProps>(
-  ({ item, index, selected, onToggle, onEdit, onMouseEnter, onMouseLeave, selectable }) => {
+  ({ item, index, selected, onToggle, onEdit, onMouseEnter, onMouseLeave, onCellHover, selectable }) => {
     return (
       <tr
         data-selected={selected ? "" : undefined}
+        onClick={
+          selectable
+            ? (e) => onToggle(item.id, index, e.shiftKey)
+            : undefined
+        }
         onDoubleClick={() => onEdit(item.id)}
         onMouseEnter={onMouseEnter}
         onMouseLeave={onMouseLeave}
@@ -222,8 +233,22 @@ const TableRow = memo<RowProps>(
           </td>
         )}
 
-        <td className={styles.leftCenterContent}>
-          <TagCell tags={item.tags} group={item.group} kind={getExpenseKind(item)} />
+        <td
+          className={styles.leftCenterContent}
+          data-col="group"
+          onMouseEnter={() => onCellHover("groups")}
+          onMouseLeave={() => onCellHover(null)}
+        >
+          <GroupCell group={item.group} kind={getExpenseKind(item)} />
+        </td>
+
+        <td
+          className={styles.leftCenterContent}
+          data-col="tags"
+          onMouseEnter={() => onCellHover("tags")}
+          onMouseLeave={() => onCellHover(null)}
+        >
+          <TagsCell tags={item.tags} />
         </td>
 
         <td className={styles.leftCenterContent}>
@@ -249,7 +274,12 @@ export const CoreTable = memo(({ items, selectable = true }: { items: Expense[];
   const [scrollTop, setScrollTop] = useState(0);
   const lastSelectedIndexRef = useRef<number | null>(null);
   const headerCheckboxRef = useRef<HTMLInputElement>(null);
-  const quickTag = useQuickTag();
+  const quickWheel = useQuickWheel();
+
+  const handleCellHover = useCallback(
+    (col: "groups" | "tags" | null) => quickWheel.setHoveredColumn(col),
+    [quickWheel.setHoveredColumn]
+  );
 
   const handleSort = useCallback(
     (column: SortKey) => {
@@ -273,6 +303,12 @@ export const CoreTable = memo(({ items, selectable = true }: { items: Expense[];
         return sortDirection === "asc"
           ? a.tags.length - b.tags.length
           : b.tags.length - a.tags.length;
+      }
+
+      if (sortColumn === "group") {
+        return sortDirection === "asc"
+          ? (a.group ?? "").localeCompare(b.group ?? "")
+          : (b.group ?? "").localeCompare(a.group ?? "");
       }
 
       if (sortColumn === "date") {
@@ -387,11 +423,26 @@ export const CoreTable = memo(({ items, selectable = true }: { items: Expense[];
             )}
 
             <th
+              onClick={() => handleSort("group")}
+              className={styles.leftCenterContent}
+            >
+              <span className={styles.header}>
+                Group
+                {sortColumn === "group" &&
+                  (sortDirection === "asc" ? (
+                    <FaChevronUp size={14} />
+                  ) : (
+                    <FaChevronDown size={14} />
+                  ))}
+              </span>
+            </th>
+
+            <th
               onClick={() => handleSort("tags")}
               className={styles.leftCenterContent}
             >
               <span className={styles.header}>
-                Groups/Tags
+                Tags
                 {sortColumn === "tags" &&
                   (sortDirection === "asc" ? (
                     <FaChevronUp size={14} />
@@ -473,8 +524,9 @@ export const CoreTable = memo(({ items, selectable = true }: { items: Expense[];
                     selected={selection.includes(item.id)}
                     onToggle={toggleSelection}
                     onEdit={editRow}
-                    onMouseEnter={() => quickTag.setHoveredRowId(item.id)}
-                    onMouseLeave={() => quickTag.setHoveredRowId(null)}
+                    onMouseEnter={() => quickWheel.setHoveredRowId(item.id)}
+                    onMouseLeave={() => quickWheel.setHoveredRowId(null)}
+                    onCellHover={handleCellHover}
                     selectable={selectable}
                   />
                 );
@@ -490,13 +542,13 @@ export const CoreTable = memo(({ items, selectable = true }: { items: Expense[];
         scrollTop={scrollTop}
       />
 
-      {quickTag.isActive && (
+      {quickWheel.isActive && (
         <RadialActions
-          actions={quickTag.actions}
-          position={quickTag.position}
-          hoveredAction={quickTag.hoveredAction}
-          onActionEnter={quickTag.onActionEnter}
-          onActionLeave={quickTag.onActionLeave}
+          actions={quickWheel.actions}
+          position={quickWheel.position}
+          hoveredAction={quickWheel.hoveredAction}
+          onActionEnter={quickWheel.onActionEnter}
+          onActionLeave={quickWheel.onActionLeave}
         />
       )}
     </div>

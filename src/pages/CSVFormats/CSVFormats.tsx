@@ -17,6 +17,7 @@ const emptyForm = (): Omit<DynamicCsvDefinition, "id"> => ({
   descriptionColumn: { index: 1 },
   amountColumn: { index: 2, inverted: false },
   tagColumn: undefined,
+  groupColumn: undefined,
   creditDebitColumn: undefined,
 });
 
@@ -83,6 +84,7 @@ export function CSVFormats() {
         descriptionColumn: { ...def.descriptionColumn },
         amountColumn: { ...def.amountColumn },
         tagColumn: def.tagColumn ? { ...def.tagColumn } : undefined,
+        groupColumn: def.groupColumn ? { ...def.groupColumn } : undefined,
         creditDebitColumn: def.creditDebitColumn
           ? { ...def.creditDebitColumn }
           : undefined,
@@ -264,6 +266,30 @@ export function CSVFormats() {
 
             <div className={styles.field}>
               <span className={styles.fieldLabel}>
+                Group Column (optional)
+                <Tooltip content="Optional column assigning each row to a group (e.g. a trip or project name). Empty cells are fine — the row just gets no group.">
+                  <span className={styles.infoIcon}><LuInfo size={13} /></span>
+                </Tooltip>
+              </span>
+              <input
+                className={styles.fieldInput}
+                type="number"
+                min="0"
+                value={form.groupColumn?.index ?? ""}
+                onChange={(e) =>
+                  setForm({
+                    ...form,
+                    groupColumn: e.target.value
+                      ? { index: Number(e.target.value) }
+                      : undefined,
+                  })
+                }
+                placeholder="None"
+              />
+            </div>
+
+            <div className={styles.field}>
+              <span className={styles.fieldLabel}>
                 Credit/Debit Column (optional)
                 <Tooltip content="Some banks have a column indicating Credit or Debit per row. Set this to that column index, and set the Credit Value to the string that means credit (e.g. 'Credit'). The parser will negate the amount for credit rows.">
                   <span className={styles.infoIcon}><LuInfo size={13} /></span>
@@ -375,6 +401,7 @@ export function CSVFormats() {
                       <th>Description</th>
                       <th>Amount</th>
                       <th>Tags</th>
+                      <th>Group</th>
                       <th>Status</th>
                     </tr>
                   </thead>
@@ -391,10 +418,11 @@ export function CSVFormats() {
                             <td>{result.expense.description}</td>
                             <td>${result.expense.amount.toFixed(2)}</td>
                             <td>{result.expense.tags.join(", ")}</td>
+                            <td>{result.expense.group ?? ""}</td>
                             <td className={styles.okBadge}>OK</td>
                           </>
                         ) : (
-                          <td colSpan={5} className={styles.errorText}>
+                          <td colSpan={6} className={styles.errorText}>
                             {result.error}
                           </td>
                         )}
@@ -424,6 +452,7 @@ export function CSVFormats() {
                     {def.amountColumn.index}
                     {def.amountColumn.inverted ? " (inverted)" : ""}
                     {def.tagColumn ? ` | Tag: col ${def.tagColumn.index}` : ""}
+                    {def.groupColumn ? ` | Group: col ${def.groupColumn.index}` : ""}
                     {def.creditDebitColumn
                       ? ` | C/D: col ${def.creditDebitColumn.index} ("${def.creditDebitColumn.creditQuery}")`
                       : ""}
