@@ -23,7 +23,7 @@ export function AverageSpendingCard({
   legend?: boolean;
   legendDirection?: "v" | "h";
 }) {
-  const [breakdown, setBreakdown] = useState<Breakdown>("TAGS");
+  const [breakdown, setBreakdown] = useState<Breakdown>("GROUPS");
 
   return (
     <ChartCard

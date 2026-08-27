@@ -5,7 +5,7 @@ import { LineChart } from "@/components/charts/LineChart";
 import { BreakdownToggle, Breakdown } from "@/components/charts/BreakdownToggle";
 import { DonutChart } from "@/pages/Overview/DonutChart";
 import { Expense } from "@/types/types";
-import { byGroup, getExpenseKind, ExpenseKind } from "@/utils/expense-utils";
+import { byGroup, getExpenseKind, ExpenseKind, tagLabel } from "@/utils/expense-utils";
 import { FiInbox } from "react-icons/fi";
 import { formatCurrency, formatDate, parseLocalDate } from "@/utils/utils";
 import styles from "./InsightsView.module.scss";
@@ -102,7 +102,7 @@ export function InsightsView({
   const [disabledCategories, setDisabledCategories] = useState<Set<string>>(
     () => new Set()
   );
-  const [breakdown, setBreakdown] = useState<Breakdown>("TAGS");
+  const [breakdown, setBreakdown] = useState<Breakdown>("GROUPS");
 
   const stats = useMemo(() => computeStats(items), [items]);
   const series = useMemo(() => computeMonthlySeries(items), [items]);
@@ -115,7 +115,7 @@ export function InsightsView({
   );
 
   const tagCategories = useMemo(
-    () => categorize(items, (e) => e.tags[0] || "Untagged"),
+    () => categorize(items, tagLabel),
     [items]
   );
   const groupCategories = useMemo(() => categorize(items, byGroup), [items]);

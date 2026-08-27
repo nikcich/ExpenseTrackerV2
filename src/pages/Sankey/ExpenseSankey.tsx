@@ -9,6 +9,7 @@ import {
 } from "@/hooks/expenses";
 import { Expense } from "@/types/types";
 import { BrushScrubber } from "@/components/Brush/BrushScrubber";
+import { tagLabel } from "@/utils/expense-utils";
 import { useMemo, useState } from "react";
 import { SegmentGroup } from "@chakra-ui/react";
 import { SankeyCard } from "@/components/charts/SankeyCard";
@@ -17,6 +18,10 @@ import {
   SankeyLink,
   SankeyNode,
 } from "@/components/Sankey/Sankey";
+import {
+  Breakdown,
+  BreakdownToggle,
+} from "@/components/charts/BreakdownToggle";
 
 const filterYear = (data: Expense[], beforeNow: number = 0) => {
   const now = new Date();
@@ -47,16 +52,16 @@ const formatMoney = (value: number) => {
 const UNGROUPED = "Ungrouped";
 
 const COLUMN_INCOME = 0;
-const COLUMN_ALLOCATIONS = 0.32;
-const COLUMN_GROUPS = 0.62;
-const COLUMN_TAGS = 0.92;
+const COLUMN_MIDDLE = 0.46;
+const COLUMN_TERMINAL = 0.92;
 const BAND = 0.96;
 const NODE_GAP = 0.015;
 
 function buildCashFlowSankey(
   income: Expense[],
   savings: Expense[],
-  trueExpenses: Expense[]
+  trueExpenses: Expense[],
+  breakdown: Breakdown
 ): SankeyData {
   const incomeTotal = sumAmounts(income);
   const savingsTotal = sumAmounts(savings);
@@ -88,7 +93,7 @@ function buildCashFlowSankey(
   for (const { name, bucket } of groups) {
     const byTag = new Map<string, number>();
     for (const expense of bucket) {
-      const tag = expense.tags[0] || "Untagged";
+      const tag = tagLabel(expense);
       byTag.set(tag, (byTag.get(tag) ?? 0) + expense.amount);
     }
     groupTags.set(
@@ -147,7 +152,35 @@ function buildCashFlowSankey(
   const tagEntries = groups.flatMap(({ name }) =>
     (groupTags.get(name)!).map((t) => ({ ...t, group: name }))
   );
-  const tagsTotal = tagEntries.reduce((sum, t) => sum + t.value, 0);
+
+  const mergedTags = [...tagEntries.reduce((map, { tag, value }) => {
+    map.set(tag, (map.get(tag) ?? 0) + value);
+    return map;
+  }, new Map<string, number>()).entries()]
+    .filter(([, value]) => value >= 0.009)
+    .sort((a, b) => b[1] - a[1]);
+
+  const terminalEntries =
+    breakdown === "GROUPS"
+      ? groups.map(({ name, total }) => ({
+          id: `group:${name}`,
+          label: `${name} – ${formatMoney(total)}`,
+          color: "#8b5cf6",
+          value: total,
+          source: "expenses" as string,
+        }))
+      : mergedTags.map(([tag, value]) => ({
+          id: `tag:${tag}`,
+          label: `${tag} – ${formatMoney(value)}`,
+          color: "#ff7b00ff",
+          value,
+          source: "expenses" as string,
+        }));
+
+  const terminalTotal =
+    breakdown === "GROUPS"
+      ? groupsTotal
+      : mergedTags.reduce((sum, [, value]) => sum + value, 0);
 
   // Plotly sizes node heights itself, globally proportional to value, and
   // inserts fixed gaps between neighbouring nodes in a column. Mirror that
@@ -160,8 +193,7 @@ function buildCashFlowSankey(
       count: allocations.length,
       total: allocations.reduce((sum, a) => sum + a.value, 0),
     },
-    { count: groups.length, total: groupsTotal },
-    { count: tagEntries.length, total: tagsTotal },
+    { count: terminalEntries.length, total: terminalTotal },
   ];
   const scale = Math.min(
     ...columns.map((c) =>
@@ -185,12 +217,7 @@ function buildCashFlowSankey(
     });
   };
 
-  const columnXs = [
-    COLUMN_INCOME,
-    COLUMN_ALLOCATIONS,
-    COLUMN_GROUPS,
-    COLUMN_TAGS,
-  ];
+  const columnXs = [COLUMN_INCOME, COLUMN_MIDDLE, COLUMN_TERMINAL];
 
   type ColumnEntry = {
     id: string;
@@ -227,26 +254,7 @@ function buildCashFlowSankey(
   };
 
   pushColumn(1, allocations);
-  pushColumn(
-    2,
-    groups.map(({ name, total }) => ({
-      id: `group:${name}`,
-      label: `${name} – ${formatMoney(total)}`,
-      color: "#8b5cf6",
-      value: total,
-    })),
-    "expenses"
-  );
-  pushColumn(
-    3,
-    tagEntries.map(({ tag, value, group }) => ({
-      id: `tag:${group}:${tag}`,
-      label: `${tag} – ${formatMoney(value)}`,
-      color: "#ff7b00ff",
-      value,
-      source: `group:${group}`,
-    }))
-  );
+  pushColumn(2, terminalEntries);
 
   return { nodes, links };
 }
@@ -271,6 +279,7 @@ const filterExpenseMode = (
 
 export function ExpenseSankey() {
   const [mode, setMode] = useState<Mode>(Mode.RANGE);
+  const [breakdown, setBreakdown] = useState<Breakdown>("GROUPS");
 
   const rawExpenses = useExpenses();
   const rawIncome = useIncome();
@@ -293,8 +302,8 @@ export function ExpenseSankey() {
   );
 
   const sankeyData = useMemo(
-    () => buildCashFlowSankey(income, savings, expense),
-    [income, expense, savings]
+    () => buildCashFlowSankey(income, savings, expense, breakdown),
+    [income, expense, savings, breakdown]
   );
 
   return (
@@ -315,7 +324,12 @@ export function ExpenseSankey() {
       }
     >
       <div style={{ padding: "1.5rem 2rem", height: "100%", display: "flex", flexDirection: "column" }}>
-        <SankeyCard data={sankeyData} />
+        <SankeyCard
+          data={sankeyData}
+          toolbar={
+            <BreakdownToggle value={breakdown} onChange={setBreakdown} />
+          }
+        />
       </div>
     </GenericPage>
   );

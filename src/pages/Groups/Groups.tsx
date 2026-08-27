@@ -42,9 +42,16 @@ function summarizeGroups(allExpenses: Expense[]): GroupSummary[] {
     });
   }
 
-  return summaries.sort((a, b) =>
-    a.endIso < b.endIso ? 1 : a.endIso > b.endIso ? -1 : a.name.localeCompare(b.name)
-  );
+  const RESERVED: string[] = [INCOME_GROUP, SAVINGS_GROUP];
+
+  return summaries.sort((a, b) => {
+    const ai = RESERVED.indexOf(a.name);
+    const bi = RESERVED.indexOf(b.name);
+    if (ai !== -1 && bi !== -1) return ai - bi;
+    if (ai !== -1) return -1;
+    if (bi !== -1) return 1;
+    return a.name.localeCompare(b.name);
+  });
 }
 
 const groupStat = (name: string): { label: string; className: string } => {

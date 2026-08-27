@@ -1,6 +1,6 @@
 import { Expense } from "@/types/types";
 import { parseDate } from "@/utils/utils";
-import { getExpenseKind } from "@/utils/expense-utils";
+import { getExpenseKind, tagLabel } from "@/utils/expense-utils";
 import { getMonth, getYear, subMonths } from "date-fns";
 
 export type MonthData = {
@@ -64,7 +64,7 @@ export function computeMonthData(expenses: Expense[], target: Date): MonthData {
 
   const catMap = new Map<string, number>();
   for (const e of spent) {
-    const tag = e.tags[0] || "Untagged";
+    const tag = tagLabel(e);
     catMap.set(tag, (catMap.get(tag) || 0) + e.amount);
   }
   const categories = [...catMap.entries()]
@@ -99,7 +99,7 @@ export function computeYearData(expenses: Expense[], target: Date): MonthData {
 
   const catMap = new Map<string, number>();
   for (const e of spent) {
-    const tag = e.tags[0] || "Untagged";
+    const tag = tagLabel(e);
     catMap.set(tag, (catMap.get(tag) || 0) + e.amount);
   }
   const categories = [...catMap.entries()]
@@ -131,7 +131,7 @@ export function computeAllData(expenses: Expense[]): MonthData {
 
   const catMap = new Map<string, number>();
   for (const e of spent) {
-    const tag = e.tags[0] || "Untagged";
+    const tag = tagLabel(e);
     catMap.set(tag, (catMap.get(tag) || 0) + e.amount);
   }
   const categories = [...catMap.entries()]

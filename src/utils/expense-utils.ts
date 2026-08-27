@@ -103,12 +103,15 @@ export const byDay = (e: Expense) => {
   const date = parseDate(e.date);
   return format(date, "MM/dd/yyyy");
 };
+export const tagLabel = (e: Expense) =>
+  e.tags[0] || e.group || "Untagged";
+
 export const byTag = (e: Expense) => {
   const emptyTag = e.tags.includes("") || e.tags.length === 0;
   if (e.tags.includes("")) {
-    return ["Untagged"];
+    return [tagLabel(e)];
   }
-  return !emptyTag ? e.tags : ["Untagged"];
+  return !emptyTag ? e.tags : [tagLabel(e)];
 };
 export const byGroup = (e: Expense) => {
   const kind = getExpenseKind(e);

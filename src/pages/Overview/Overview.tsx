@@ -10,7 +10,7 @@ import { DonutChart } from "./DonutChart";
 import { getLast12Months, getLastNYears, computeMonthData, computeYearData, computeAllData, getMonthExpenses, getYearExpenses, computeYtdFromExpenses, EMPTY_DATA } from "./utils";
 import { useSettingsStore } from "@/store/SettingsStore";
 import { formatCurrency, formatDate, parseLocalDate } from "@/utils/utils";
-import { byGroup, getExpenseKind } from "@/utils/expense-utils";
+import { byGroup, getExpenseKind, tagLabel } from "@/utils/expense-utils";
 import { BreakdownToggle, Breakdown } from "@/components/charts/BreakdownToggle";
 import { Expense } from "@/types/types";
 import styles from "./Overview.module.scss";
@@ -162,7 +162,7 @@ const computeCategories = (
 };
 
 const categoryOf = (e: Expense, breakdown: Breakdown) =>
-  breakdown === "GROUPS" ? byGroup(e) : e.tags[0] || "Untagged";
+  breakdown === "GROUPS" ? byGroup(e) : tagLabel(e);
 
 type HiddenCategories = Record<Breakdown, Set<string>>;
 
@@ -177,11 +177,11 @@ function BreakdownSection({
   totalSpent: number;
   cutoffDate: Date;
 }) {
-  const [breakdown, setBreakdown] = useState<Breakdown>("TAGS");
+  const [breakdown, setBreakdown] = useState<Breakdown>("GROUPS");
   const [hidden, setHidden] = useState<HiddenCategories>(NO_HIDDEN);
 
   const tagCategories = useMemo(
-    () => computeCategories(expenses, (e) => e.tags[0] || "Untagged"),
+    () => computeCategories(expenses, tagLabel),
     [expenses]
   );
   const groupCategories = useMemo(() => computeCategories(expenses, byGroup), [expenses]);
