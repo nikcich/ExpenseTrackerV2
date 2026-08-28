@@ -53,6 +53,12 @@ export const useGlobalShortcuts = () => {
         return;
       }
 
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k") {
+        e.preventDefault();
+        enableOverlay(Overlay.SearchModal);
+        return;
+      }
+
       if (modalOpen) {
         return;
       }

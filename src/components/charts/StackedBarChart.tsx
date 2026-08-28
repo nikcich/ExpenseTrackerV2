@@ -2,6 +2,7 @@ import { memo, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from
 import { scaleBand, scaleLinear } from "d3-scale";
 import styles from "./StackedBarChart.module.scss";
 import { chartDateCompare } from "@/utils/utils";
+import { colorForName } from "@/utils/colors";
 import { ChartOpenPayload } from "@/utils/custom-filter";
 import {
   useChartTooltip,
@@ -64,7 +65,19 @@ export const StackedBarChart = memo(function StackedBarChart({
 }) {
   const plotRef = useRef<HTMLDivElement | null>(null);
   const [size, setSize] = useState({ width: 0, height: 0 });
+  const [disabled, setDisabled] = useState<Set<string>>(new Set());
   const { containerRef, tip, show, hide } = useChartTooltip();
+
+  const toggleDisabled = (name: string) => {
+    setDisabled((prev) => {
+      const next = new Set(prev);
+      if (next.has(name)) next.delete(name);
+      else next.add(name);
+      return next;
+    });
+  };
+
+  const visibleData = useMemo(() => data.filter((d) => !disabled.has(d.name)), [data, disabled]);
 
   useLayoutEffect(() => {
     const node = plotRef.current;
@@ -101,7 +114,7 @@ export const StackedBarChart = memo(function StackedBarChart({
   }, [data]);
 
   const traceColors = useMemo(
-    () => data.map((_, i) => SEQUENTIAL_COLORS[i % SEQUENTIAL_COLORS.length]),
+    () => data.map((d) => colorForName(d.name)),
     [data]
   );
 
@@ -109,28 +122,35 @@ export const StackedBarChart = memo(function StackedBarChart({
     <div className={styles.container}>
       {legend && legendDirection === "h" && (
         <div className={styles.legendRow}>
-          {data.map((c, i) => (
-            <span key={c.name} className={styles.legendItem}>
+          {data.map((c, i) => {
+            const dimmed = disabled.has(c.name);
+            return (
               <span
-                className={styles.legendSwatch}
-                style={{ backgroundColor: traceColors[i] }}
-              />
-              {c.name}
-            </span>
-          ))}
+                key={c.name}
+                className={styles.legendItem}
+                onClick={() => toggleDisabled(c.name)}
+                style={{ opacity: dimmed ? 0.35 : 1, cursor: "pointer" }}
+              >
+                <span
+                  className={styles.legendSwatch}
+                  style={{ backgroundColor: traceColors[i] }}
+                />
+                {c.name}
+              </span>
+            );
+          })}
         </div>
       )}
       <div className={styles.bodyRow}>
         <div className={styles.plotContainer} ref={(el) => { plotRef.current = el; containerRef.current = el; }}>
-          {innerWidth > 0 && innerHeight > 0 && data.length > 0 && (
+          {innerWidth > 0 && innerHeight > 0 && visibleData.length > 0 && (
             <svg className={styles.svg} viewBox={`0 0 ${width} ${height}`}>
               <Graph
                 innerWidth={innerWidth}
                 innerHeight={innerHeight}
                 margin={margin}
                 periods={periods}
-                data={data}
-                colors={traceColors}
+                data={visibleData}
                 onOpen={onOpen}
                 onShow={show}
                 onHide={hide}
@@ -141,15 +161,23 @@ export const StackedBarChart = memo(function StackedBarChart({
         </div>
         {legend && legendDirection === "v" && (
           <div className={styles.legendCol}>
-            {data.map((c, i) => (
-              <span key={c.name} className={styles.legendItem}>
+            {data.map((c, i) => {
+              const dimmed = disabled.has(c.name);
+              return (
                 <span
-                  className={styles.legendSwatch}
-                  style={{ backgroundColor: traceColors[i] }}
-                />
-                {c.name}
-              </span>
-            ))}
+                  key={c.name}
+                  className={styles.legendItem}
+                  onClick={() => toggleDisabled(c.name)}
+                  style={{ opacity: dimmed ? 0.35 : 1, cursor: "pointer" }}
+                >
+                  <span
+                    className={styles.legendSwatch}
+                    style={{ backgroundColor: traceColors[i] }}
+                  />
+                  {c.name}
+                </span>
+              );
+            })}
           </div>
         )}
       </div>
@@ -157,28 +185,12 @@ export const StackedBarChart = memo(function StackedBarChart({
   );
 });
 
-const SEQUENTIAL_COLORS = [
-  "#3182ce",
-  "#38a169",
-  "#e53e3e",
-  "#d69e2e",
-  "#805ad5",
-  "#dd6b20",
-  "#319795",
-  "#d53f8c",
-  "#718096",
-  "#48bb78",
-  "#4299e1",
-  "#ed8936",
-];
-
 function Graph({
   innerWidth,
   innerHeight,
   margin,
   periods,
   data,
-  colors,
   onOpen,
   onShow,
   onHide,
@@ -188,7 +200,6 @@ function Graph({
   margin: { top: number; right: number; bottom: number; left: number };
   periods: string[];
   data: Data[];
-  colors: string[];
   onOpen?: (payload: ChartOpenPayload) => void;
   onShow: (px: number, py: number, content: ReactNode) => void;
   onHide: () => void;
@@ -282,31 +293,38 @@ function Graph({
       })}
 
       {periods.map((period, i) => {
+        const segments = data
+          .map((tr) => ({
+            name: tr.name,
+            value: Number(tr.y[i]) || 0,
+          }))
+          .filter((s) => s.value > 0)
+          .sort((a, b) => b.value - a.value);
+
         let cum = 0;
-        return data.map((tr, s) => {
-          const value = Number(tr.y[i]) || 0;
-          if (value <= 0) return null;
+        const cx = plotX + (catScale(period) ?? 0);
+        return segments.map((seg) => {
           const startPx = valScale(cum);
-          cum += value;
+          cum += seg.value;
           const endPx = valScale(cum);
-          const cx = plotX + (catScale(period) ?? 0);
+          const color = colorForName(seg.name);
           return (
             <rect
-              key={`${tr.name}-${period}`}
+              key={`${seg.name}-${period}`}
               className={styles.segment}
               x={cx}
               y={endPx}
               width={barWidth}
               height={startPx - endPx}
-              fill={colors[s]}
+              fill={color}
               onMouseMove={(e) =>
                 onShow(e.clientX, e.clientY, (
                   <>
                     <TooltipTitle>{period}</TooltipTitle>
                     <TooltipRow
-                      color={colors[s]}
-                      label={tr.name}
-                      value={formatTooltipMoney(value)}
+                      color={color}
+                      label={seg.name}
+                      value={formatTooltipMoney(seg.value)}
                     />
                   </>
                 ))
@@ -314,7 +332,7 @@ function Graph({
               onMouseLeave={onHide}
               onDoubleClick={() =>
                 onOpen?.({
-                  category: tr.name,
+                  category: seg.name,
                   period: String(period),
                 })
               }

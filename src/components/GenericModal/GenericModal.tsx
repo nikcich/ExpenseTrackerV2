@@ -8,9 +8,10 @@ const FOCUSABLE_SELECTOR =
 type ModalProps = {
   children: React.ReactNode;
   overlay: Overlay;
+  fullscreen?: boolean;
 };
 
-export const GenericModal = ({ children, overlay }: ModalProps) => {
+export const GenericModal = ({ children, overlay, fullscreen = false }: ModalProps) => {
   const activeOverlay = useActiveOverlay();
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -84,26 +85,25 @@ export const GenericModal = ({ children, overlay }: ModalProps) => {
     <div
       ref={containerRef}
       style={{
-        position: "absolute",
-        top: 0,
-        left: 0,
-        width: "100%",
-        height: "100%",
+        position: "fixed",
+        inset: 0,
         background: "rgba(0, 0, 0, 0.5)",
         backdropFilter: "blur(10px)",
         zIndex: 101,
         display: "flex",
         justifyContent: "center",
         alignItems: "center",
+        padding: fullscreen ? "24px" : 0,
       }}
     >
       <Box
         bg="bg.panel"
-        borderRadius="xl"
-        p={5}
-        width="50%"
-        maxHeight="80vh"
-        overflowY="auto"
+        borderRadius={fullscreen ? "lg" : "xl"}
+        p={fullscreen ? 6 : 5}
+        width={fullscreen ? "100%" : "50%"}
+        height={fullscreen ? "100%" : undefined}
+        maxHeight={fullscreen ? "100%" : "80vh"}
+        overflow={fullscreen ? "hidden" : "auto"}
         boxShadow="lg"
         borderWidth="1px"
         borderColor="border.DEFAULT"

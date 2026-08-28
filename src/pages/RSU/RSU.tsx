@@ -18,6 +18,7 @@ import { LineChart } from "@/components/charts/LineChart";
 import { BarChart } from "@/components/charts/BarChart";
 import {
   computeForecast,
+  computeGrantVestedShares,
 } from "@/utils/rsu-forecast";
 import styles from "./RSU.module.scss";
 
@@ -90,6 +91,7 @@ export function RSU() {
   >(null);
   const [forecastUnit, setForecastUnit] = useState<"shares" | "dollars">("shares");
   const [forecastPrices, setForecastPrices] = useState<Map<string, number>>(new Map());
+  const [summaryMode, setSummaryMode] = useState<"stock" | "grant">("stock");
 
   const [showRsuForm, setShowRsuForm] = useState(false);
   const [rsuForm, setRsuForm] = useState<Partial<RsuVest>>(emptyRsu());
@@ -1477,6 +1479,168 @@ export function RSU() {
                 </div>
               );
             })()}
+          </div>
+        );
+      })()}
+
+      {(() => {
+        if (grants.length === 0 && vests.length === 0) return null;
+
+        const priceFor = (stockId: string, fallback = 0) =>
+          forecastPrices.get(stockId) ??
+          stockMap.current.get(stockId)?.currentPrice ??
+          fallback;
+
+        const futureSharesByGrant = new Map<string, number>();
+        for (const g of grants) {
+          if (!g.vestingSchedule) continue;
+          const future = computeForecast(g, vests, stocks).filter(
+            (f) => !f.isPast,
+          );
+          futureSharesByGrant.set(
+            g.id,
+            future.reduce((s, f) => s + f.shares, 0),
+          );
+        }
+
+        type UnitRow = {
+          id: string;
+          label: string;
+          vestedShares: number;
+          vestedValue: number;
+          toVestShares: number;
+          toVestValue: number;
+        };
+
+        const rows: UnitRow[] = [];
+
+        if (summaryMode === "stock") {
+          for (const stock of stocks) {
+            const vestedShares = vests
+              .filter(
+                (v) => grantMap.current.get(v.grantId)?.stockId === stock.id,
+              )
+              .reduce((s, v) => s + v.shares, 0);
+            if (vestedShares === 0 && !grants.some((g) => g.stockId === stock.id))
+              continue;
+            const toVestShares = grants
+              .filter((g) => g.stockId === stock.id)
+              .reduce((s, g) => s + (futureSharesByGrant.get(g.id) ?? 0), 0);
+            const price = priceFor(stock.id);
+            rows.push({
+              id: stock.id,
+              label: stock.ticker || stock.id,
+              vestedShares,
+              vestedValue: vestedShares * price,
+              toVestShares,
+              toVestValue: toVestShares * price,
+            });
+          }
+        } else {
+          for (const g of grants) {
+            const vestedShares = computeGrantVestedShares(g.id, vests);
+            const toVestShares = futureSharesByGrant.get(g.id) ?? 0;
+            if (vestedShares === 0 && toVestShares === 0) continue;
+            const price = priceFor(g.stockId, g.grantPrice);
+            rows.push({
+              id: g.id,
+              label: g.name,
+              vestedShares,
+              vestedValue: vestedShares * price,
+              toVestShares,
+              toVestValue: toVestShares * price,
+            });
+          }
+        }
+
+        const grandVested = rows.reduce((s, r) => s + r.vestedValue, 0);
+        const grandToVest = rows.reduce((s, r) => s + r.toVestValue, 0);
+        const grandTotal = grandVested + grandToVest;
+
+        return (
+          <div className={styles.section}>
+            <div className={styles.sectionHeader}>
+              <span className={styles.sectionTitle}>
+                Total RSU Value
+              </span>
+              <SegmentGroup.Root
+                value={summaryMode}
+                onValueChange={(e) =>
+                  setSummaryMode(e.value as "stock" | "grant")
+                }
+                size="sm"
+              >
+                <SegmentGroup.Indicator />
+                <SegmentGroup.Items items={["stock", "grant"]} />
+              </SegmentGroup.Root>
+            </div>
+
+            {rows.length === 0 ? (
+              <div className={styles.emptyNote}>
+                No RSU data to summarize.
+              </div>
+            ) : (
+              <div className={styles.tableCard}>
+                <table className={styles.table}>
+                  <thead>
+                    <tr>
+                      <th>{summaryMode === "stock" ? "Stock" : "Grant"}</th>
+                      <th className={styles.num}>Vested Shares</th>
+                      <th className={styles.num}>Vested Value</th>
+                      <th className={styles.num}>To Vest</th>
+                      <th className={styles.num}>To Vest Value</th>
+                      <th className={styles.num}>Total Value</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {rows.map((r) => (
+                      <tr key={r.id}>
+                        <td>{r.label}</td>
+                        <td className={styles.num}>
+                          {r.vestedShares.toLocaleString()}
+                        </td>
+                        <td className={`${styles.num} ${styles.money}`}>
+                          {formatCurrency(r.vestedValue)}
+                        </td>
+                        <td className={styles.num}>
+                          {r.toVestShares.toLocaleString()}
+                        </td>
+                        <td className={`${styles.num} ${styles.money}`}>
+                          {formatCurrency(r.toVestValue)}
+                        </td>
+                        <td className={`${styles.num} ${styles.money}`}>
+                          {formatCurrency(r.vestedValue + r.toVestValue)}
+                        </td>
+                      </tr>
+                    ))}
+                    {rows.length > 1 && (
+                      <tr className={styles.summaryTotalsRow}>
+                        <td>Total</td>
+                        <td className={styles.num}>
+                          {rows
+                            .reduce((s, r) => s + r.vestedShares, 0)
+                            .toLocaleString()}
+                        </td>
+                        <td className={`${styles.num} ${styles.money}`}>
+                          {formatCurrency(grandVested)}
+                        </td>
+                        <td className={styles.num}>
+                          {rows
+                            .reduce((s, r) => s + r.toVestShares, 0)
+                            .toLocaleString()}
+                        </td>
+                        <td className={`${styles.num} ${styles.money}`}>
+                          {formatCurrency(grandToVest)}
+                        </td>
+                        <td className={`${styles.num} ${styles.money}`}>
+                          {formatCurrency(grandTotal)}
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
         );
       })()}

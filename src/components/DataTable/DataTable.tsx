@@ -18,8 +18,11 @@ import { FaChevronUp } from "react-icons/fa";
 import styles from "./DataTable.module.scss";
 import { setSelection, useSelection } from "@/store/SelectionStore";
 import { enableOverlay, Overlay } from "@/store/OverlayStore";
+import { useSettingsStore } from "@/store/SettingsStore";
 import { debounce } from "lodash";
 import { format } from "date-fns";
+import { formatCompactCurrency } from "@/utils/utils";
+import { expenseMatchesSearch } from "@/utils/search";
 import { useQuickWheel } from "@/hooks/useQuickWheel";
 import { RadialActions } from "../RadialActions/RadialActions";
 
@@ -95,17 +98,7 @@ export const DataTable = ({ items }: { items: Expense[] }) => {
 
   const filteredItems = useMemo(() => {
     if (!deferredSearch) return items;
-
-    return items.filter((item) => {
-      const searchStr = deferredSearch.toLowerCase();
-      const matchesDescription = item.description.toLowerCase().includes(searchStr);
-      const matchesTags = item.tags.some((t) => t.toLowerCase().includes(searchStr));
-      const matchesGroup = item.group?.toLowerCase().includes(searchStr) ?? false;
-      const matchesAmount = item.amount.toFixed(2).includes(searchStr);
-      const matchesDate = format(new Date(item.date), "MM-dd-yyyy").includes(searchStr) || item.date.includes(searchStr);
-
-      return matchesDescription || matchesTags || matchesGroup || matchesAmount || matchesDate;
-    });
+    return items.filter((item) => expenseMatchesSearch(item, deferredSearch));
   }, [items, deferredSearch]);
 
   return (
@@ -194,13 +187,14 @@ type RowProps = {
   onCellHover: (col: "groups" | "tags" | null) => void;
   index: number;
   selectable: boolean;
+  compactAmounts: boolean;
 };
 
 const GRID_WITH_CHECK = "50px 130px 150px 150px 1fr 100px";
 const GRID_NO_CHECK = "130px 150px 150px 1fr 100px";
 
 const TableRow = memo<RowProps>(
-  ({ item, index, selected, onToggle, onEdit, onMouseEnter, onMouseLeave, onCellHover, selectable }) => {
+  ({ item, index, selected, onToggle, onEdit, onMouseEnter, onMouseLeave, onCellHover, selectable, compactAmounts }) => {
     return (
       <tr
         data-selected={selected ? "" : undefined}
@@ -259,7 +253,9 @@ const TableRow = memo<RowProps>(
 
         <td className={styles.leftCenterContent}>
           <span className={item.amount < 0 ? styles.income : styles.expense}>
-            ${item.amount.toFixed(2)}
+            {compactAmounts
+              ? formatCompactCurrency(item.amount)
+              : `$${item.amount.toFixed(2)}`}
           </span>
         </td>
       </tr>
@@ -269,6 +265,7 @@ const TableRow = memo<RowProps>(
 
 export const CoreTable = memo(({ items, selectable = true }: { items: Expense[]; selectable?: boolean }) => {
   const selection = useSelection();
+  const compactAmounts = useSettingsStore("compactAmounts");
   const [sortColumn, setSortColumn] = useState<SortKey>("date");
   const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
   const [scrollTop, setScrollTop] = useState(0);
@@ -528,6 +525,7 @@ export const CoreTable = memo(({ items, selectable = true }: { items: Expense[];
                     onMouseLeave={() => quickWheel.setHoveredRowId(null)}
                     onCellHover={handleCellHover}
                     selectable={selectable}
+                    compactAmounts={compactAmounts}
                   />
                 );
               })}

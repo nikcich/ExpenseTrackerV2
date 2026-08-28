@@ -417,6 +417,21 @@ export function formatCurrency(n: number): string {
   return n < 0 ? `-${s}` : s;
 }
 
+export function formatCompactCurrency(n: number): string {
+  const abs = Math.abs(n);
+  const sign = n < 0 ? "-" : "";
+  if (abs >= 1_000_000) {
+    return `${sign}$${(abs / 1_000_000).toFixed(1)}M`;
+  }
+  if (abs >= 10_000) {
+    return `${sign}$${(abs / 1000).toFixed(0)}k`;
+  }
+  if (abs >= 1000) {
+    return `${sign}$${(abs / 1000).toFixed(1)}k`;
+  }
+  return `${sign}$${abs.toFixed(2)}`;
+}
+
 export function formatPercent(pct: number): string {
   return `${Math.round(pct)}%`;
 }
