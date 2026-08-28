@@ -10,6 +10,7 @@ import {
 import { Expense } from "@/types/types";
 import { BrushScrubber } from "@/components/Brush/BrushScrubber";
 import { tagLabel } from "@/utils/expense-utils";
+import { colorForName } from "@/utils/colors";
 import { useMemo, useState } from "react";
 import { SegmentGroup } from "@chakra-ui/react";
 import { SankeyCard } from "@/components/charts/SankeyCard";
@@ -166,14 +167,14 @@ function buildCashFlowSankey(
       ? groups.map(({ name, total }) => ({
           id: `group:${name}`,
           label: `${name} – ${formatMoney(total)}`,
-          color: "#8b5cf6",
+          color: colorForName(name),
           value: total,
           source: "expenses" as string,
         }))
       : mergedTags.map(([tag, value]) => ({
           id: `tag:${tag}`,
           label: `${tag} – ${formatMoney(value)}`,
-          color: "#ff7b00ff",
+          color: colorForName(tag),
           value,
           source: "expenses" as string,
         }));

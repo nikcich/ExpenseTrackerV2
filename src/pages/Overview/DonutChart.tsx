@@ -1,25 +1,8 @@
 import { memo, useMemo, useState } from "react";
 import * as d3 from "d3";
 import { formatCurrency } from "@/utils/utils";
+import { colorForName } from "@/utils/colors";
 import styles from "./Overview.module.scss";
-
-const CATEGORY_COLORS = [
-  "#6366F1",
-  "#F59E0B",
-  "#10B981",
-  "#EF4444",
-  "#8B5CF6",
-  "#F97316",
-  "#06B6D4",
-  "#EC4899",
-  "#6B7280",
-  "#14B8A6",
-  "#E11D48",
-  "#84CC16",
-  "#D946EF",
-  "#0EA5E9",
-  "#F43F5E",
-];
 
 const VB = 200;
 const VB_RADIUS = VB / 2;
@@ -84,7 +67,7 @@ export const DonutChart = memo(function DonutChart({
               <path
                 key={d.data.name}
                 d={arcPath[i] || ""}
-                fill={CATEGORY_COLORS[i % CATEGORY_COLORS.length]}
+                fill={colorForName(d.data.name)}
                 stroke="none"
                 opacity={isDimmed(i) ? 0.2 : 1}
                 onMouseEnter={() => setHoveredIndex(i)}
@@ -123,7 +106,7 @@ export const DonutChart = memo(function DonutChart({
                 <span
                   className={styles.legendSwatch}
                   style={{
-                    background: CATEGORY_COLORS[i % CATEGORY_COLORS.length],
+                    background: colorForName(d.data.name),
                   }}
                 />
                 <span className={styles.legendName}>{d.data.name}</span>

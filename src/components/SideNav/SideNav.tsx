@@ -13,7 +13,7 @@ import { FaChartLine } from "react-icons/fa6";
 import { BsAlignMiddle } from "react-icons/bs";
 import { TbChartSankey } from "react-icons/tb";
 import { MdOutlineTrendingUp } from "react-icons/md";
-import { PiCompassLight, PiChartPieSlice } from "react-icons/pi";
+import { PiCompassLight, PiChartPieSlice, PiMagnifyingGlassBold } from "react-icons/pi";
 import { LuLayers } from "react-icons/lu";
 import { FaCoins } from "react-icons/fa";
 import { LuFileSpreadsheet } from "react-icons/lu";
@@ -53,6 +53,14 @@ export function SideNav() {
   return (
     <div className={styles.navContainer}>
       <div className={styles.navItems}>
+        <Tooltip content="Search (Ctrl+K)" positioning={{ placement: "right" }}>
+          <button
+            className={styles.navButton}
+            onClick={() => enableOverlay(Overlay.SearchModal)}
+          >
+            <PiMagnifyingGlassBold />
+          </button>
+        </Tooltip>
         <NavButton Icon={PiCompassLight} page={Pages.Overview} label="Overview" />
         <NavButton Icon={PiChartPieSlice} page={Pages.Accounts} label="Accounts" />
         {showRsu && <NavButton Icon={FaCoins} page={Pages.RSU} label="RSU" />}

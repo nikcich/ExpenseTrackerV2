@@ -1,6 +1,7 @@
 import { Expense } from "@/types/types";
 import { getExpenseKind } from "@/utils/expense-utils";
 import { parseLocalDate } from "@/utils/utils";
+import { expenseMatchesSearch } from "@/utils/search";
 
 export type Conjunction = "AND" | "OR";
 
@@ -16,7 +17,8 @@ export type FilterField =
   | "description"
   | "tags"
   | "group"
-  | "type";
+  | "type"
+  | "text";
 
 export type FilterOperator = string;
 
@@ -49,6 +51,14 @@ export type FilterRule = {
 };
 
 export const FILTER_FIELDS: FilterFieldDef[] = [
+  {
+    id: "text",
+    label: "Free Text",
+    operators: [
+      { id: "contains", label: "matches", valueKind: "text" },
+      { id: "ncontains", label: "does not match", valueKind: "text" },
+    ],
+  },
   {
     id: "amount",
     label: "Amount",
@@ -138,6 +148,12 @@ function baseMatch(rule: FilterRule, e: Expense): boolean {
     Array.isArray(v) ? new Set(v) : v;
 
   switch (rule.field) {
+    case "text": {
+      const query = String(rule.value);
+      return rule.operator === "ncontains"
+        ? !expenseMatchesSearch(e, query)
+        : expenseMatchesSearch(e, query);
+    }
     case "amount": {
       const n = Number(rule.value);
       switch (rule.operator) {
@@ -270,6 +286,17 @@ export function categoryRule(
     field,
     operator: field === "tags" ? "all" : "equals",
     value: field === "tags" ? [name] : name,
+  };
+}
+
+export function textRule(query: string): FilterRule {
+  return {
+    id: "nav_text",
+    conjunction: "AND",
+    negate: false,
+    field: "text",
+    operator: "contains",
+    value: query,
   };
 }
 

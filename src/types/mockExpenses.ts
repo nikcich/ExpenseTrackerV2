@@ -17,6 +17,10 @@ import { v4 as uuidv4 } from "uuid";
 import { format, subMonths, addMonths } from "date-fns";
 import { INCOME_GROUP, SAVINGS_GROUP } from "@/utils/expense-utils";
 
+const GROUP_ESSENTIALS = "Essentials";
+const GROUP_DISCRETIONARY = "Discretionary";
+const GROUP_IRREGULAR = "Irregular";
+
 const now = new Date();
 const startDate = subMonths(now, 12);
 const endDate = now;
@@ -124,6 +128,32 @@ const generateRealisticExpenses = (from: Date, to: Date): StoreExpenseMap => {
         "Bathroom Reno",
       );
     }
+
+    if (monthIndex === 1) {
+      addGroupedExpenses(
+        map,
+        [
+          { date: new Date(year, month, 2), amount: 220, tags: [ExpenseTag.Shopping], description: "Desk" },
+          { date: new Date(year, month, 2), amount: 130, tags: [ExpenseTag.Shopping], description: "Ergonomic chair" },
+          { date: new Date(year, month, 5), amount: 85, tags: [ExpenseTag.Misc], description: "Monitor arm" },
+          { date: new Date(year, month, 8), amount: 45, tags: [ExpenseTag.Misc], description: "Cable management + lamps" },
+        ],
+        "Home Office",
+      );
+    }
+
+    if (monthIndex === 11) {
+      addGroupedExpenses(
+        map,
+        [
+          { date: new Date(year, month, 3), amount: 60, tags: [ExpenseTag.Gifts], description: "Gift for Mom" },
+          { date: new Date(year, month, 10), amount: 45, tags: [ExpenseTag.Gifts], description: "Gift for friend" },
+          { date: new Date(year, month, 16), amount: 210, tags: [ExpenseTag.Shopping], description: "Holiday decorations" },
+          { date: new Date(year, month, 22), amount: 120, tags: [ExpenseTag.Food], description: "Grocery run for Christmas dinner" },
+        ],
+        "Holiday Season",
+      );
+    }
     monthIndex++;
 
     // Semimonthly salary (15th + last day) — ~$4,600/month after tax on $80k/yr
@@ -151,6 +181,7 @@ const generateRealisticExpenses = (from: Date, to: Date): StoreExpenseMap => {
       2000,
       [ExpenseTag.Rent_Mortgage],
       "Rent",
+      GROUP_ESSENTIALS,
     );
 
     // Utilities — 5th
@@ -160,6 +191,7 @@ const generateRealisticExpenses = (from: Date, to: Date): StoreExpenseMap => {
       300,
       [ExpenseTag.Utilities],
       "Electric & Internet",
+      GROUP_ESSENTIALS,
     );
 
     // Insurance — 1st
@@ -169,6 +201,7 @@ const generateRealisticExpenses = (from: Date, to: Date): StoreExpenseMap => {
       150,
       [ExpenseTag.Insurance],
       "Health Insurance",
+      GROUP_ESSENTIALS,
     );
 
     // Car loan — 15th
@@ -178,6 +211,7 @@ const generateRealisticExpenses = (from: Date, to: Date): StoreExpenseMap => {
       400,
       [ExpenseTag.Debt],
       "Car Loan Payment",
+      GROUP_ESSENTIALS,
     );
 
     // Student loan — 10th
@@ -187,6 +221,7 @@ const generateRealisticExpenses = (from: Date, to: Date): StoreExpenseMap => {
       300,
       [ExpenseTag.Debt],
       "Student Loan Payment",
+      GROUP_ESSENTIALS,
     );
 
     // Food — ~$500/month spread across 6-8 transactions
@@ -201,6 +236,7 @@ const generateRealisticExpenses = (from: Date, to: Date): StoreExpenseMap => {
         amt,
         [ExpenseTag.Food],
         descFor(ExpenseTag.Food),
+        GROUP_ESSENTIALS,
       );
       foodTotal += amt;
     }
@@ -212,6 +248,7 @@ const generateRealisticExpenses = (from: Date, to: Date): StoreExpenseMap => {
       35 + Math.random() * 15,
       [ExpenseTag.Gas],
       "Gas",
+      GROUP_ESSENTIALS,
     );
     addExpense(
       map,
@@ -219,6 +256,7 @@ const generateRealisticExpenses = (from: Date, to: Date): StoreExpenseMap => {
       35 + Math.random() * 15,
       [ExpenseTag.Gas],
       "Gas",
+      GROUP_ESSENTIALS,
     );
 
     // Entertainment — 1-2x per month
@@ -231,6 +269,7 @@ const generateRealisticExpenses = (from: Date, to: Date): StoreExpenseMap => {
         15 + Math.random() * 50,
         [ExpenseTag.Entertainment],
         descFor(ExpenseTag.Entertainment),
+        GROUP_DISCRETIONARY,
       );
     }
 
@@ -241,6 +280,7 @@ const generateRealisticExpenses = (from: Date, to: Date): StoreExpenseMap => {
       50 + Math.random() * 150,
       [ExpenseTag.Shopping],
       descFor(ExpenseTag.Shopping),
+      GROUP_DISCRETIONARY,
     );
 
     // Misc / Health / Transport / Gifts — 2-3 smaller items
@@ -260,6 +300,58 @@ const generateRealisticExpenses = (from: Date, to: Date): StoreExpenseMap => {
         10 + Math.random() * 80,
         [tag],
         descFor(tag),
+        tag === ExpenseTag.Gifts ? GROUP_DISCRETIONARY : GROUP_ESSENTIALS,
+      );
+    }
+
+    if (monthIndex === 9) {
+      addGroupedExpenses(
+        map,
+        [
+          { date: new Date(year, month, 3), amount: 620, tags: [ExpenseTag.Vacation_Travel], description: "Flight to Paris" },
+          { date: new Date(year, month, 3), amount: 95, tags: [ExpenseTag.Transportation], description: "Airport transfer" },
+          { date: new Date(year, month, 4), amount: 180, tags: [ExpenseTag.Vacation_Travel], description: "Hotel — Le Marais (night 1)" },
+          { date: new Date(year, month, 5), amount: 64, tags: [ExpenseTag.Food], description: "Bistro dinner" },
+          { date: new Date(year, month, 5), amount: 40, tags: [ExpenseTag.Entertainment], description: "Louvre tickets" },
+          { date: new Date(year, month, 6), amount: 180, tags: [ExpenseTag.Vacation_Travel], description: "Hotel — Le Marais (night 2)" },
+          { date: new Date(year, month, 6), amount: 52, tags: [ExpenseTag.Food], description: "Café brunch" },
+          { date: new Date(year, month, 7), amount: 120, tags: [ExpenseTag.Shopping], description: "Souvenirs — Marché" },
+          { date: new Date(year, month, 7), amount: 38, tags: [ExpenseTag.Food], description: "Crêpe dinner" },
+        ],
+        "Vacation Europe 2025",
+      );
+    }
+
+    if (monthIndex === 2) {
+      addExpense(
+        map,
+        new Date(year, month, 12),
+        180,
+        [ExpenseTag.One_Off],
+        "Car registration & smog",
+        GROUP_IRREGULAR,
+      );
+    }
+
+    if (monthIndex === 5) {
+      addExpense(
+        map,
+        new Date(year, month, 21),
+        320,
+        [ExpenseTag.One_Off],
+        "Dental crown",
+        GROUP_IRREGULAR,
+      );
+    }
+
+    if (monthIndex === 8) {
+      addExpense(
+        map,
+        new Date(year, month, 15),
+        140,
+        [ExpenseTag.One_Off],
+        "Annual software subscriptions",
+        GROUP_IRREGULAR,
       );
     }
 

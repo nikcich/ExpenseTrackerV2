@@ -9,6 +9,7 @@ type Settings = {
   anomalyMultiplier: number;
   anomalyMinOver: number;
   anomalyWindow: number;
+  compactAmounts: boolean;
 };
 
 export const { useStore: useSettingsStore, setState: setSettingsStore } =
@@ -21,4 +22,5 @@ export const { useStore: useSettingsStore, setState: setSettingsStore } =
     anomalyMultiplier: 1.5,
     anomalyMinOver: 150,
     anomalyWindow: 12,
+    compactAmounts: false,
   }, "settings");

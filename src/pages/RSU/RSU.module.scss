@@ -79,6 +79,19 @@
   border-bottom: none;
 }
 
+.summaryTotalsRow td {
+  border-top: 2px solid var(--border-color, #32323c);
+  font-weight: 700;
+  color: var(--fg-default, #e8e8ed);
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.emptyNote {
+  padding: 1rem;
+  color: var(--fg-muted, #a0a0ab);
+  font-size: 0.85rem;
+}
+
 .actionBtn {
   padding: 0.25rem 0.6rem;
   border-radius: 0.35rem;
@@ -378,7 +391,7 @@
   border: 1px solid var(--border-color, #32323c);
   border-radius: 0.75rem;
   padding: 1.25rem;
-  min-height: 220px;
+  height: 300px;
 }
 
 .forecastGrantBlock {
