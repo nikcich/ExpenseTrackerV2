@@ -1,6 +1,7 @@
 import { BehaviorSubject } from "rxjs";
 import { useEffect, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
+import { mockMode$ } from "@/utils/utils";
 
 export function createStore<T extends object>(initialState: T, persistKey?: string) {
   const state$ = new BehaviorSubject<T>(initialState);
@@ -21,7 +22,7 @@ export function createStore<T extends object>(initialState: T, persistKey?: stri
     const next = { ...current, ...partial };
     state$.next(next);
 
-    if (persistKey) {
+    if (persistKey && !mockMode$.getValue()) {
       invoke("store_set_json_value", { key: persistKey, value: next }).catch(() => {});
     }
   };
