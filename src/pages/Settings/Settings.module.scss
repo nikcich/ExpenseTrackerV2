@@ -10,3 +10,14 @@
   width: 200px;
   min-width: 200px;
 }
+
+.numberInput {
+  background: transparent;
+  border: 1px solid var(--border-color, #32323c);
+  border-radius: 0.375rem;
+  padding: 0.35rem 0.6rem;
+  color: var(--fg-default, #e0e0e6);
+  font-size: 0.85rem;
+  outline: none;
+  width: 100px;
+}

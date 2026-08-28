@@ -56,6 +56,7 @@ const COLUMN_MIDDLE = 0.46;
 const COLUMN_TERMINAL = 0.92;
 const BAND = 0.96;
 const NODE_GAP = 0.015;
+const TERMINAL_GAP = 0.03;
 
 function buildCashFlowSankey(
   income: Expense[],
@@ -182,42 +183,42 @@ function buildCashFlowSankey(
       ? groupsTotal
       : mergedTags.reduce((sum, [, value]) => sum + value, 0);
 
-  // Plotly sizes node heights itself, globally proportional to value, and
-  // inserts fixed gaps between neighbouring nodes in a column. Mirror that
-  // here with a single value->height scale that lets every column fit
-  // inside BAND, otherwise assigned centers drift from drawn rectangles
-  // and the chart overlaps/scrambles.
-  const columns = [
-    { count: 1, total: Math.max(incomeTotal, 0) },
-    {
-      count: allocations.length,
-      total: allocations.reduce((sum, a) => sum + a.value, 0),
-    },
-    { count: terminalEntries.length, total: terminalTotal },
+  // Each column gets its own value->height scale so it can fit exactly
+  // inside BAND with its own gap, independent of the other columns. A single
+  // global scale would let the biggest column shrink every other column.
+  const colScale = (count: number, total: number, gap: number): number =>
+    count === 0 || total <= 0 ? 0 : (BAND - gap * (count - 1)) / total;
+
+  const columnXs = [COLUMN_INCOME, COLUMN_MIDDLE, COLUMN_TERMINAL];
+  const colGaps = [NODE_GAP, NODE_GAP, TERMINAL_GAP];
+  const colTotals = [
+    Math.max(incomeTotal, 0),
+    allocations.reduce((sum, a) => sum + a.value, 0),
+    terminalTotal,
   ];
-  const scale = Math.min(
-    ...columns.map((c) =>
-      c.count === 0 || c.total <= 0
-        ? Infinity
-        : (BAND - NODE_GAP * (c.count - 1)) / c.total
-    )
+  const colCounts = [1, allocations.length, terminalEntries.length];
+  const colScales = colCounts.map((_, i) =>
+    colScale(colCounts[i], colTotals[i], colGaps[i])
   );
 
-  const yStack = (values: number[], total: number): number[] => {
-    if (!isFinite(scale) || total <= 0 || values.length === 0) {
+  const yStack = (
+    values: number[],
+    total: number,
+    gap: number,
+    scale: number
+  ): number[] => {
+    if (scale <= 0 || total <= 0 || values.length === 0) {
       return values.map(() => 0.5);
     }
-    const extent = total * scale + NODE_GAP * (values.length - 1);
+    const extent = total * scale + gap * (values.length - 1);
     let cursor = (1 - extent) / 2;
     return values.map((value) => {
       const height = value * scale;
       const y = cursor + height / 2;
-      cursor += height + NODE_GAP;
+      cursor += height + gap;
       return y;
     });
   };
-
-  const columnXs = [COLUMN_INCOME, COLUMN_MIDDLE, COLUMN_TERMINAL];
 
   type ColumnEntry = {
     id: string;
@@ -235,7 +236,9 @@ function buildCashFlowSankey(
     const total = entries.reduce((sum, e) => sum + e.value, 0);
     const ys = yStack(
       entries.map((e) => e.value),
-      total
+      total,
+      colGaps[columnIndex],
+      colScales[columnIndex]
     );
     entries.forEach(({ id, label, color, value, source }, i) => {
       nodes.push({

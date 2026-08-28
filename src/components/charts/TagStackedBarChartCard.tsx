@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { ChartCard } from "./ChartCard";
-import { StackedBarChart } from "./StackedBarChart";
+import { StackedBarChart, ChartOpenPayload } from "./StackedBarChart";
 import { BreakdownToggle, Breakdown } from "./BreakdownToggle";
 
 type Datum = string | number | Date | null;
@@ -17,13 +17,17 @@ export function TagStackedBarChartCard({
   groupTraces,
   legend = true,
   legendDirection = "v",
+  onOpen,
 }: {
   traces: Data[];
   groupTraces?: Data[];
   legend?: boolean;
   legendDirection?: "v" | "h";
+  onOpen?: (payload: ChartOpenPayload) => void;
 }) {
   const [breakdown, setBreakdown] = useState<Breakdown>("GROUPS");
+  const field: ChartOpenPayload["field"] =
+    breakdown === "GROUPS" ? "group" : "tags";
 
   return (
     <ChartCard
@@ -37,6 +41,14 @@ export function TagStackedBarChartCard({
         data={breakdown === "GROUPS" && groupTraces ? groupTraces : traces}
         legend={legend}
         legendDirection={legendDirection}
+        onOpen={
+          onOpen
+            ? (p) => {
+                p.field = field;
+                onOpen(p);
+              }
+            : undefined
+        }
       />
     </ChartCard>
   );

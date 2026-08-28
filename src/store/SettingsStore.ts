@@ -6,6 +6,9 @@ type Settings = {
   mockDataEnabled: boolean;
   rsuTabEnabled: boolean;
   ssdiTabEnabled: boolean;
+  anomalyMultiplier: number;
+  anomalyMinOver: number;
+  anomalyWindow: number;
 };
 
 export const { useStore: useSettingsStore, setState: setSettingsStore } =
@@ -15,4 +18,7 @@ export const { useStore: useSettingsStore, setState: setSettingsStore } =
     mockDataEnabled: false,
     rsuTabEnabled: false,
     ssdiTabEnabled: false,
+    anomalyMultiplier: 1.5,
+    anomalyMinOver: 150,
+    anomalyWindow: 12,
   }, "settings");

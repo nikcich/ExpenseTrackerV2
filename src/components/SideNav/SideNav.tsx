@@ -22,6 +22,7 @@ import { enableOverlay, Overlay } from "@/store/OverlayStore";
 import { useSettingsStore } from "@/store/SettingsStore";
 import { useHasRsuData, useHasSsdiData } from "@/store/store";
 import { HiOutlineDocumentText } from "react-icons/hi2";
+import { FaExclamationTriangle } from "react-icons/fa";
 
 const NavButton = ({ Icon, page, label }: { Icon: React.FC; page: string; label: string }) => {
   const navigate = useNavigate();
@@ -58,6 +59,7 @@ export function SideNav() {
         {showSsdi && <NavButton Icon={HiOutlineDocumentText} page={Pages.SSDI} label="SSDI" />}
         <NavButton Icon={MdOutlineTrendingUp} page={Pages.Forecast} label="Forecast" />
         <NavButton Icon={LuLayers} page={Pages.Groups} label="Groups" />
+        <NavButton Icon={FaExclamationTriangle} page={Pages.Anomalies} label="Anomalies" />
         <NavButton Icon={FaTable} page={Pages.TableView} label="Data Table" />
         <NavButton Icon={BsAlignMiddle} page={Pages.AverageSpending} label="Average Spending" />
         <NavButton

@@ -24,6 +24,7 @@ import { useGlobalShortcuts } from "./hooks/useGlobalShortcuts";
 import { SSDI } from "./pages/SSDI/SSDI";
 import { SelectionInsights } from "./pages/SelectionInsights/SelectionInsights";
 import { Groups } from "./pages/Groups/Groups";
+import { Anomalies } from "./pages/Anomalies/Anomalies";
 
 const MockBanner = () => {
   const enabled = useSyncExternalStore(
@@ -169,6 +170,11 @@ export function AppRouter() {
         <Route
           path={`${Pages.Groups}/:groupName`}
           element={<RouteComponent element={<Groups />} />}
+        />
+
+        <Route
+          path={Pages.Anomalies}
+          element={<RouteComponent element={<Anomalies />} />}
         />
       </Routes>
     </BrowserRouter>

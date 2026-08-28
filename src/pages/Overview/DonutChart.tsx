@@ -29,20 +29,16 @@ const INNER_R = VB_RADIUS - THICKNESS;
 export const DonutChart = memo(function DonutChart({
   categories,
   totalSpent,
-  disabledCategories,
-  onToggle,
+  onOpen,
 }: {
   categories: { name: string; amount: number }[];
   totalSpent: number;
-  disabledCategories: Set<string>;
-  onToggle: (name: string) => void;
+  onOpen?: (name: string) => void;
 }) {
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
-  const isDimmed = (i: number) => {
-    const name = pieData[i]?.data.name;
-    if (name && disabledCategories.has(name)) return true;
-    return hoveredIndex !== null && hoveredIndex !== i;
-  };
+
+  const isDimmed = (i: number) =>
+    hoveredIndex !== null && hoveredIndex !== i;
 
   const pieData = useMemo(() => {
     if (categories.length === 0) return [];
@@ -92,7 +88,10 @@ export const DonutChart = memo(function DonutChart({
                 stroke="none"
                 opacity={isDimmed(i) ? 0.2 : 1}
                 onMouseEnter={() => setHoveredIndex(i)}
-                onClick={() => onToggle(d.data.name)}
+                onDoubleClick={() => {
+                  console.log("[DonutChart] slice dblclick", d.data.name);
+                  onOpen?.(d.data.name);
+                }}
                 style={{ cursor: "pointer", transition: "opacity 0.15s ease" }}
               />
             ))}
@@ -110,7 +109,10 @@ export const DonutChart = memo(function DonutChart({
               key={d.data.name}
               className={styles.legendItem}
               onMouseEnter={() => setHoveredIndex(i)}
-              onClick={() => onToggle(d.data.name)}
+              onDoubleClick={() => {
+                console.log("[DonutChart] legend dblclick", d.data.name);
+                onOpen?.(d.data.name);
+              }}
               style={{
                 opacity: isDimmed(i) ? 0.3 : 1,
                 cursor: "pointer",

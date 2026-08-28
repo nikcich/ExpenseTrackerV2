@@ -16,6 +16,10 @@ import { BrushScrubber } from "@/components/Brush/BrushScrubber";
 import { useDebouncedBrushRange } from "@/store/store";
 import { AverageSpendingCard } from "@/components/charts/AverageSpendingCard";
 import { Expense } from "@/types/types";
+import { ChartOpenPayload, rulesFromChartPayload } from "@/utils/custom-filter";
+import { setNavFilter } from "@/store/NavFilterStore";
+import { Pages } from "@/types/routes";
+import { useNavigate } from "react-router-dom";
 
 const addTopLevelGroup = (
   data: {
@@ -56,6 +60,7 @@ export function AverageSpending() {
   const filteredExpenses = useFilteredExpenses();
   const filteredSavings = useFilteredSavings();
   const [range] = useDebouncedBrushRange();
+  const navigate = useNavigate();
 
   const { traces, groupTraces } = useMemo(() => {
     const build = (keyFn: (e: Expense) => string | string[]) =>
@@ -71,10 +76,17 @@ export function AverageSpending() {
     return { traces: build(byTag), groupTraces: build(byGroup) };
   }, [filteredExpenses, filteredSavings, range]);
 
+  const handleOpen = (payload: ChartOpenPayload) => {
+    const rules = rulesFromChartPayload(payload, "ALL");
+    if (rules.length === 0) return;
+    setNavFilter(rules, `Average Spending · ${payload.category ?? payload.period}`);
+    navigate(Pages.TableView);
+  };
+
   return (
     <GenericPage title="Average Monthly Spending" footer={<BrushScrubber />}>
       <div style={{ padding: "1.5rem 2rem", height: "100%", display: "flex", flexDirection: "column" }}>
-        <AverageSpendingCard traces={traces} groupTraces={groupTraces} />
+        <AverageSpendingCard traces={traces} groupTraces={groupTraces} onOpen={handleOpen} />
       </div>
     </GenericPage>
   );

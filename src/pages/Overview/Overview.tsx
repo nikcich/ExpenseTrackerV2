@@ -13,6 +13,11 @@ import { formatCurrency, formatDate, parseLocalDate } from "@/utils/utils";
 import { byGroup, getExpenseKind, tagLabel } from "@/utils/expense-utils";
 import { BreakdownToggle, Breakdown } from "@/components/charts/BreakdownToggle";
 import { Expense } from "@/types/types";
+import { FilterRule } from "@/utils/custom-filter";
+import { setNavFilter } from "@/store/NavFilterStore";
+import { categoryRule, emptyGroupRule, dateRangeRules, periodDateRange } from "@/utils/custom-filter";
+import { Pages } from "@/types/routes";
+import { useNavigate } from "react-router-dom";
 import styles from "./Overview.module.scss";
 
 function endOfMonth(target: Date): Date {
@@ -161,24 +166,18 @@ const computeCategories = (
     .sort((a, b) => b.amount - a.amount);
 };
 
-const categoryOf = (e: Expense, breakdown: Breakdown) =>
-  breakdown === "GROUPS" ? byGroup(e) : tagLabel(e);
-
-type HiddenCategories = Record<Breakdown, Set<string>>;
-
-const NO_HIDDEN: HiddenCategories = { TAGS: new Set(), GROUPS: new Set() };
-
 function BreakdownSection({
   expenses,
   totalSpent,
   cutoffDate,
+  onOpenCategory,
 }: {
   expenses: Expense[];
   totalSpent: number;
   cutoffDate: Date;
+  onOpenCategory: (name: string, field: "tags" | "group") => void;
 }) {
   const [breakdown, setBreakdown] = useState<Breakdown>("GROUPS");
-  const [hidden, setHidden] = useState<HiddenCategories>(NO_HIDDEN);
 
   const tagCategories = useMemo(
     () => computeCategories(expenses, tagLabel),
@@ -186,34 +185,6 @@ function BreakdownSection({
   );
   const groupCategories = useMemo(() => computeCategories(expenses, byGroup), [expenses]);
   const categories = breakdown === "GROUPS" ? groupCategories : tagCategories;
-
-  const activeHidden = hidden[breakdown];
-  const otherKeys = useMemo(
-    () => new Set(categories.slice(8).map((c) => c.name)),
-    [categories]
-  );
-
-  const filteredExpenses = useMemo(() => {
-    if (activeHidden.size === 0) return expenses;
-    return expenses.filter((e) => {
-      const key = categoryOf(e, breakdown);
-      if (activeHidden.has(key)) return false;
-      if (activeHidden.has("Other") && otherKeys.has(key)) return false;
-      return true;
-    });
-  }, [expenses, activeHidden, breakdown, otherKeys]);
-
-  const toggleCategory = useCallback(
-    (name: string) => {
-      setHidden((prev) => {
-        const next = new Set(prev[breakdown]);
-        if (next.has(name)) next.delete(name);
-        else next.add(name);
-        return { ...prev, [breakdown]: next };
-      });
-    },
-    [breakdown]
-  );
 
   return (
     <>
@@ -226,8 +197,9 @@ function BreakdownSection({
           <DonutChart
             categories={categories}
             totalSpent={totalSpent}
-            disabledCategories={activeHidden}
-            onToggle={toggleCategory}
+            onOpen={(name) =>
+              onOpenCategory(name, breakdown === "GROUPS" ? "group" : "tags")
+            }
           />
         </div>
         <InvestmentsCard cutoffDate={cutoffDate} />
@@ -235,11 +207,11 @@ function BreakdownSection({
       <div className={`${styles.card} ${styles.tableCard}`}>
         <div className={styles.cardHeader}>
           <span className={styles.cardTitle}>
-            All Transactions ({filteredExpenses.length})
+            All Transactions ({expenses.length})
           </span>
         </div>
         <div className={styles.tableWrapper}>
-          <CoreTable items={filteredExpenses} selectable={false} />
+          <CoreTable items={expenses} selectable={false} />
         </div>
       </div>
     </>
@@ -328,6 +300,29 @@ function OverviewContent() {
     [mode]
   );
 
+  const navigate = useNavigate();
+
+  const handleOpenCategory = useCallback(
+    (name: string, field: "tags" | "group") => {
+      const rules: FilterRule[] = [];
+      if (field === "group" && name === "Ungrouped") {
+        rules.push(emptyGroupRule());
+      } else if (name !== "Other") {
+        rules.push(categoryRule(field, name));
+      }
+      if (mode !== "ALL" && periods[index]) {
+        const range = periodDateRange(mode, formatPeriodLabel(periods[index]));
+        if (range) {
+          rules.push(...dateRangeRules(range.start, range.end));
+        }
+      }
+      if (rules.length === 0) return;
+      setNavFilter(rules, `Overview · ${name}`);
+      navigate(Pages.TableView);
+    },
+    [mode, periods, index, navigate, formatPeriodLabel]
+  );
+
   return (
     <div className={styles.page}>
       <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: "0.25rem" }}>
@@ -383,6 +378,7 @@ function OverviewContent() {
             expenses={currentExpenses}
             totalSpent={current.totalSpent}
             cutoffDate={cutoffDate}
+            onOpenCategory={handleOpenCategory}
           />
         </>
       )}

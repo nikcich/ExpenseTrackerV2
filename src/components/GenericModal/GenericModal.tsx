@@ -107,6 +107,7 @@ export const GenericModal = ({ children, overlay }: ModalProps) => {
         boxShadow="lg"
         borderWidth="1px"
         borderColor="border.DEFAULT"
+        textAlign="left"
       >
         {children}
       </Box>

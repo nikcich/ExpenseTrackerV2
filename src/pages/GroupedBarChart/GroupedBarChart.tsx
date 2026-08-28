@@ -16,6 +16,10 @@ import { SegmentGroup } from "@chakra-ui/react";
 import { Expense, Mode } from "@/types/types";
 import { chartDateCompare } from "@/utils/utils";
 import { GroupedBarChartCard } from "@/components/charts/GroupedBarChartCard";
+import { ChartOpenPayload, dateRangeRules, periodDateRange, type FilterRule } from "@/utils/custom-filter";
+import { setNavFilter } from "@/store/NavFilterStore";
+import { Pages } from "@/types/routes";
+import { useNavigate } from "react-router-dom";
 
 const getGroupedData = (mode: Mode, data: Expense[]) => {
   if (mode === Mode.MONTHLY) {
@@ -37,6 +41,7 @@ export function GroupedBarChart() {
   const filteredExpenses = useFilteredExpenses();
   const filteredIncome = useFilteredIncome();
   const filteredSavings = useFilteredSavings();
+  const navigate = useNavigate();
 
   const sortedGroupedExpenses = useMemo(
     () => getGroupedAndSortedData(mode, filteredExpenses),
@@ -92,6 +97,45 @@ export function GroupedBarChart() {
     [groups, sortedGroupedExpenses, sortedGroupedIncome, sortedGroupedSavings]
   );
 
+  const handleOpen = (payload: ChartOpenPayload) => {
+    const range = periodDateRange(mode, payload.period);
+    const rules: FilterRule[] = range
+      ? dateRangeRules(range.start, range.end)
+      : [];
+    if (payload.category === "Income" || payload.category === "Savings") {
+      rules.push({
+        id: `type_${payload.category.toLowerCase()}`,
+        conjunction: "AND",
+        negate: false,
+        field: "type",
+        operator: "equals",
+        value: payload.category,
+      });
+    } else if (payload.category === "Expenses") {
+      rules.push(
+        {
+          id: "type_not_income",
+          conjunction: "AND",
+          negate: true,
+          field: "type",
+          operator: "equals",
+          value: "Income",
+        },
+        {
+          id: "type_not_savings",
+          conjunction: "AND",
+          negate: true,
+          field: "type",
+          operator: "equals",
+          value: "Savings",
+        }
+      );
+    }
+    if (rules.length === 0) return;
+    setNavFilter(rules, `Date Grouped · ${payload.period}`);
+    navigate(Pages.TableView);
+  };
+
   return (
     <GenericPage
       title="Date Grouped Expenses"
@@ -109,7 +153,7 @@ export function GroupedBarChart() {
       }
     >
       <div style={{ padding: "1.5rem 2rem", height: "100%", display: "flex", flexDirection: "column" }}>
-        <GroupedBarChartCard barCharts={barCharts} groups={groups} />
+        <GroupedBarChartCard barCharts={barCharts} groups={groups} onOpen={handleOpen} />
       </div>
     </GenericPage>
   );

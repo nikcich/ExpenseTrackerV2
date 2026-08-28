@@ -1,0 +1,143 @@
+.page {
+  padding: 1.5rem 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.headerCard {
+  background: var(--bg-panel, #19191e);
+  border: 1px solid var(--border-color, #32323c);
+  border-radius: 0.75rem;
+  padding: 1rem 1.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+}
+
+.stat {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.summaryLabel {
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--fg-muted, #a0a0ab);
+  font-weight: 500;
+}
+
+.summaryValue {
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: var(--fg-error, #f87171);
+  line-height: 1.2;
+}
+
+.note {
+  margin: 0;
+  font-size: 0.8rem;
+  color: var(--fg-subtle, #6b6b7b);
+  line-height: 1.4;
+  max-width: 480px;
+  text-align: right;
+}
+
+.tableCard {
+  background: var(--bg-panel, #19191e);
+  border: 1px solid var(--border-color, #32323c);
+  border-radius: 0.75rem;
+  padding: 0.5rem 0;
+  overflow-x: auto;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--fg-default, #e8e8ed);
+}
+
+.table th {
+  text-align: left;
+  padding: 0.5rem 1rem;
+  color: var(--fg-muted, #a0a0ab);
+  font-weight: 500;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border-bottom: 1px solid var(--border-color, #32323c);
+  white-space: nowrap;
+  user-select: none;
+}
+
+.sortable {
+  cursor: pointer;
+}
+
+.sortable:hover {
+  color: var(--fg-default, #e8e8ed);
+}
+
+.sortIndicator {
+  font-size: 0.7rem;
+}
+
+.table td {
+  padding: 0.5rem 1rem;
+  border-bottom: 1px solid var(--border-color, #32323c);
+  text-align: left;
+}
+
+.table tr:last-child td {
+  border-bottom: none;
+}
+
+.row {
+  cursor: pointer;
+}
+
+.row:hover td {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.date {
+  white-space: nowrap;
+  color: var(--fg-muted, #a0a0ab);
+}
+
+.category {
+  color: var(--fg-muted, #a0a0ab);
+  font-weight: 500;
+}
+
+.amount {
+  font-weight: 700;
+  color: var(--fg-error, #f87171);
+}
+
+.typical {
+  color: var(--fg-subtle, #6b6b7b);
+}
+
+.ratio {
+  color: var(--fg-warning, #eab308);
+  font-weight: 600;
+}
+
+.excess {
+  font-weight: 600;
+  color: var(--fg-default, #e8e8ed);
+}
+
+.empty {
+  padding: 2.5rem 1.5rem;
+  text-align: center;
+  color: var(--fg-subtle, #6b6b7b);
+  font-size: 0.9rem;
+}

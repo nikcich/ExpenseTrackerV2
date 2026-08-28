@@ -16,10 +16,15 @@ import {
   parseStackedFormat,
 } from "@/components/charts/StackedBarChart";
 import { TagStackedBarChartCard } from "@/components/charts/TagStackedBarChartCard";
+import { ChartOpenPayload, rulesFromChartPayload } from "@/utils/custom-filter";
+import { setNavFilter } from "@/store/NavFilterStore";
+import { Pages } from "@/types/routes";
+import { useNavigate } from "react-router-dom";
 
 export function TagStackedBarChart() {
   const [mode, setMode] = useState<Mode>(Mode.MONTHLY);
   const filteredExpenses = useFilteredExpenses();
+  const navigate = useNavigate();
 
   const dateKeyFn =
     mode === Mode.MONTHLY
@@ -40,6 +45,13 @@ export function TagStackedBarChart() {
     );
   }, [filteredExpenses, dateKeyFn]);
 
+  const handleOpen = (payload: ChartOpenPayload) => {
+    const rules = rulesFromChartPayload(payload, mode);
+    if (rules.length === 0) return;
+    setNavFilter(rules, `Stacked Bar · ${payload.category ?? payload.period}`);
+    navigate(Pages.TableView);
+  };
+
   return (
     <GenericPage
       title="Expenses by Tag"
@@ -57,7 +69,7 @@ export function TagStackedBarChart() {
       }
     >
       <div style={{ padding: "1.5rem 2rem", height: "100%", display: "flex", flexDirection: "column" }}>
-        <TagStackedBarChartCard traces={traces} groupTraces={groupTraces} />
+        <TagStackedBarChartCard traces={traces} groupTraces={groupTraces} onOpen={handleOpen} />
       </div>
     </GenericPage>
   );

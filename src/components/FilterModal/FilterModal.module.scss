@@ -1,0 +1,158 @@
+.header {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  margin-bottom: 1.25rem;
+  text-align: left;
+}
+
+.title {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--fg-default, #e8e8ed);
+  line-height: 1.2;
+}
+
+.subtitle {
+  font-size: 0.85rem;
+  color: var(--fg-subtle, #6b6b7b);
+  line-height: 1.4;
+}
+
+.ruleList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  max-height: 45vh;
+  overflow-y: auto;
+}
+
+.ruleRow {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  padding: 0.35rem 0;
+  border-bottom: 1px solid var(--border-color, #32323c);
+}
+
+.conjunctionPlaceholder {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--fg-muted, #a0a0ab);
+  width: 3.5rem;
+}
+
+.conjunction {
+  width: 3.5rem;
+}
+
+.notBadge {
+  padding: 0.25rem 0.5rem;
+  border-radius: 6px;
+  border: 1px solid var(--border-color, #3f3f4b);
+  background: transparent;
+  color: var(--fg-muted, #a0a0ab);
+  font-size: 0.7rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.notActive {
+  background: var(--fg-warning, #eab308);
+  color: #141414;
+  border-color: var(--fg-warning, #eab308);
+}
+
+.fieldSelect {
+  min-width: 8rem;
+}
+
+.opSelect {
+  min-width: 8.5rem;
+}
+
+.valueInput {
+  flex: 1;
+  min-width: 7rem;
+}
+
+.fieldSelect,
+.opSelect,
+.conjunction,
+.valueInput {
+  padding: 0.375rem 0.5rem;
+  border-radius: 6px;
+  border: 1px solid var(--border-color, #3f3f4b);
+  background: var(--bg-panel, #19191e);
+  color: var(--fg-default, #e8e8ed);
+  font-size: 0.85rem;
+}
+
+.removeBtn {
+  padding: 0.3rem;
+  border: none;
+  background: transparent;
+  color: var(--fg-error, #f87171);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  border-radius: 6px;
+
+  &:hover {
+    background: rgba(248, 113, 113, 0.12);
+  }
+}
+
+.chipGroup {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  flex: 1;
+  min-width: 14rem;
+}
+
+.chip {
+  padding: 0.3rem 0.65rem;
+  border-radius: 9999px;
+  border: 1px solid var(--border-color, #3f3f4b);
+  background: transparent;
+  color: var(--fg-muted, #a0a0ab);
+  font-size: 0.78rem;
+  cursor: pointer;
+  transition: all 0.15s ease;
+
+  &:hover {
+    color: var(--fg-default, #e8e8ed);
+  }
+}
+
+.chipActive {
+  background: var(--fg-default, #e8e8ed);
+  color: var(--bg-default, #141417);
+  border-color: var(--fg-default, #e8e8ed);
+  font-weight: 600;
+}
+
+.addRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-top: 0.75rem;
+}
+
+.matchHint {
+  font-size: 0.8rem;
+  color: var(--fg-muted, #a0a0ab);
+}
+
+.footer {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 1rem;
+}

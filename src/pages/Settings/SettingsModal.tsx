@@ -44,6 +44,9 @@ export function SettingsModal() {
   const mockDataEnabled = useSettingsStore("mockDataEnabled");
   const rsuTabEnabled = useSettingsStore("rsuTabEnabled");
   const ssdiTabEnabled = useSettingsStore("ssdiTabEnabled");
+  const anomalyMultiplier = useSettingsStore("anomalyMultiplier");
+  const anomalyMinOver = useSettingsStore("anomalyMinOver");
+  const anomalyWindow = useSettingsStore("anomalyWindow");
   const allTagsSet = useAllTags();
   const allGroups = useAllGroups();
   const hasRsuData = useHasRsuData();
@@ -246,6 +249,65 @@ export function SettingsModal() {
                 });
               }}
             />
+          </div>
+        </div>
+
+        <Separator />
+
+        <div>
+          <Heading size="sm" mb={2}>Anomaly Detection</Heading>
+          <Text fontSize="sm" color="fg.muted" mb={3}>
+            A category's month is flagged when its total exceeds the multiplier
+            × normal, or is more than the dollar amount over normal — where
+            "normal" is the median of the trailing N months.
+          </Text>
+          <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", flexWrap: "wrap" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+              <Text fontSize="sm" color="fg.muted" whiteSpace="nowrap">Multiplier (× normal)</Text>
+              <input
+                type="number"
+                step="0.1"
+                min="1"
+                className={styles.numberInput}
+                value={anomalyMultiplier}
+                onChange={(e) => {
+                  setSettingsStore((prev) => ({
+                    ...prev,
+                    anomalyMultiplier: parseFloat(e.target.value) || 0,
+                  }));
+                }}
+              />
+            </div>
+            <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+              <Text fontSize="sm" color="fg.muted" whiteSpace="nowrap">$ over normal</Text>
+              <input
+                type="number"
+                min="0"
+                className={styles.numberInput}
+                value={anomalyMinOver}
+                onChange={(e) => {
+                  setSettingsStore((prev) => ({
+                    ...prev,
+                    anomalyMinOver: parseFloat(e.target.value) || 0,
+                  }));
+                }}
+              />
+            </div>
+            <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+              <Text fontSize="sm" color="fg.muted" whiteSpace="nowrap">Window (months)</Text>
+              <input
+                type="number"
+                min="1"
+                className={styles.numberInput}
+                value={anomalyWindow}
+                onChange={(e) => {
+                  setSettingsStore((prev) => ({
+                    ...prev,
+                    anomalyWindow: parseFloat(e.target.value) || 1,
+                  }));
+                }}
+              />
+            </div>
           </div>
         </div>
 

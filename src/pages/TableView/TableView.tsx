@@ -28,6 +28,9 @@ import { LuFilter } from "react-icons/lu";
 import { BsThreeDotsVertical } from "react-icons/bs";
 import { enableOverlay, Overlay } from "@/store/OverlayStore";
 import { useSelection, setSelection } from "@/store/SelectionStore";
+import { useFilterRules } from "@/store/FilterStore";
+import { useNavFilter, clearNavFilter } from "@/store/NavFilterStore";
+import { matchesRules } from "@/utils/custom-filter";
 import { Pages } from "@/types/routes";
 
 type CsvParseResponse = {
@@ -269,6 +272,8 @@ export function TableView() {
   const [deleteAllOpen, setDeleteAllOpen] = useState(false);
   const [deleteSelectionOpen, setDeleteSelectionOpen] = useState(false);
   const selection = useSelection();
+  const customRules = useFilterRules();
+  const navFilter = useNavFilter();
 
   const allItems = useMemo(
     () => [...expenses, ...income, ...savings],
@@ -290,6 +295,17 @@ export function TableView() {
       return true;
     });
   }, [allItems, includeIncome, includeExpenses, includeSavings, includeUntagged]);
+
+  const customFilteredItems = useMemo(() => {
+    if (customRules.length === 0) return typeFilteredItems;
+    return typeFilteredItems.filter((item) => matchesRules(customRules, item));
+  }, [typeFilteredItems, customRules]);
+
+  const items = useMemo(() => {
+    const base = customFilteredItems;
+    if (!navFilter || navFilter.rules.length === 0) return base;
+    return base.filter((item) => matchesRules(navFilter.rules, item));
+  }, [customFilteredItems, navFilter]);
 
   const location = useLocation();
   const navigate = useNavigate();
@@ -369,6 +385,17 @@ export function TableView() {
       </div>
 
       <div className={`${styles.card} ${styles.tableCard}`}>
+        {navFilter && navFilter.rules.length > 0 && (
+          <div className={styles.navFilterBanner}>
+            <span className={styles.navFilterText}>
+              Filtered from <strong>{navFilter.source}</strong> — {navFilter.rules.length}{" "}
+              rule{navFilter.rules.length === 1 ? "" : "s"} applied.
+            </span>
+            <button className={styles.navFilterClear} onClick={clearNavFilter}>
+              Clear
+            </button>
+          </div>
+        )}
         <div className={styles.cardHeader}>
           <span className={styles.cardTitle}>
             All Items ({allItems.length})
@@ -383,6 +410,20 @@ export function TableView() {
               </Menu.Trigger>
               <Menu.Positioner>
                 <Menu.Content>
+                  <Menu.Item
+                    value="custom"
+                    onClick={() => enableOverlay(Overlay.FilterModal)}
+                  >
+                    <span
+                      className={`${styles.filterIndicator} ${customRules.length > 0 ? styles.filterActive : ""}`}
+                    >
+                      {customRules.length > 0 ? `${customRules.length}` : "\u25CB"}
+                    </span>
+                    {customRules.length > 0
+                      ? `Custom Filter (${customRules.length})`
+                      : "Custom Filter"}
+                  </Menu.Item>
+                  <Menu.Separator />
                   <Menu.Item
                     value="income"
                     onClick={() => setIncludeIncome((v) => !v)}
@@ -522,7 +563,7 @@ export function TableView() {
             </Menu.Root>
           </div>
         </div>
-        <DataTable items={typeFilteredItems} />
+        <DataTable items={items} />
       </div>
 
       <ResetExpensesDialog

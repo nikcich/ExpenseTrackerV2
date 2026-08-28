@@ -2,6 +2,7 @@ import { useCallback, useMemo, useState } from "react";
 import { CoreTable } from "@/components/DataTable/DataTable";
 import { EmptyState } from "@/components/ui/empty-state";
 import { LineChart } from "@/components/charts/LineChart";
+import { MonthPills } from "@/components/MonthPills/MonthPills";
 import { BreakdownToggle, Breakdown } from "@/components/charts/BreakdownToggle";
 import { DonutChart } from "@/pages/Overview/DonutChart";
 import { Expense } from "@/types/types";
@@ -99,46 +100,58 @@ export function InsightsView({
   emptyDescription: string;
   variant?: "selection" | "group";
 }) {
-  const [disabledCategories, setDisabledCategories] = useState<Set<string>>(
-    () => new Set()
-  );
   const [breakdown, setBreakdown] = useState<Breakdown>("GROUPS");
+  const [monthFilter, setMonthFilter] = useState<{ mode: "ALL" } | { mode: "MONTHLY"; year: number; month: number }>({
+    mode: "ALL",
+  });
 
-  const stats = useMemo(() => computeStats(items), [items]);
-  const series = useMemo(() => computeMonthlySeries(items), [items]);
+  const distinctMonths = useMemo(() => {
+    const months = new Map<string, { year: number; month: number; date: Date }>();
+    for (const e of items) {
+      const d = parseLocalDate(e.date);
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+      if (!months.has(key)) months.set(key, { year: d.getFullYear(), month: d.getMonth(), date: new Date(d.getFullYear(), d.getMonth(), 1) });
+    }
+    return [...months.values()].sort((a, b) => {
+      if (a.year !== b.year) return a.year - b.year;
+      return a.month - b.month;
+    });
+  }, [items]);
+
+  const filteredItems = useMemo(() => {
+    if (monthFilter.mode === "ALL") return items;
+    const { year, month } = monthFilter;
+    return items.filter((e) => {
+      const d = parseLocalDate(e.date);
+      return d.getFullYear() === year && d.getMonth() === month;
+    });
+  }, [items, monthFilter]);
+
+  const stats = useMemo(() => computeStats(filteredItems), [filteredItems]);
+  const series = useMemo(() => computeMonthlySeries(filteredItems), [filteredItems]);
 
   const groupKind: ExpenseKind | null =
-    variant === "group" && items.length > 0 ? getExpenseKind(items[0]) : null;
+    variant === "group" && filteredItems.length > 0 ? getExpenseKind(filteredItems[0]) : null;
   const groupTotal = useMemo(
-    () => items.reduce((sum, e) => sum + e.amount, 0),
-    [items]
+    () => filteredItems.reduce((sum, e) => sum + e.amount, 0),
+    [filteredItems]
   );
 
   const tagCategories = useMemo(
-    () => categorize(items, tagLabel),
-    [items]
+    () => categorize(filteredItems, tagLabel),
+    [filteredItems]
   );
-  const groupCategories = useMemo(() => categorize(items, byGroup), [items]);
+  const groupCategories = useMemo(() => categorize(filteredItems, byGroup), [filteredItems]);
   const categories =
     breakdown === "GROUPS" ? groupCategories : tagCategories;
 
   const changeBreakdown = useCallback((next: Breakdown) => {
     setBreakdown(next);
-    setDisabledCategories(new Set());
-  }, []);
-
-  const toggleCategory = useCallback((name: string) => {
-    setDisabledCategories((prev) => {
-      const next = new Set(prev);
-      if (next.has(name)) next.delete(name);
-      else next.add(name);
-      return next;
-    });
   }, []);
 
   const meta = useMemo(() => {
-    if (items.length === 0) return null;
-    const sorted = [...items].sort((a, b) => a.date.localeCompare(b.date));
+    if (filteredItems.length === 0) return null;
+    const sorted = [...filteredItems].sort((a, b) => a.date.localeCompare(b.date));
     const startIso = sorted[0].date;
     const endIso = sorted[sorted.length - 1].date;
     const spanDays =
@@ -146,14 +159,14 @@ export function InsightsView({
         (parseLocalDate(endIso).getTime() - parseLocalDate(startIso).getTime()) /
           86_400_000
       ) + 1;
-    const biggestExpense = items
+    const biggestExpense = filteredItems
       .filter((e) => !isIncomeItem(e) && !isSavingsItem(e))
       .reduce<Expense | null>(
         (max, e) => (!max || e.amount > max.amount ? e : max),
         null
       );
     return { startIso, endIso, spanDays, avgPerDay: stats.spent / spanDays, biggestExpense };
-  }, [items, stats.spent]);
+  }, [filteredItems, stats.spent]);
 
   if (items.length === 0) {
     return (
@@ -185,6 +198,36 @@ export function InsightsView({
 
   return (
     <>
+      {distinctMonths.length > 1 && (
+        <div className={styles.monthFilterCard}>
+          <MonthPills
+            months={[new Date(), ...distinctMonths.map((m) => m.date)]}
+            selectedIndex={
+              monthFilter.mode === "ALL"
+                ? 0
+                : distinctMonths.findIndex(
+                    (m) =>
+                      m.year === monthFilter.year && m.month === monthFilter.month
+                  ) + 1
+            }
+            onChange={(i) =>
+              setMonthFilter(
+                i === 0
+                  ? { mode: "ALL" }
+                  : (() => {
+                      const m = distinctMonths[i - 1];
+                      return { mode: "MONTHLY", year: m.year, month: m.month };
+                    })()
+              )
+            }
+            formatLabel={(date, index) =>
+              index === 0
+                ? "All time"
+                : date.toLocaleString("default", { month: "short", year: "numeric" })
+            }
+          />
+        </div>
+      )}
       {variant === "group" ? (
         <div className={styles.summaryRow}>
           <div className={styles.summaryCard}>
@@ -303,8 +346,6 @@ export function InsightsView({
               <DonutChart
                 categories={categories}
                 totalSpent={stats.spent}
-                disabledCategories={disabledCategories}
-                onToggle={toggleCategory}
               />
             </div>
           )}
@@ -324,11 +365,11 @@ export function InsightsView({
       <div className={`${styles.card} ${styles.tableCard}`}>
         <div className={styles.cardHeader}>
           <span className={styles.cardTitle}>
-            Transactions ({items.length})
+            Transactions ({filteredItems.length})
           </span>
         </div>
         <div className={styles.tableWrapper}>
-          <CoreTable items={items} selectable={false} />
+          <CoreTable items={filteredItems} selectable={false} />
         </div>
       </div>
     </>

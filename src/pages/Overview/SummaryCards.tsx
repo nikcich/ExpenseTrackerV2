@@ -30,6 +30,8 @@ export const SummaryCards = memo(function SummaryCards({
   ytdNet: number;
   ytdSavings: number;
 }) {
+  const savingsRate = realIncome > 0 ? (savings / realIncome) * 100 : 0;
+
   const cards = [
     {
       label: "Real Income",
@@ -66,6 +68,7 @@ export const SummaryCards = memo(function SummaryCards({
       valueClass: styles.valueNeutral,
       goodUp: true,
       ytd: ytdSavings,
+      rate: `${savingsRate.toFixed(1)}%`,
     },
   ];
 
@@ -77,6 +80,7 @@ export const SummaryCards = memo(function SummaryCards({
           <span className={`${styles.cardValue} ${c.valueClass}`}>
             {formatCurrency(c.value)}
           </span>
+          {c.rate && <span className={styles.cardRate}>{c.rate} savings rate</span>}
           <span className={styles.cardYtd}>YTD: {formatCurrency(c.ytd)}</span>
           <span className={styles.cardCaption}>{c.caption}</span>
           <Delta current={c.value} previous={c.prev} goodUp={c.goodUp} />

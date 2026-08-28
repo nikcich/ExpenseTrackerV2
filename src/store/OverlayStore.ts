@@ -8,6 +8,7 @@ export enum Overlay {
   GroupModal = "GroupModal",
   SettingsModal = "SettingsModal",
   HelpModal = "HelpModal",
+  FilterModal = "FilterModal",
 }
 
 type OverlayStore = {

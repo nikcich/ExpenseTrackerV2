@@ -14,4 +14,5 @@ export enum Pages {
   SSDI = "/ssdi",
   SelectionInsights = "/selection-insights",
   Groups = "/groups",
+  Anomalies = "/anomalies",
 }

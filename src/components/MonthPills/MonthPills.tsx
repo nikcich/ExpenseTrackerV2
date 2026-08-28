@@ -10,7 +10,7 @@ export const MonthPills = memo(function MonthPills({
   months: Date[];
   selectedIndex: number;
   onChange: (i: number) => void;
-  formatLabel?: (date: Date) => string;
+  formatLabel?: (date: Date, index: number) => string;
 }) {
   const fmt = formatLabel ?? ((date: Date) =>
     date.toLocaleString("default", { month: "short", year: "numeric" })
@@ -23,7 +23,7 @@ export const MonthPills = memo(function MonthPills({
           className={`${styles.pill} ${i === selectedIndex ? styles.pillActive : ""}`}
           onClick={() => onChange(i)}
         >
-          {fmt(date)}
+          {fmt(date, i)}
         </button>
       ))}
     </div>

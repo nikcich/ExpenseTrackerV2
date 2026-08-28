@@ -11,6 +11,13 @@
   flex: 1;
 }
 
+.monthFilterCard {
+  background: var(--bg-panel, #19191e);
+  border: 1px solid var(--border-color, #32323c);
+  border-radius: 0.75rem;
+  padding: 0.85rem 1.25rem;
+}
+
 .summaryRow {
   display: flex;
   flex-wrap: wrap;

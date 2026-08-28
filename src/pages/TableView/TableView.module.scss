@@ -24,6 +24,40 @@
   min-height: 400px;
 }
 
+.navFilterBanner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 0.75rem;
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.5rem;
+  background: rgba(99, 102, 241, 0.12);
+  border: 1px solid rgba(99, 102, 241, 0.4);
+}
+
+.navFilterText {
+  font-size: 0.85rem;
+  color: var(--fg-default, #e8e8ed);
+}
+
+.navFilterClear {
+  padding: 0.2rem 0.6rem;
+  border-radius: 6px;
+  border: 1px solid var(--border-color, #3f3f4b);
+  background: transparent;
+  color: var(--fg-muted, #a0a0ab);
+  font-size: 0.78rem;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+
+  &:hover {
+    color: var(--fg-default, #e8e8ed);
+    border-color: var(--fg-default, #e8e8ed);
+  }
+}
+
 .cardHeader {
   display: flex;
   justify-content: space-between;
