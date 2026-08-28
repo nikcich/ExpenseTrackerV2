@@ -1,4 +1,9 @@
-import { BrowserRouter, Route, Routes } from "react-router-dom";
+import {
+  BrowserRouter,
+  HashRouter,
+  Route,
+  Routes,
+} from "react-router-dom";
 import { Pages } from "./types/routes";
 import { SideNav } from "./components/SideNav/SideNav";
 import styles from "./App.module.scss";
@@ -89,8 +94,9 @@ const RouteComponent = ({ element }: { element: JSX.Element }) => {
 };
 
 export function AppRouter() {
+  const Router = __DEMO_USE_HASH_ROUTER__ ? HashRouter : BrowserRouter;
   return (
-    <BrowserRouter>
+    <Router>
       <Routes>
         <Route
           path={Pages.TableView}
@@ -177,6 +183,6 @@ export function AppRouter() {
           element={<RouteComponent element={<Anomalies />} />}
         />
       </Routes>
-    </BrowserRouter>
+    </Router>
   );
 }
