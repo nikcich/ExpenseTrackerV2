@@ -2,7 +2,6 @@ import { useExpensesStore, useRsuVests, useBalanceSnapshots, useStocks, useGrant
 import { useCallback, useEffect, useMemo, useState, useDeferredValue, memo } from "react";
 import { Spinner, SegmentGroup } from "@chakra-ui/react";
 import { CoreTable } from "@/components/DataTable/DataTable";
-import { AiOutlineInbox } from "react-icons/ai";
 import { MonthPills } from "@/components/MonthPills/MonthPills";
 import { SummaryCards } from "./SummaryCards";
 import { NetSparkline } from "./NetSparkline";
@@ -166,60 +165,9 @@ const computeCategories = (
     .sort((a, b) => b.amount - a.amount);
 };
 
-function BreakdownSection({
-  expenses,
-  totalSpent,
-  cutoffDate,
-  onOpenCategory,
-}: {
-  expenses: Expense[];
-  totalSpent: number;
-  cutoffDate: Date;
-  onOpenCategory: (name: string, field: "tags" | "group") => void;
-}) {
-  const [breakdown, setBreakdown] = useState<Breakdown>("GROUPS");
-
-  const tagCategories = useMemo(
-    () => computeCategories(expenses, tagLabel),
-    [expenses]
-  );
-  const groupCategories = useMemo(() => computeCategories(expenses, byGroup), [expenses]);
-  const categories = breakdown === "GROUPS" ? groupCategories : tagCategories;
-
-  return (
-    <>
-      <div className={styles.overviewRow}>
-        <div className={`${styles.card} ${styles.donutCard}`}>
-          <div className={styles.cardHeader}>
-            <span className={styles.cardTitle}>Spending by Category</span>
-            <BreakdownToggle value={breakdown} onChange={setBreakdown} />
-          </div>
-          <DonutChart
-            categories={categories}
-            totalSpent={totalSpent}
-            onOpen={(name) =>
-              onOpenCategory(name, breakdown === "GROUPS" ? "group" : "tags")
-            }
-          />
-        </div>
-        <InvestmentsCard cutoffDate={cutoffDate} />
-      </div>
-      <div className={`${styles.card} ${styles.tableCard}`}>
-        <div className={styles.cardHeader}>
-          <span className={styles.cardTitle}>
-            All Transactions ({expenses.length})
-          </span>
-        </div>
-        <div className={styles.tableWrapper}>
-          <CoreTable items={expenses} selectable={false} />
-        </div>
-      </div>
-    </>
-  );
-}
-
 function OverviewContent() {
   const [mode, setMode] = useState<OverviewMode>("MONTHLY");
+  const [breakdown, setBreakdown] = useState<Breakdown>("GROUPS");
   const periods = useMemo(() => {
     if (mode === "MONTHLY") return getLast12Months();
     if (mode === "YEARLY") return getLastNYears(5);
@@ -274,6 +222,13 @@ function OverviewContent() {
   }, [deferredExpenses, periods, index, mode]);
 
   const noData = currentExpenses.length === 0;
+
+  const tagCategories = useMemo(
+    () => computeCategories(currentExpenses, tagLabel),
+    [currentExpenses]
+  );
+  const groupCategories = useMemo(() => computeCategories(currentExpenses, byGroup), [currentExpenses]);
+  const categories = breakdown === "GROUPS" ? groupCategories : tagCategories;
 
   const cutoffDate = useMemo(
     () =>
@@ -339,48 +294,58 @@ function OverviewContent() {
           formatLabel={formatPeriodLabel}
         />
       )}
-      {noData ? (
-        <div className={styles.emptyState}>
-          <AiOutlineInbox size={48} />
-          <span className={styles.emptyText}>
-            {mode === "ALL" ? "No data" : `No data for this ${mode === "MONTHLY" ? "month" : "year"}`}
-          </span>
-          <span className={styles.emptyHint}>
-            {mode === "ALL" ? "Add some expenses to get started" : `Try selecting a different ${mode === "MONTHLY" ? "month" : "year"}`}
-          </span>
-        </div>
-      ) : (
-        <>
-          <SummaryCards
-            realIncome={current.realIncome}
-            totalSpent={current.totalSpent}
-            net={current.net}
-            savings={current.savings}
-            prevRealIncome={prev.realIncome}
-            prevTotalSpent={prev.totalSpent}
-            prevNet={prev.net}
-            prevSavings={prev.savings}
-            ytdIncome={ytd.ytdIncome}
-            ytdSpent={ytd.ytdSpent}
-            ytdNet={ytd.ytdNet}
-            ytdSavings={ytd.ytdSavings}
-          />
-          {mode !== "ALL" && (
-            <NetSparkline
-              data={sparklineData}
-              months={periods}
-              selectedIndex={index}
-              formatLabel={formatSparkLabel}
-            />
-          )}
+      <SummaryCards
+        realIncome={current.realIncome}
+        totalSpent={current.totalSpent}
+        net={current.net}
+        savings={current.savings}
+        prevRealIncome={prev.realIncome}
+        prevTotalSpent={prev.totalSpent}
+        prevNet={prev.net}
+        prevSavings={prev.savings}
+        ytdIncome={ytd.ytdIncome}
+        ytdSpent={ytd.ytdSpent}
+        ytdNet={ytd.ytdNet}
+        ytdSavings={ytd.ytdSavings}
+      />
+      {mode !== "ALL" && (
+        <NetSparkline
+          data={sparklineData}
+          months={periods}
+          selectedIndex={index}
+          formatLabel={formatSparkLabel}
+        />
+      )}
 
-          <BreakdownSection
-            expenses={currentExpenses}
-            totalSpent={current.totalSpent}
-            cutoffDate={cutoffDate}
-            onOpenCategory={handleOpenCategory}
-          />
-        </>
+      <div className={styles.overviewRow}>
+        {!noData && (
+          <div className={`${styles.card} ${styles.donutCard}`}>
+            <div className={styles.cardHeader}>
+              <span className={styles.cardTitle}>Spending by Category</span>
+              <BreakdownToggle value={breakdown} onChange={setBreakdown} />
+            </div>
+            <DonutChart
+              categories={categories}
+              totalSpent={current.totalSpent}
+              onOpen={(name) =>
+                handleOpenCategory(name, breakdown === "GROUPS" ? "group" : "tags")
+              }
+            />
+          </div>
+        )}
+        <InvestmentsCard cutoffDate={cutoffDate} />
+      </div>
+      {!noData && (
+        <div className={`${styles.card} ${styles.tableCard}`}>
+          <div className={styles.cardHeader}>
+            <span className={styles.cardTitle}>
+              All Transactions ({currentExpenses.length})
+            </span>
+          </div>
+          <div className={styles.tableWrapper}>
+            <CoreTable items={currentExpenses} selectable={false} />
+          </div>
+        </div>
       )}
     </div>
   );

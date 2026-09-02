@@ -479,7 +479,7 @@ const generateMockBalanceSnapshots = (
       accountName: "Checking",
       date: format(cursor, "yyyy-MM-dd"),
       balance:
-        Math.round((5000 + progress * 1000 + Math.random() * 500 - 250) * 100) /
+        Math.round((10000 + progress * 2000 + Math.random() * 600 - 300) * 100) /
         100,
       type: "asset",
     };
@@ -491,7 +491,7 @@ const generateMockBalanceSnapshots = (
       date: format(cursor, "yyyy-MM-dd"),
       balance:
         Math.round(
-          (10000 + progress * 7200 + Math.random() * 1000 - 500) * 100,
+          (40000 + progress * 16000 + Math.random() * 1400 - 700) * 100,
         ) / 100,
       type: "asset",
     };
@@ -506,8 +506,8 @@ const generateMockBalanceSnapshots = (
     };
 
     const id4 = uuidv4();
-    const carLoanStart = 18000;
-    const carLoanEnd = 13200;
+    const carLoanStart = 12000;
+    const carLoanEnd = 8000;
     map[id4] = {
       id: id4,
       accountName: "Car Loan",
@@ -524,8 +524,8 @@ const generateMockBalanceSnapshots = (
     };
 
     const id5 = uuidv4();
-    const studentLoanStart = 30000;
-    const studentLoanEnd = 26400;
+    const studentLoanStart = 26000;
+    const studentLoanEnd = 23000;
     map[id5] = {
       id: id5,
       accountName: "Student Loan",

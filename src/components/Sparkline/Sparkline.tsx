@@ -5,6 +5,7 @@ export type SparklineProps = {
   data: { label: string; value: number }[];
   color?: string;
   segmentColors?: { positive: string; negative: string };
+  curve?: "linear" | "smooth";
   height?: number;
   padding?: { top: number; right: number; bottom: number; left: number };
   showArea?: boolean;
@@ -23,6 +24,7 @@ export function Sparkline({
   data,
   color = "var(--fg-info, #60a5fa)",
   segmentColors,
+  curve = "smooth",
   height = 70,
   padding,
   showArea = true,
@@ -88,9 +90,48 @@ export function Sparkline({
     [pad.top, innerH, yMin, yRange],
   );
 
-  const pathD = data
-    .map((d, i) => `${i === 0 ? "M" : "L"}${xScale(i)},${yScale(d.value)}`)
-    .join("");
+  const points = data.map((d, i) => ({ x: xScale(i), y: yScale(d.value) }));
+
+  const stepX = data.length > 1 ? points[1]!.x - points[0]!.x : 1;
+
+  const tangents: number[] = (() => {
+    const n = points.length;
+    if (n < 3) return [];
+    const slopes = points
+      .slice(0, -1)
+      .map((p, i) => (points[i + 1]!.y - p.y) / stepX);
+    const m: number[] = [slopes[0]!];
+    for (let i = 1; i < n - 1; i++) {
+      const s1 = slopes[i - 1]!;
+      const s2 = slopes[i]!;
+      m.push(s1 * s2 <= 0 ? 0 : (2 * s1 * s2) / (s1 + s2));
+    }
+    m.push(slopes[n - 2]!);
+    return m;
+  })();
+
+  const hasSmooth = curve === "smooth" && tangents.length > 0;
+
+  const curveTo = (i: number) => {
+    const p1 = points[i]!;
+    const p2 = points[i + 1]!;
+    const h = p2.x - p1.x;
+    return `C${p1.x + h / 3},${p1.y + (h / 3) * tangents[i]!} ${p2.x - h / 3},${p2.y - (h / 3) * tangents[i + 1]!} ${p2.x},${p2.y}`;
+  };
+
+  const segmentCurve = (i: number) =>
+    hasSmooth
+      ? `M${points[i]!.x},${points[i]!.y}${curveTo(i)}`
+      : `M${points[i]!.x},${points[i]!.y}L${points[i + 1]!.x},${points[i + 1]!.y}`;
+
+  const pathD = hasSmooth
+    ? `M${points[0]!.x},${points[0]!.y}${points
+        .slice(0, -1)
+        .map((_, i) => curveTo(i))
+        .join("")}`
+    : points
+        .map((p, i) => `${i === 0 ? "M" : "L"}${p.x},${p.y}`)
+        .join("");
 
   const defaultColor = segmentColors?.positive ?? color;
 
@@ -166,8 +207,8 @@ export function Sparkline({
               data[i + 1].value >= 0
                 ? segmentColors.positive
                 : segmentColors.negative;
-            const area = `M${xScale(i)},${yScale(0)}L${xScale(i)},${yScale(data[i].value)}L${xScale(i + 1)},${yScale(data[i + 1].value)}L${xScale(i + 1)},${yScale(0)}Z`;
-            const line = `M${xScale(i)},${yScale(data[i].value)}L${xScale(i + 1)},${yScale(data[i + 1].value)}`;
+            const area = `${segmentCurve(i)}L${xScale(i + 1)},${yScale(0)}L${xScale(i)},${yScale(0)}Z`;
+            const line = segmentCurve(i);
             return (
               <g key={i}>
                 {showArea && <path d={area} fill={c} opacity={0.12} />}
