@@ -6,9 +6,10 @@ import { GlobalSearchModal } from "./components/GlobalSearchModal/GlobalSearchMo
 import { GroupModal } from "./components/GroupModal/GroupModal";
 import { HelpModal } from "./components/HelpModal/HelpModal";
 import { TagModal } from "./components/TagModal/TagModal";
+import { AutoCategorizeModal } from "./components/AutoCategorizeModal/AutoCategorizeModal";
 import { SettingsModal } from "./pages/Settings/SettingsModal";
 
-const Modals = [DateRangeModal, EditModal, CreateExpenseModal, TagModal, GroupModal, SettingsModal, HelpModal, FilterModal, GlobalSearchModal];
+const Modals = [DateRangeModal, EditModal, CreateExpenseModal, TagModal, GroupModal, SettingsModal, HelpModal, FilterModal, GlobalSearchModal, AutoCategorizeModal];
 
 export const Overlays = () => {
   return (

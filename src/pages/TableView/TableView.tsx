@@ -401,6 +401,9 @@ export function TableView() {
             All Items ({allItems.length})
           </span>
           <div className={styles.actionRow}>
+            <Button size="sm" variant="outline" onClick={() => enableOverlay(Overlay.AutoCategorizeModal)}>
+              Auto-Categorize
+            </Button>
             <Menu.Root closeOnSelect={false}>
               <Menu.Trigger asChild>
                 <Button size="sm" variant="outline">
