@@ -1,19 +1,20 @@
 import { BalanceSnapshot, BalanceSnapshotsMap, DynamicCsvDefinition, ForecastConfigData, Grant, GrantMap, ImportHistory, KnownStoreKeys, RsuVest, RsuVestsMap, Sale, SalesMap, SsdiConfig, SsdiPayPeriod, Stock, StockMap, StoreExpenseMap } from "../types/types";
-import { createTauriApiHooks, createTauriStoreHook } from "../utils/utils";
+import { createDebouncedObservableHook, createObservableHook, createStoreHook } from "../utils/utils";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { MOCK_BRUSH_RANGE, MOCK_DATA_MAP } from "@/types/mockExpenses";
+import { BehaviorSubject } from "rxjs";
 
-export const {
-  useTauriValue: useInstantBrushRange,
-  useDebouncedTauriValue: useDebouncedBrushRange,
-  value$: instantBrushRange$,
-} = createTauriApiHooks<[number, number]>("get_date_range", undefined, undefined, undefined, MOCK_BRUSH_RANGE);
+export const instantBrushRange$ = new BehaviorSubject<[number, number] | undefined>(undefined);
+
+const useInstantBrushRangeInner = createObservableHook(instantBrushRange$);
+const useDebouncedBrushRangeInner = createDebouncedObservableHook(instantBrushRange$);
+
+export const useInstantBrushRange = () => [useInstantBrushRangeInner()] as const;
+export const useDebouncedBrushRange = () => [useDebouncedBrushRangeInner()] as const;
 
 const [useExpensesStoreInner, expenses$] =
-  createTauriStoreHook<StoreExpenseMap>({
+  createStoreHook<StoreExpenseMap>({
     key: KnownStoreKeys.Expenses,
     defaultValue: {},
-    mockData: MOCK_DATA_MAP[KnownStoreKeys.Expenses] as StoreExpenseMap | undefined,
   });
 
 const useExpensesStore = () => {
@@ -28,16 +29,14 @@ const useExpensesStore = () => {
 
 export { useExpensesStore, expenses$ };
 
-const [useForecastConfigStore] = createTauriStoreHook<ForecastConfigData | null>({
+const [useForecastConfigStore] = createStoreHook<ForecastConfigData | null>({
   key: KnownStoreKeys.ForecastConfig,
   defaultValue: null,
-  mockData: MOCK_DATA_MAP[KnownStoreKeys.ForecastConfig] as ForecastConfigData | undefined,
 });
 
-const [useRsuVestsStore] = createTauriStoreHook<RsuVestsMap>({
+const [useRsuVestsStore] = createStoreHook<RsuVestsMap>({
   key: KnownStoreKeys.RsuVests,
   defaultValue: {},
-  mockData: MOCK_DATA_MAP[KnownStoreKeys.RsuVests] as RsuVestsMap | undefined,
 });
 
 export function useRsuVests() {
@@ -64,10 +63,9 @@ export function useRsuVests() {
   return { vests, addVest, updateVest, removeVest };
 }
 
-const [useStocksStore] = createTauriStoreHook<StockMap>({
+const [useStocksStore] = createStoreHook<StockMap>({
   key: KnownStoreKeys.Stocks,
   defaultValue: {},
-  mockData: MOCK_DATA_MAP[KnownStoreKeys.Stocks] as StockMap | undefined,
 });
 
 export function useStocks() {
@@ -94,10 +92,9 @@ export function useStocks() {
   return { stocks, addStock, updateStock, removeStock };
 }
 
-const [useGrantsStore] = createTauriStoreHook<GrantMap>({
+const [useGrantsStore] = createStoreHook<GrantMap>({
   key: KnownStoreKeys.Grants,
   defaultValue: {},
-  mockData: MOCK_DATA_MAP[KnownStoreKeys.Grants] as GrantMap | undefined,
 });
 
 export function useGrants() {
@@ -124,10 +121,9 @@ export function useGrants() {
   return { grants, addGrant, updateGrant, removeGrant };
 }
 
-const [useSalesStore] = createTauriStoreHook<SalesMap>({
+const [useSalesStore] = createStoreHook<SalesMap>({
   key: KnownStoreKeys.Sales,
   defaultValue: {},
-  mockData: MOCK_DATA_MAP[KnownStoreKeys.Sales] as SalesMap | undefined,
 });
 
 export function useSales() {
@@ -154,10 +150,9 @@ export function useSales() {
   return { sales, addSale, updateSale, removeSale };
 }
 
-const [useBalanceSnapshotsStore] = createTauriStoreHook<BalanceSnapshotsMap>({
+const [useBalanceSnapshotsStore] = createStoreHook<BalanceSnapshotsMap>({
   key: KnownStoreKeys.BalanceSnapshots,
   defaultValue: {},
-  mockData: MOCK_DATA_MAP[KnownStoreKeys.BalanceSnapshots] as BalanceSnapshotsMap | undefined,
 });
 
 export function useBalanceSnapshots() {
@@ -218,7 +213,7 @@ export function useHasSsdiData() {
   return periods.length > 0;
 }
 
-const [useCustomCsvDefinitionsStore] = createTauriStoreHook<DynamicCsvDefinition[]>({
+const [useCustomCsvDefinitionsStore] = createStoreHook<DynamicCsvDefinition[]>({
   key: KnownStoreKeys.CustomCsvDefinitions,
   defaultValue: [],
 });
@@ -242,10 +237,9 @@ export function useCustomCsvDefinitions() {
   return { definitions, addDefinition, updateDefinition, removeDefinition };
 }
 
-const [useSsdiPayPeriodsStore] = createTauriStoreHook<Record<string, SsdiPayPeriod>>({
+const [useSsdiPayPeriodsStore] = createStoreHook<Record<string, SsdiPayPeriod>>({
   key: KnownStoreKeys.SsdiPayPeriods,
   defaultValue: {},
-  mockData: MOCK_DATA_MAP[KnownStoreKeys.SsdiPayPeriods] as Record<string, SsdiPayPeriod> | undefined,
 });
 
 export function useSsdiPayPeriods() {
@@ -272,10 +266,9 @@ export function useSsdiPayPeriods() {
   return { periods, addPeriod, updatePeriod, removePeriod };
 }
 
-const [useSsdiConfigStore] = createTauriStoreHook<SsdiConfig>({
+const [useSsdiConfigStore] = createStoreHook<SsdiConfig>({
   key: KnownStoreKeys.SsdiConfig,
   defaultValue: { year: new Date().getFullYear(), sgaByYear: {} },
-  mockData: MOCK_DATA_MAP[KnownStoreKeys.SsdiConfig] as SsdiConfig | undefined,
 });
 
 export function useSsdiConfig() {
@@ -283,10 +276,9 @@ export function useSsdiConfig() {
   return { config: value, saveConfig: setValue };
 }
 
-const [useImportHistoryStore] = createTauriStoreHook<ImportHistory>({
+const [useImportHistoryStore] = createStoreHook<ImportHistory>({
   key: KnownStoreKeys.ImportHistory,
   defaultValue: [],
-  mockData: MOCK_DATA_MAP[KnownStoreKeys.ImportHistory] as ImportHistory | undefined,
 });
 
 export function useImportHistory() {

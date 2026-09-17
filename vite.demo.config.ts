@@ -43,7 +43,6 @@ export default defineConfig({
     alias: {
       "@tauri-apps/api/core": path.resolve(here, "src/demo/shim-core.ts"),
       "@tauri-apps/api/event": path.resolve(here, "src/demo/shim-event.ts"),
-      "@tauri-apps/api/window": path.resolve(here, "src/demo/shim-window.ts"),
       "@tauri-apps/plugin-dialog": path.resolve(here, "src/demo/shim-dialog.ts"),
       "@tauri-apps/plugin-opener": path.resolve(here, "src/demo/shim-opener.ts"),
     },

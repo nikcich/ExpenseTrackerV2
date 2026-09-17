@@ -1,6 +1,5 @@
-import { Expense, API, Response } from "@/types/types";
-import { save, open } from "@tauri-apps/plugin-dialog";
-import { invoke } from "@tauri-apps/api/core";
+import { Expense, Response } from "@/types/types";
+import { getActiveService } from "@/services/ServiceProvider";
 
 function exportExpensesToCSV(expenses: Expense[]): string {
   const header = ["Group", "Tags", "Date", "Description", "Amount"];
@@ -32,20 +31,26 @@ export async function downloadExpensesCSV(
 ): Promise<string | null> {
   const csvString = exportExpensesToCSV(expenses);
 
-  const path = await save({
+  const service = getActiveService();
+  if (!service) return null;
+
+  const path = await service.saveFileDialog({
     defaultPath: "expenses.csv",
     filters: [{ name: "CSV", extensions: ["csv"] }],
   });
 
   if (!path) return null;
 
-  await invoke(API.SaveCSV, { path, content: csvString });
+  await service.saveCsvToPath(path, csvString);
   return path;
 }
 
 export async function exportAllData(): Promise<string | null> {
+  const service = getActiveService();
+  if (!service) return null;
+
   const response: Response<{ version: number; data: Record<string, unknown> }> =
-    await invoke(API.ExportAllData);
+    await service.exportAllData();
 
   if (response.status !== 200) {
     throw new Error(response.header);
@@ -53,28 +58,32 @@ export async function exportAllData(): Promise<string | null> {
 
   const json = JSON.stringify(response.message, null, 2);
 
-  const path = await save({
+  const path = await service.saveFileDialog({
     defaultPath: "expense-tracker-backup.json",
     filters: [{ name: "JSON", extensions: ["json"] }],
   });
 
   if (!path) return null;
 
-  await invoke(API.SaveCSV, { path, content: json });
+  await service.saveCsvToPath(path, json);
   return path;
 }
 
 export async function importAllData(): Promise<string[]> {
-  const path = await open({
+  const service = getActiveService();
+  if (!service) return [];
+
+  const picked = await service.openFileDialog({
     multiple: false,
     filters: [{ name: "JSON", extensions: ["json"] }],
   });
 
+  if (!picked) return [];
+
+  const path = typeof picked === "string" ? picked : picked[0];
   if (!path) return [];
 
-  const readResponse: Response<string> = await invoke(API.ReadTextFile, {
-    path: path as string,
-  });
+  const readResponse: Response<string> = await service.readTextFile(path);
 
   if (readResponse.status !== 200 || !readResponse.message) {
     throw new Error(readResponse.header);
@@ -82,10 +91,8 @@ export async function importAllData(): Promise<string[]> {
 
   const parsed = JSON.parse(readResponse.message);
 
-  const response: Response<{ imported_keys: string[] }> = await invoke(
-    API.ImportAllData,
-    { data: parsed }
-  );
+  const response: Response<{ imported_keys: string[] }> =
+    await service.importAllData(parsed);
 
   if (response.status !== 200) {
     throw new Error(response.header);

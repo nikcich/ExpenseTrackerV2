@@ -8,7 +8,6 @@ pub mod definition;
 mod model;
 pub mod service;
 mod store;
-mod utils;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -46,9 +45,6 @@ pub fn run() {
             api::store::store_get_json_value,
             api::store::export_all_data,
             api::store::import_all_data,
-            api::window_manager::new_window,
-            api::range_state::set_date_range,
-            api::range_state::get_date_range,
             api::csv_opener::open_csv_from_path,
             api::csv_opener::parse_csv_from_path,
             api::csv_opener::update_expense,

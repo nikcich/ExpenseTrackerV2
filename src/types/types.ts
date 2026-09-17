@@ -1,9 +1,6 @@
 export enum API {
-  NewWindow = "new_window",
-  DateRange = "get_date_range",
   OpenCSV = "open_csv_from_path",
   ParseCSV = "parse_csv_from_path",
-  SetDateRange = "set_date_range",
   UpdateExpense = "update_expense",
   AddManualExpense = "add_expense_manual",
   RemoveExpense = "remove_expense",

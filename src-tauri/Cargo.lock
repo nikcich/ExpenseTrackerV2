@@ -998,7 +998,6 @@ dependencies = [
  "tauri-plugin-store",
  "tempfile",
  "tokio",
- "uuid",
 ]
 
 [[package]]

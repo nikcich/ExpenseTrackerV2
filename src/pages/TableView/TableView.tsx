@@ -6,13 +6,10 @@ import {
   useFilteredSavings,
 } from "@/hooks/expenses";
 import { useExpensesStore, useCustomCsvDefinitions, useImportHistory } from "@/store/store";
-import { API, Response } from "@/types/types";
+import { Response } from "@/types/types";
 import { getExpenseKind } from "@/utils/expense-utils";
-import { createTauriInvoker } from "@/utils/utils";
 import { downloadExpensesCSV } from "@/utils/download";
-import { invoke } from "@tauri-apps/api/core";
-import { open } from "@tauri-apps/plugin-dialog";
-import { revealItemInDir } from "@tauri-apps/plugin-opener";
+import { useExpenseTrackerService } from "@/services/ServiceProvider";
 import { toaster } from "@/components/ui/toaster";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
@@ -33,12 +30,8 @@ import { useNavFilter, clearNavFilter } from "@/store/NavFilterStore";
 import { matchesRules } from "@/utils/custom-filter";
 import { Pages } from "@/types/routes";
 
-type CsvParseResponse = {
-  message: string;
-  importDate: string;
-};
-
 const useFileOpener = (appendImportDate: (date: string) => void) => {
+  const service = useExpenseTrackerService();
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<
     Response<string[]> | Response<string> | null
@@ -54,20 +47,20 @@ const useFileOpener = (appendImportDate: (date: string) => void) => {
     setResult(null);
     setSelectedFormat(undefined);
 
-    const file = await open({
+    const file = (await service.openFileDialog({
       multiple: false,
       directory: false,
-    });
+    })) as string | null;
 
     if (file) {
       const customJson = definitions.length > 0 ? JSON.stringify(definitions) : undefined;
-      const res: Response<string[]> = await invoke(API.OpenCSV, { file, customDefinitionsJson: customJson });
+      const res: Response<string[]> = await service.openCsvFromPath(file, customJson);
       setSelectedFile(file);
       setResult(res);
     }
 
     setLoading(false);
-  }, [definitions]);
+  }, [service, definitions]);
 
   const reset = useCallback(() => {
     setResult(null);
@@ -79,11 +72,7 @@ const useFileOpener = (appendImportDate: (date: string) => void) => {
     if (!selectedFile || !selectedFormat) return;
     setLoading(true);
     const customJson = definitions.length > 0 ? JSON.stringify(definitions) : undefined;
-    const res = await invoke<Response<CsvParseResponse>>(API.ParseCSV, {
-      path: selectedFile,
-      csvDefinitionKey: selectedFormat,
-      customDefinitionsJson: customJson,
-    });
+    const res = await service.parseCsvFromPath(selectedFile, selectedFormat, customJson);
 
     if (res.status < 400 && res.message) {
       appendImportDate(res.message.importDate);
@@ -93,7 +82,7 @@ const useFileOpener = (appendImportDate: (date: string) => void) => {
     }
     setLoading(false);
     if (res.status < 400) reset();
-  }, [selectedFile, selectedFormat, reset, definitions, appendImportDate]);
+  }, [selectedFile, selectedFormat, reset, definitions, appendImportDate, service]);
 
   return {
     loading,
@@ -186,13 +175,12 @@ const DeleteSelectionDialog = ({
   onOpenChange: (open: boolean) => void;
 }) => {
   const selection = useSelection();
+  const service = useExpenseTrackerService();
 
   const handleDeleteSelection = useCallback(async () => {
-    await invoke<Response<string>>(API.RemoveBulkExpenses, {
-      hashes: selection,
-    });
+    await service.removeBulkExpenses(selection);
     setSelection([]);
-  }, [selection]);
+  }, [selection, service]);
 
   return (
     <Dialog.Root
@@ -243,6 +231,7 @@ const DeleteSelectionDialog = ({
 };
 
 export function TableView() {
+  const service = useExpenseTrackerService();
   const expenses = useFilteredExpenses();
   const income = useFilteredIncome();
   const savings = useFilteredSavings();
@@ -497,19 +486,13 @@ export function TableView() {
                           type: "success",
                           action: {
                             label: "Open folder",
-                            onClick: () => revealItemInDir(path),
+                            onClick: () => service.revealItemInDir(path),
                           },
                         });
                       }
                     }}
                   >
                     Download CSV
-                  </Menu.Item>
-                  <Menu.Item
-                    value="new-window"
-                    onClick={createTauriInvoker(API.NewWindow)}
-                  >
-                    New Window
                   </Menu.Item>
                   <Menu.Item
                     value="create-expense"

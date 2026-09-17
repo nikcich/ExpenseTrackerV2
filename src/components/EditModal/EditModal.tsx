@@ -5,10 +5,11 @@ import { useCallback, useState } from "react";
 import { setSelection, useSelection } from "@/store/SelectionStore";
 import { useGetExpenseById } from "@/hooks/expenses";
 import { ExpenseForm } from "../ExpenseForm/ExpenseForm";
-import { API, Expense, Response } from "@/types/types";
-import { invoke } from "@tauri-apps/api/core";
+import { Expense, Response } from "@/types/types";
+import { useExpenseTrackerService } from "@/services/ServiceProvider";
 
 export const EditModal = () => {
+  const service = useExpenseTrackerService();
   const onClose = useCallback(() => {
     setResult(null);
     setSelectedExpenseIndex(0);
@@ -42,10 +43,7 @@ export const EditModal = () => {
         ...partial,
       };
 
-      const res = await invoke<Response<null>>(API.UpdateExpense, {
-        hash: updatedExpense.id,
-        expense: updatedExpense,
-      });
+      const res = await service.updateExpense(updatedExpense.id, updatedExpense);
 
       setResult(res);
 

@@ -3,10 +3,10 @@ import { useLocation } from "react-router-dom";
 import { useExpensesStore } from "@/store/store";
 import { useOverlayStore } from "@/store/OverlayStore";
 import { setSelection, useSelection } from "@/store/SelectionStore";
-import { API, Expense } from "@/types/types";
+import { Expense } from "@/types/types";
 import { Pages } from "@/types/routes";
 import { INCOME_GROUP, SAVINGS_GROUP } from "@/utils/expense-utils";
-import { invoke } from "@tauri-apps/api/core";
+import { useExpenseTrackerService } from "@/services/ServiceProvider";
 import { RadialAction } from "@/components/RadialActions/RadialActions";
 
 const BULK_DELAY_MS = 2000;
@@ -15,6 +15,7 @@ const TOP_ACTION_COUNT = 8;
 export type WheelMode = "tags" | "groups";
 
 export const useQuickWheel = () => {
+  const service = useExpenseTrackerService();
   const location = useLocation();
   const selection = useSelection();
   const visibleOverlay = useOverlayStore("visibleOverlay");
@@ -93,15 +94,15 @@ export const useQuickWheel = () => {
 
         if (expensesToUpdate.length === 0) return;
 
-        await invoke(API.UpdateBulkExpenses, {
-          hashes: expensesToUpdate.map((e) => e.id),
-          expenses: expensesToUpdate.map((e) => ({
+        await service.updateBulkExpenses(
+          expensesToUpdate.map((e) => e.id),
+          expensesToUpdate.map((e) => ({
             ...e,
             tags: allHaveTag
               ? e.tags.filter((t) => t !== tag)
               : [...e.tags, tag],
           })),
-        });
+        );
 
         setSelection([]);
       } else {
@@ -115,13 +116,10 @@ export const useQuickWheel = () => {
           ? expense.tags.filter((t) => t !== tag)
           : [...expense.tags, tag];
 
-        await invoke(API.UpdateExpense, {
-          hash: rowId,
-          expense: { ...expense, tags: newTags },
-        });
+        await service.updateExpense(rowId, { ...expense, tags: newTags });
       }
     },
-    [getExpenseById],
+    [getExpenseById, service],
   );
 
   const applyGroup = useCallback(
@@ -141,13 +139,13 @@ export const useQuickWheel = () => {
 
         if (expensesToUpdate.length === 0) return;
 
-        await invoke(API.UpdateBulkExpenses, {
-          hashes: expensesToUpdate.map((e) => e.id),
-          expenses: expensesToUpdate.map((e) => ({
+        await service.updateBulkExpenses(
+          expensesToUpdate.map((e) => e.id),
+          expensesToUpdate.map((e) => ({
             ...e,
             group: allHaveGroup ? undefined : group,
           })),
-        });
+        );
 
         setSelection([]);
       } else {
@@ -157,16 +155,13 @@ export const useQuickWheel = () => {
         const expense = getExpenseById(rowId);
         if (!expense) return;
 
-        await invoke(API.UpdateExpense, {
-          hash: rowId,
-          expense: {
-            ...expense,
-            group: expense.group === group ? undefined : group,
-          },
+        await service.updateExpense(rowId, {
+          ...expense,
+          group: expense.group === group ? undefined : group,
         });
       }
     },
-    [getExpenseById],
+    [getExpenseById, service],
   );
 
   applyValueRef.current = (value: string) =>

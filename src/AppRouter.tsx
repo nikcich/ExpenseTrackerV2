@@ -8,7 +8,7 @@ import { Pages } from "./types/routes";
 import { SideNav } from "./components/SideNav/SideNav";
 import styles from "./App.module.scss";
 import { JSX, useSyncExternalStore } from "react";
-import { mockMode$ } from "./utils/utils";
+import { mockMode$ } from "./services/ServiceProvider";
 
 import { TableView } from "./pages/TableView/TableView";
 import { GroupedBarChart } from "./pages/GroupedBarChart/GroupedBarChart";
@@ -30,6 +30,7 @@ import { SSDI } from "./pages/SSDI/SSDI";
 import { SelectionInsights } from "./pages/SelectionInsights/SelectionInsights";
 import { Groups } from "./pages/Groups/Groups";
 import { Anomalies } from "./pages/Anomalies/Anomalies";
+import { ExpenseTrackerServiceProvider } from "./services/ServiceProvider";
 
 const MockBanner = () => {
   const enabled = useSyncExternalStore(
@@ -96,93 +97,95 @@ const RouteComponent = ({ element }: { element: JSX.Element }) => {
 export function AppRouter() {
   const Router = __DEMO_USE_HASH_ROUTER__ ? HashRouter : BrowserRouter;
   return (
-    <Router>
-      <Routes>
-        <Route
-          path={Pages.TableView}
-          element={<RouteComponent element={<TableView />} />}
-        />
+    <ExpenseTrackerServiceProvider>
+      <Router>
+        <Routes>
+          <Route
+            path={Pages.TableView}
+            element={<RouteComponent element={<TableView />} />}
+          />
 
-        <Route
-          path={Pages.RangeIncomeExpense}
-          element={<RouteComponent element={<RangeIncomeExpenseChart />} />}
-        />
+          <Route
+            path={Pages.RangeIncomeExpense}
+            element={<RouteComponent element={<RangeIncomeExpenseChart />} />}
+          />
 
-        <Route
-          path={Pages.BarChart}
-          element={<RouteComponent element={<GroupedBarChart />} />}
-        />
+          <Route
+            path={Pages.BarChart}
+            element={<RouteComponent element={<GroupedBarChart />} />}
+          />
 
-        <Route
-          path={Pages.StackedBarChart}
-          element={<RouteComponent element={<TagStackedBarChart />} />}
-        />
+          <Route
+            path={Pages.StackedBarChart}
+            element={<RouteComponent element={<TagStackedBarChart />} />}
+          />
 
-        <Route
-          path={Pages.YTDChart}
-          element={<RouteComponent element={<YearToDateChart />} />}
-        />
+          <Route
+            path={Pages.YTDChart}
+            element={<RouteComponent element={<YearToDateChart />} />}
+          />
 
-        <Route
-          path={Pages.AverageSpending}
-          element={<RouteComponent element={<AverageSpending />} />}
-        />
+          <Route
+            path={Pages.AverageSpending}
+            element={<RouteComponent element={<AverageSpending />} />}
+          />
 
-        <Route
-          path={Pages.Sankey}
-          element={<RouteComponent element={<ExpenseSankey />} />}
-        />
+          <Route
+            path={Pages.Sankey}
+            element={<RouteComponent element={<ExpenseSankey />} />}
+          />
 
-        <Route
-          path={Pages.Forecast}
-          element={<RouteComponent element={<Forecast />} />}
-        />
+          <Route
+            path={Pages.Forecast}
+            element={<RouteComponent element={<Forecast />} />}
+          />
 
-        <Route
-          path={Pages.Overview}
-          element={<RouteComponent element={<Overview />} />}
-        />
+          <Route
+            path={Pages.Overview}
+            element={<RouteComponent element={<Overview />} />}
+          />
 
-        <Route
-          path={Pages.Accounts}
-          element={<RouteComponent element={<Accounts />} />}
-        />
+          <Route
+            path={Pages.Accounts}
+            element={<RouteComponent element={<Accounts />} />}
+          />
 
-        <Route
-          path={Pages.RSU}
-          element={<RouteComponent element={<RSU />} />}
-        />
+          <Route
+            path={Pages.RSU}
+            element={<RouteComponent element={<RSU />} />}
+          />
 
-        <Route
-          path={Pages.CSVFormats}
-          element={<RouteComponent element={<CSVFormats />} />}
-        />
+          <Route
+            path={Pages.CSVFormats}
+            element={<RouteComponent element={<CSVFormats />} />}
+          />
 
-        <Route
-          path={Pages.SSDI}
-          element={<RouteComponent element={<SSDI />} />}
-        />
+          <Route
+            path={Pages.SSDI}
+            element={<RouteComponent element={<SSDI />} />}
+          />
 
-        <Route
-          path={Pages.SelectionInsights}
-          element={<RouteComponent element={<SelectionInsights />} />}
-        />
+          <Route
+            path={Pages.SelectionInsights}
+            element={<RouteComponent element={<SelectionInsights />} />}
+          />
 
-        <Route
-          path={Pages.Groups}
-          element={<RouteComponent element={<Groups />} />}
-        />
+          <Route
+            path={Pages.Groups}
+            element={<RouteComponent element={<Groups />} />}
+          />
 
-        <Route
-          path={`${Pages.Groups}/:groupName`}
-          element={<RouteComponent element={<Groups />} />}
-        />
+          <Route
+            path={`${Pages.Groups}/:groupName`}
+            element={<RouteComponent element={<Groups />} />}
+          />
 
-        <Route
-          path={Pages.Anomalies}
-          element={<RouteComponent element={<Anomalies />} />}
-        />
-      </Routes>
-    </Router>
+          <Route
+            path={Pages.Anomalies}
+            element={<RouteComponent element={<Anomalies />} />}
+          />
+        </Routes>
+      </Router>
+    </ExpenseTrackerServiceProvider>
   );
 }

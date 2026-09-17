@@ -4,13 +4,14 @@ import { Alert, Button, Spinner, Text, VStack } from "@chakra-ui/react";
 import { useCallback, useState } from "react";
 import { setSelection, useSelection } from "@/store/SelectionStore";
 import { useGetExpenseById } from "@/hooks/expenses";
-import { API, Expense, Response, Tag } from "@/types/types";
-import { invoke } from "@tauri-apps/api/core";
+import { Expense, Response, Tag } from "@/types/types";
 import { MultiSelectInput } from "../ExpenseForm/MultiSelectInput";
 import { useAllTagsOptions } from "@/utils/tags";
 import { preventDoubleClick, SHORTCUT_COOLDOWN } from "@/utils/utils";
+import { useExpenseTrackerService } from "@/services/ServiceProvider";
 
 export const TagModal = () => {
+  const service = useExpenseTrackerService();
   const onClose = useCallback(() => {
     setResult(null);
     setTags([]);
@@ -51,15 +52,12 @@ export const TagModal = () => {
         };
       });
 
-      await invoke<Response<null>>(API.UpdateBulkExpenses, {
-        hashes,
-        expenses: expensesToUpdate,
-      });
+      await service.updateBulkExpenses(hashes, expensesToUpdate);
 
       setLoading(false);
       onClose();
     }, SHORTCUT_COOLDOWN),
-    [selection]
+    [selection, service]
   );
 
   return (

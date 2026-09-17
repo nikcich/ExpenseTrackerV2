@@ -3,7 +3,7 @@ import { GenericModal } from "@/components/GenericModal/GenericModal";
 import { Overlay, closeAllOverlays } from "@/store/OverlayStore";
 import { CheckboxCard, Heading, Switch, Text, Button } from "@chakra-ui/react";
 import { setSettingsStore, useSettingsStore } from "@/store/SettingsStore";
-import { setMockMode } from "@/utils/utils";
+import { setMockMode } from "@/services/ServiceProvider";
 import { useAllGroups, useAllTags } from "@/utils/tags";
 import { useHasRsuData, useHasSsdiData, useSsdiConfig } from "@/store/store";
 import { exportAllData, importAllData } from "@/utils/download";

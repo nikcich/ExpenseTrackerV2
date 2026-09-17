@@ -3,21 +3,16 @@ import {
   merge,
   Observable,
   of,
-  startWith,
   Subscription,
   switchMap,
 } from "rxjs";
-import { invoke } from "@tauri-apps/api/core";
-import { listen } from "@tauri-apps/api/event";
 import { useEffect, useState } from "react";
-import { API, KnownStoreKeys } from "../types/types";
+import { KnownStoreKeys } from "../types/types";
 import { debounceTime, distinctUntilChanged, filter, skip } from "rxjs/operators";
 import { Response } from "../types/types";
 import { parse } from "date-fns";
 import * as d3 from "d3";
-
-export const mockMode$ = new BehaviorSubject<boolean>(false);
-export const setMockMode = (enabled: boolean) => mockMode$.next(enabled);
+import { activeService$, getActiveService } from "@/services/ServiceProvider";
 
 export const SHORTCUT_COOLDOWN = 300;
 
@@ -67,216 +62,71 @@ export function makeUseStoreValue<T>(
   };
 }
 
-export const createTauriInvoker = <T>(
-  command: API,
-  args?: Record<string, unknown>,
-): (() => Promise<Response<T>>) => {
-  return async (): Promise<Response<T>> => {
-    return await invoke(command, args);
-  };
-};
-
-function fromTauriEvent<T>(eventName: string): Observable<T> {
-  return new Observable<T>((subscriber) => {
+function fromStoreChanged(): Observable<{ key: string }> {
+  return new Observable<{ key: string }>((subscriber) => {
     let unlisten: (() => void) | undefined;
-    listen<T>(eventName, (event) => {
-      subscriber.next(event.payload);
-    }).then((unlistenFn) => {
-      unlisten = unlistenFn;
+    const serviceSub = activeService$.subscribe((service) => {
+      unlisten?.();
+      unlisten = service?.onStoreChanged((key) => subscriber.next({ key }));
     });
     return () => {
       unlisten?.();
+      serviceSub.unsubscribe();
     };
   });
 }
 
-type TauriStoreOptions<T> = {
+type StoreOptions<T> = {
   key: KnownStoreKeys;
   defaultValue?: T;
 };
 
-type PollerArgs<T> = {
-  subject: BehaviorSubject<T>;
-  args?: Record<string, unknown>;
-};
-
-export function createTauriPoller<T>(
-  command: API,
-  pArgs: PollerArgs<T>,
-  mockData?: T,
-  storeKey?: KnownStoreKeys,
+export function createStorePoller<T>(
+  key: string,
+  subject: BehaviorSubject<T>,
 ): BehaviorSubject<T> {
-  const triggers: Observable<unknown>[] = [
+  merge(
     of(0),
-    mockMode$.pipe(skip(1)),
-  ];
-
-  if (storeKey) {
-    triggers.push(
-      fromTauriEvent<{ key: string }>("store-changed")
-        .pipe(filter((payload) => payload.key === storeKey)),
-    );
-  }
-
-  merge(...triggers)
+    activeService$.pipe(skip(1)),
+    fromStoreChanged().pipe(filter((payload) => payload.key === key)),
+  )
     .pipe(
       switchMap(async () => {
-        if (mockData !== undefined && mockMode$.getValue()) {
-          await new Promise((r) => setTimeout(r, 200));
-          return { status: 200, message: mockData, header: "" } as unknown as Response<T>;
-        }
-        return invoke<Response<T>>(command, pArgs?.args);
+        const service = getActiveService();
+        if (!service) return undefined;
+        return service.getStoreValue<T>(key);
       }),
     )
     .subscribe({
       next: (val) => {
+        if (!val) return;
         if (val.status >= 400 || !val.message) {
-          if (val.status === 404 && !mockMode$.getValue()) {
-            pArgs.subject.next(undefined as T);
+          if (val.status === 404) {
+            subject.next(undefined as T);
           }
-          console.error(
-            `Polling for "${command}" returned error:`,
-            val?.header,
-          );
+          console.error(`Polling for "${key}" returned error:`, val?.header);
           return;
         }
 
-        pArgs.subject.next(val.message);
+        subject.next(val.message);
       },
-      error: (err) => console.error(`Polling for "${command}" failed:`, err),
+      error: (err) => console.error(`Polling for "${key}" failed:`, err),
     });
 
-  return pArgs.subject;
+  return subject;
 }
 
-export function createTauriApiHooks<
-  T,
-  Args extends Record<string, any> | undefined = undefined,
->(
-  getCommand: string, // Tauri command to get value
-  setCommand?: string, // Optional Tauri command to set value
-  args?: Args, // Optional args for commands
-  defaultValue?: T, // Default value
-  mockData?: T, // Mock data returned when mock mode is enabled
-) {
-  // Subject for reactive updates
-  const subject = new BehaviorSubject<T | undefined>(defaultValue);
-
-  const value$ = new BehaviorSubject<T | undefined>(subject.getValue?.());
-
-  const fetchValue = async () => {
-    if (mockData !== undefined && mockMode$.getValue()) {
-      await new Promise((r) => setTimeout(r, 200));
-      value$.next(mockData);
-      return;
-    }
-    try {
-      const val: Response<T> = await invoke(getCommand, args);
-      if (val.status >= 400) {
-        console.error(
-          `Error fetching initial value for "${getCommand}":`,
-          val?.header,
-        );
-        return;
-      }
-      if (!val.message) return;
-      value$.next(val.message);
-    } catch {
-      value$.next(subject.getValue?.());
-    }
-  };
-
-  fetchValue();
-  mockMode$.pipe(skip(1)).subscribe(fetchValue);
-
-  // Setter function
-  const setValue = setCommand
-    ? async (newVal: T | undefined) => {
-        if (newVal === undefined) return;
-        if (mockMode$.getValue()) {
-          value$.next(newVal);
-          return;
-        }
-        const res: Response<T> = await invoke(setCommand, {
-          ...args,
-          value: newVal,
-        });
-
-        if (res.status >= 400) {
-          console.error("Error setting value:", res.header);
-          return;
-        }
-
-        subject.next(newVal);
-      }
-    : undefined;
-
-  // Non-debounced React hook
-  function useTauriValue(): [
-    T | undefined,
-    ((val: T | undefined) => Promise<void>)?,
-  ] {
-    const [value, setValueState] = useState<T | undefined>(
-      value$.getValue() ?? defaultValue,
-    );
-
-    useEffect(() => {
-      const sub = value$.subscribe(setValueState);
-      return () => sub.unsubscribe();
-    }, [value$]);
-
-    return [value, setValue] as const;
-  }
-
-  // Debounced React hook
-  function useDebouncedTauriValue(
-    debounceMs: number = 500,
-  ): [T | undefined, ((val: T | undefined) => Promise<void>)?] {
-    const [value, setValueState] = useState<T | undefined>(
-      value$.getValue() ?? defaultValue,
-    );
-
-    useEffect(() => {
-      const sub = value$
-        .pipe(startWith(value$.getValue()), debounceTime(debounceMs))
-        .subscribe(setValueState);
-      return () => sub.unsubscribe();
-    }, [value$, debounceMs]);
-
-    return [value, setValue] as const;
-  }
-
-  return {
-    useTauriValue,
-    useDebouncedTauriValue,
-    value$,
-    setValue,
-  };
-}
-
-type TauriStoreOptionsWithMock<T> = TauriStoreOptions<T> & { mockData?: T };
-
-export function createTauriStoreHook<T>(options: TauriStoreOptionsWithMock<T>) {
+export function createStoreHook<T>(options: StoreOptions<T>) {
   const subject = new BehaviorSubject<T | undefined>(options.defaultValue);
 
-  const value$ = createTauriPoller<T | undefined>(
-    API.GetJsonValue,
-    { subject, args: { key: options.key } },
-    options.mockData,
-    options.key,
-  );
+  const value$ = createStorePoller<T | undefined>(options.key, subject);
 
   const setValue = async (newVal: T | undefined) => {
     if (newVal === undefined) return;
-    if (mockMode$.getValue()) {
-      value$.next(newVal);
-      return;
-    }
+    const service = getActiveService();
+    if (!service) return;
     try {
-      const res: Response<null> = await invoke(API.SetJsonValue, {
-        key: options.key,
-        value: newVal,
-      });
+      const res: Response<null> = await service.setStoreValue(options.key, newVal);
 
       if (res.status >= 400) {
         console.error("Error setting value:", res.header);
@@ -289,59 +139,6 @@ export function createTauriStoreHook<T>(options: TauriStoreOptionsWithMock<T>) {
   };
 
   return [makeUseStoreValue<T | undefined>(value$, setValue), value$] as const;
-}
-
-export function createDebouncedTauriStoreHook<T>(
-  options: TauriStoreOptionsWithMock<T>,
-  debounceMs: number = 500,
-) {
-  const subject = new BehaviorSubject<T | undefined>(options.defaultValue);
-
-  const value$ = createTauriPoller<T | undefined>(
-    API.GetJsonValue,
-    { subject, args: { key: options.key } },
-    options.mockData,
-    options.key,
-  );
-
-  const debounced$ = value$.pipe(debounceTime(debounceMs));
-
-  const setValue = async (newVal: T | undefined) => {
-    if (newVal === undefined) return;
-    if (mockMode$.getValue()) {
-      value$.next(newVal);
-      return;
-    }
-    try {
-      const res: Response<T> = await invoke(API.SetJsonValue, {
-        key: options.key,
-        value: newVal,
-      });
-
-      if (res.status >= 400) {
-        console.error("Error setting value:", res.header);
-        return;
-      }
-
-      value$.next(newVal);
-    } finally {
-    }
-  };
-
-  function useDebouncedStoreValue() {
-    const [value, setValueState] = useState<T | undefined>(
-      options.defaultValue,
-    );
-
-    useEffect(() => {
-      const subscription = debounced$.subscribe(setValueState);
-      return () => subscription.unsubscribe();
-    }, [debounced$]);
-
-    return [value, setValue] as const;
-  }
-
-  return [useDebouncedStoreValue, debounced$] as const;
 }
 
 export function createObservableHook<T>(

@@ -1,6 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import * as d3 from "d3";
-import { updateDateRange } from "@/store/RustInterfaceHandlers";
 import { instantBrushRange$, useImportHistory } from "@/store/store";
 import { debounceTime, distinctUntilChanged } from "rxjs";
 import { useExpenses, useIncome, useSavings } from "@/hooks/expenses";
@@ -349,7 +348,6 @@ export const BrushScrubber: React.FC<BrushScrubberProps> = ({
 
         if (!Number.isNaN(st) && !Number.isNaN(en)) {
           instantBrushRange$.next([st, en]);
-          updateDateRange(start, end);
         }
       });
 

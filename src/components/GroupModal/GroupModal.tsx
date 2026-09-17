@@ -4,13 +4,14 @@ import { Alert, Button, Input, Spinner, Text, VStack } from "@chakra-ui/react";
 import { useCallback, useState } from "react";
 import { setSelection, useSelection } from "@/store/SelectionStore";
 import { useGetExpenseById } from "@/hooks/expenses";
-import { API, Expense, Response } from "@/types/types";
-import { invoke } from "@tauri-apps/api/core";
+import { Expense, Response } from "@/types/types";
 import { useAllGroups } from "@/utils/tags";
 import { INCOME_GROUP, SAVINGS_GROUP } from "@/utils/expense-utils";
 import { preventDoubleClick, SHORTCUT_COOLDOWN } from "@/utils/utils";
+import { useExpenseTrackerService } from "@/services/ServiceProvider";
 
 export const GroupModal = () => {
+  const service = useExpenseTrackerService();
   const onClose = useCallback(() => {
     setResult(null);
     setGroup("");
@@ -51,15 +52,12 @@ export const GroupModal = () => {
         };
       });
 
-      await invoke<Response<null>>(API.UpdateBulkExpenses, {
-        hashes,
-        expenses: expensesToUpdate,
-      });
+      await service.updateBulkExpenses(hashes, expensesToUpdate);
 
       setLoading(false);
       onClose();
     }, SHORTCUT_COOLDOWN),
-    [selection]
+    [selection, service]
   );
 
   return (

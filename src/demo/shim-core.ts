@@ -5,7 +5,6 @@ type Response<T> = { status: number; message?: T; header?: string };
 
 const WRITE_COMMANDS = new Set<string>([
   API.SetJsonValue,
-  API.SetDateRange,
   API.UpdateExpense,
   API.AddManualExpense,
   API.RemoveExpense,
@@ -56,10 +55,6 @@ export async function invoke<T = unknown>(
     }
     const stored = await readFromStore(command);
     return { status: 200, message: (stored ?? mockByKey(command)) as unknown as T, header: "" };
-  }
-
-  if (command === API.DateRange) {
-    return { status: 200, message: mockByKey("date_range") as unknown as T, header: "" };
   }
 
   return { status: 404, message: undefined, header: `unknown command: ${command}` };

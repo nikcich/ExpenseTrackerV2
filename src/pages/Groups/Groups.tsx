@@ -2,15 +2,15 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Button } from "@chakra-ui/react";
 import { FiArrowLeft, FiEdit3, FiInbox, FiTrash2 } from "react-icons/fi";
-import { invoke } from "@tauri-apps/api/core";
 import { GenericPage } from "@/components/GenericPage/GenericPage";
 import { InsightsView } from "@/components/InsightsView/InsightsView";
 import { EmptyState } from "@/components/ui/empty-state";
 import { useExpensesStore } from "@/store/store";
-import { API, Expense, Response } from "@/types/types";
+import { Expense } from "@/types/types";
 import { Pages } from "@/types/routes";
 import { INCOME_GROUP, SAVINGS_GROUP } from "@/utils/expense-utils";
 import { formatCurrency, formatDate } from "@/utils/utils";
+import { useExpenseTrackerService } from "@/services/ServiceProvider";
 import styles from "./Groups.module.scss";
 
 type GroupSummary = {
@@ -144,6 +144,7 @@ function GroupsList() {
 
 function GroupDetail({ groupName }: { groupName: string }) {
   const navigate = useNavigate();
+  const service = useExpenseTrackerService();
   const { value: allExpenses } = useExpensesStore();
   const isReserved = groupName === INCOME_GROUP || groupName === SAVINGS_GROUP;
 
@@ -167,13 +168,13 @@ function GroupDetail({ groupName }: { groupName: string }) {
     async (nextGroup: string | undefined) => {
       if (items.length === 0) return;
       setWorking(true);
-      await invoke<Response<null>>(API.UpdateBulkExpenses, {
-        hashes: items.map((e) => e.id),
-        expenses: items.map((e) => ({ ...e, group: nextGroup })),
-      });
+      await service.updateBulkExpenses(
+        items.map((e) => e.id),
+        items.map((e) => ({ ...e, group: nextGroup })),
+      );
       setWorking(false);
     },
-    [items]
+    [items, service]
   );
 
   const handleRename = useCallback(async () => {

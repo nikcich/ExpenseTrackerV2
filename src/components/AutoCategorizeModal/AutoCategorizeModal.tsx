@@ -3,13 +3,13 @@ import { GenericModal } from "../GenericModal/GenericModal";
 import { Button, SegmentGroup, Spinner } from "@chakra-ui/react";
 import { useCallback, useMemo, useState } from "react";
 import { useExpensesStore } from "@/store/store";
-import { API, Expense, Response, Tag } from "@/types/types";
-import { invoke } from "@tauri-apps/api/core";
+import { Expense, Tag } from "@/types/types";
 import { AutoCategorizeMode, CategorizeSuggestion, computeSuggestions } from "@/utils/auto-categorize";
 import { formatCurrency } from "@/utils/utils";
 import { format } from "date-fns";
 import { toaster } from "@/components/ui/toaster";
 import { useSettingsStore } from "@/store/SettingsStore";
+import { useExpenseTrackerService } from "@/services/ServiceProvider";
 import styles from "./AutoCategorizeModal.module.scss";
 
 const acceptLabelFor = (mode: AutoCategorizeMode) =>
@@ -23,6 +23,7 @@ const applySuggestion = (e: Expense, mode: AutoCategorizeMode, suggested: string
 };
 
 export const AutoCategorizeModal = () => {
+  const service = useExpenseTrackerService();
   const { value: allExpenses } = useExpensesStore();
   const disabledTags = useSettingsStore("disabledTags");
   const disabledGroups = useSettingsStore("disabledGroups");
@@ -57,10 +58,7 @@ export const AutoCategorizeModal = () => {
       setBusyIds((prev) => new Set(prev).add(s.expense.id));
       const updated = applySuggestion(s.expense, mode, s.suggested);
 
-      const res = await invoke<Response<null>>(API.UpdateExpense, {
-        hash: updated.id,
-        expense: updated,
-      });
+      const res = await service.updateExpense(updated.id, updated);
 
       setBusyIds((prev) => {
         const next = new Set(prev);
@@ -80,7 +78,7 @@ export const AutoCategorizeModal = () => {
       setDeclined((prev) => new Set(prev).add(s.expense.id));
       setAcceptedCount((c) => c + 1);
     },
-    [mode]
+    [mode, service]
   );
 
   const hasDisabledRule = useCallback(

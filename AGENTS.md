@@ -52,12 +52,22 @@ Existing reusable card components in `src/components/charts/`:
 
 ### Data Flow
 
-- Expenses are stored in Tauri's `tauri-plugin-store` (key `"expenses"`), polled every 2s via `createTauriStoreHook`.
-- Custom RxJS store in `src/store/generic-store.ts` using `BehaviorSubject`. Provides `setState`, `getState`, and a React `useStore(key)` hook.
+- All backend/API access is decoupled behind the **`ExpenseTrackerService`** interface (`src/services/ExpenseTrackerService.ts`) — Tauri-agnostic. The Tauri implementation is the only place that imports `@tauri-apps/*`: `TauriService` (`src/services/TauriService.ts`, uses `invoke` + `listen` + dialog/opener plugins). A non-Tauri backend (e.g. HTTP container) would implement the same interface and be passed to the provider.
+- `ExpenseTrackerServiceProvider` (`src/services/ServiceProvider.tsx`) wraps `AppRouter` and provides the active service via context. Components/hooks call `useExpenseTrackerService()`. The module-scope store polling layer (can't use React context) reads `getActiveService()` / subscribes to `activeService$` (a `BehaviorSubject`) — same pattern as `mockMode$`. Switching the provider's service triggers an immediate re-fetch of all stores.
+- Expenses are stored in Tauri's `tauri-plugin-store` (key `"expenses"`), polled every 2s via `createStoreHook` (renamed from `createTauriStoreHook`).
+- Custom RxJS store in `src/store/generic-store.ts` using `BehaviorSubject`. Provides `setState`, `getState`, and a React `useStore(key)` hook. Only `SettingsStore` passes a `persistKey` (`"settings"`); it hydrates/persists through `getActiveService()` on service change.
 - Hooks in `src/hooks/expenses.ts`: `useExpenses()`, `useFilteredExpenses()`, `useIncome()`, `useFilteredIncome()`, `useSavings()`, `useFilteredSavings()`, `useGetExpenseById()`, `useDateExtents()`.
-- Date range: D3 brush scrubber (`BrushScrubber`), synced via Tauri events (`set_date_range`, `get_date_range`). Consumed via `useDebouncedBrushRange()` from `src/store/store.ts`.
+- Date range: D3 brush scrubber (`BrushScrubber`), held locally in a `BehaviorSubject` (`instantBrushRange$` in `src/store/store.ts`, no Tauri/backend sync). Consumed via `useDebouncedBrushRange()` from `src/store/store.ts`.
 - Tags: `src/utils/tags.ts` exports `useAllTags()` (collects unique tags from all expenses/savings/income + ALL_TAGS enum, reference-stable), `useAllTagsOptions()` (for dropdowns).
 - Disabled tags filter: `useDisabledTags()` from `src/store/SettingsStore.ts`. Overview page respects disabled tags when computing chart data.
+
+### Service Layer
+
+- **`ExpenseTrackerService`** interface methods: `getStoreValue`/`setStoreValue`/`onStoreChanged` (the `"store-changed"` event is Tauri-specific; a different backend maps its own change notification here), expense CRUD (`addExpenseManual`, `updateExpense`, `updateBulkExpenses`, `removeExpense`, `removeBulkExpenses`), CSV (`openCsvFromPath`, `parseCsvFromPath`, `saveCsvToPath`, `readTextFile`, `readCsvPreview`, `previewCsvParse`), backup (`exportAllData`, `importAllData`), dialogs (`openFileDialog`, `saveFileDialog`), and `revealItemInDir`.
+- All methods keep the `Response<T>` envelope (`{ status, header, message }`) so call sites do `res.status >= 400` checks — HTTP-like, backend-agnostic.
+- Store keys, Tauri command strings, and the import-date/export/import shapes are centralized in `src/types/types.ts` (`API` enum, `KnownStoreKeys`, `Response<T>`).
+- To add a new backend: implement `ExpenseTrackerService` and mount `<ExpenseTrackerServiceProvider service={myBackend}>`. If it uses polling/change-notification, `activeService$` handles the store layer re-fetch.
+- `MockService` (`src/services/MockService.ts`) is a second implementation — an in-memory store seeded from `createMockData()`, used for demo/screenshot mode. See "Mock Data System".
 
 ### Pages
 
@@ -119,40 +129,40 @@ Classification is **group-based**, with a legacy tag fallback so old stored data
 A global mock mode exists for screenshots/demos. When enabled via Settings modal, **all data** is replaced with fake data at the lowest possible layer — no page/hook-level mock awareness needed.
 
 **How it works:**
-- `mockMode$` (a `BehaviorSubject<boolean>`) in `src/utils/utils.ts` is the single source of truth
-- `setMockMode(enabled)` toggles it. Settings modal calls this when the switch is flipped.
-- `createTauriPoller` (used by `createTauriStoreHook` for expenses, RSU, snapshots, forecast config) accepts an optional `mockData` param. Inside, it checks `mockMode$.getValue()` before deciding to return mock data or call Tauri `invoke`.
-- `createTauriApiHooks` (used for brush range) has the same pattern.
-- Both poller and API hooks subscribe to `mockMode$` (via `merge` / `.subscribe`) so toggling mock mode triggers an **immediate re-fetch** rather than waiting for the next poll interval.
+- `MockService` (`src/services/MockService.ts`) is an `ExpenseTrackerService` backed by an in-memory store seeded from `createMockData()`. It returns fake data from `getStoreValue`, and its writes mutate the in-memory store and emit its own store-change events (so all pollers refresh).
+- `mockMode$` / `setMockMode(enabled)` live in `src/services/ServiceProvider.tsx` and are the single source of truth.
+- `ExpenseTrackerServiceProvider` subscribes to `mockMode$`. When it flips on, the active service (both the context value and `activeService$`) becomes a fresh `MockService`; when off, it reverts to the real service. A new `MockService` instance (fresh data) is created each time mock mode is enabled.
+- Because the swap routes through `activeService$`, every store poller re-fetches immediately on toggle — no per-hook mock awareness anywhere.
 
-**Write protection:** When mock mode is on, every setter (`setValue` in store hooks, `updateDateRange` in RustInterfaceHandlers) checks `mockMode$.getValue()` and returns early without calling Tauri `invoke`. Local state is still updated for UI responsiveness, but nothing is persisted.
+**Settings and edits in mock mode:** `setValue` in store hooks and `SettingsStore` persistence just call the active service. In mock mode that's `MockService`, so settings and expense edits are held in memory (not persisted) but fully interactive — edit/bulk/tag/delete operations work against the mock store.
 
-**Adding mock data for a new store/hook:**
-1. Add a generator function in `src/types/mockExpenses.ts`
-2. Create a module-level `MOCK_*` constant calling the generator with `startDate`/`endDate`
-3. Add an entry to `MOCK_DATA_MAP` keyed by `KnownStoreKeys.*`
-4. Pass `mockData: MOCK_DATA_MAP[KnownStoreKeys.*]` to the `createTauriStoreHook` or `createTauriApiHooks` call in `src/store/store.ts`
+**Adding mock data for a new store:**
+1. Write a generator function in `src/types/mockExpenses.ts` (takes `startDate`/`endDate` params, no module constants)
+2. Add it to the `createMockData()` factory (in `mockExpenses.ts`), which returns a `MockDataMap` keyed by `KnownStoreKeys.*`
+3. Rebuild and enable mock mode — no store/poller changes needed. The store hook's `getStoreValue` picks it up automatically.
 
-**Important:** Always use `startDate` (12 months ago) and `endDate` (today) for dynamic date ranges. Never hardcode dates in mock data generators.
+**Important:** Always derive dates from `startDate` (12 months ago) and `endDate` (today) passed into the generator. Never hardcode dates. `MOCK_DATA_MAP` (a module-load snapshot) is still exported for the demo shims.
+
+**Demo deployment:** `src/demo/main.demo.tsx` calls `setMockMode(true)` before rendering, so the demo build runs entirely on `MockService`. The `@tauri-apps/*` imports in `TauriService` are aliased to `src/demo/shim-*` in `vite.demo.config.ts` (never actually used for data while mock is on).
 
 **MockBanner:** A yellow banner at the top of every page (in `AppRouter.tsx`) shows "⚡ Mock Data Mode — all data is simulated" when mock mode is active. Uses `useSyncExternalStore` to react to `mockMode$` changes.
 
 **Files involved:**
-- `src/types/mockExpenses.ts` — All mock generators and `MOCK_DATA_MAP`
-- `src/utils/utils.ts` — `mockMode$`, `setMockMode()`, mock-aware pollers/setters
-- `src/store/store.ts` — Each `createTauriStoreHook` passes `mockData`
-- `src/store/RustInterfaceHandlers.ts` — `updateDateRange` skips invoke in mock mode
+- `src/services/MockService.ts` — in-memory `ExpenseTrackerService` implementation
+- `src/services/ServiceProvider.tsx` — `mockMode$`, `setMockMode()`, service swap
+- `src/types/mockExpenses.ts` — all mock generators + `createMockData()` factory
 - `src/store/SettingsStore.ts` — `mockDataEnabled` boolean
 - `src/pages/Settings/SettingsModal.tsx` — Toggle switch + `setMockMode()` call
 - `src/AppRouter.tsx` — `MockBanner` component
+- `src/demo/main.demo.tsx` — `setMockMode(true)` on boot
 
 ### Key Utilities
 
 - `src/utils/expense-utils.ts`: `groupAndSumExpenses(expenses, ...keyFns)`, `byMonth`, `byYear`, `byDay`, `byTag`
-- `src/utils/utils.ts`: `chartDateCompare(a, b)` — sorts date-group strings, `parseDate()` — date-fns parser, `createTauriApiHooks<T>()` — creates BehaviorSubject-backed hooks for Tauri commands, `createTauriStoreHook<T>()` — polling-based store hooks
+- `src/utils/utils.ts`: `chartDateCompare(a, b)` — sorts date-group strings, `parseDate()` — date-fns parser, `createStoreHook<T>()` — polling-based store hooks
 - `src/utils/cash-flow-forecast.ts`: `computeCashFlowForecast()` — forecast engine (daily cash flow events from config)
 - `src/utils/download.ts`: `downloadExpensesCSV()` — exports expenses to CSV blob
-- `src/types/mockExpenses.ts`: All mock data generators for the mock system (expenses, RSU, snapshots, forecast config, brush range) and `MOCK_DATA_MAP`
+- `src/types/mockExpenses.ts`: All mock data generators for the mock system (expenses, RSU, snapshots, forecast config, brush range) and `createMockData()` factory
 
 ### Segment Controls
 
@@ -170,7 +180,7 @@ Each page route is wrapped in `<ErrorBoundary>` from `react-error-boundary` in `
 
 ### Rust Backend
 
-The Tauri backend lives in `src-tauri/`. Key commands registered: store CRUD (`store_set_json_value`, `store_get_json_value`), window management (`new_window`), date range (`set_date_range`, `get_date_range`), CSV operations (`open_csv_from_path`, `parse_csv_from_path`), expense CRUD (`update_expense`, `update_bulk_expenses`, `add_expense_manual`, `remove_expense`, `remove_bulk_expenses`). Expenses stored in local JSON via `tauri-plugin-store`.
+The Tauri backend lives in `src-tauri/`. Key commands registered: store CRUD (`store_set_json_value`, `store_get_json_value`), CSV operations (`open_csv_from_path`, `parse_csv_from_path`), expense CRUD (`update_expense`, `update_bulk_expenses`, `add_expense_manual`, `remove_expense`, `remove_bulk_expenses`). Expenses stored in local JSON via `tauri-plugin-store`.
 
 ### Routing
 

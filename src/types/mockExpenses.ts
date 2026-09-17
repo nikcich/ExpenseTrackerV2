@@ -21,10 +21,6 @@ const GROUP_ESSENTIALS = "Essentials";
 const GROUP_DISCRETIONARY = "Discretionary";
 const GROUP_IRREGULAR = "Irregular";
 
-const now = new Date();
-const startDate = subMonths(now, 12);
-const endDate = now;
-
 const descriptions: Partial<Record<string, string[]>> = {
   [ExpenseTag.Food]: [
     "Groceries",
@@ -371,11 +367,6 @@ const generateRealisticExpenses = (from: Date, to: Date): StoreExpenseMap => {
   return map;
 };
 
-export const MOCK_EXPENSES: StoreExpenseMap = generateRealisticExpenses(
-  startDate,
-  endDate,
-);
-
 const generateMockStocks = (): StockMap => {
   const id = uuidv4();
   return {
@@ -383,9 +374,7 @@ const generateMockStocks = (): StockMap => {
   };
 };
 
-export const MOCK_STOCKS: StockMap = generateMockStocks();
-
-const generateMockGrants = (stockId: string): GrantMap => {
+const generateMockGrants = (stockId: string, vestStartDate: Date): GrantMap => {
   const map: GrantMap = {};
   const grantId = uuidv4();
   map[grantId] = {
@@ -395,7 +384,7 @@ const generateMockGrants = (stockId: string): GrantMap => {
     grantPrice: 150,
     totalShares: 200,
     vestingSchedule: {
-      startDate: format(startDate, "yyyy-MM-dd"),
+      startDate: format(vestStartDate, "yyyy-MM-dd"),
       totalYears: 4,
       frequency: "quarterly",
       distribution: [25, 25, 25, 25],
@@ -403,9 +392,6 @@ const generateMockGrants = (stockId: string): GrantMap => {
   };
   return map;
 };
-
-const firstStockId = Object.keys(MOCK_STOCKS)[0];
-export const MOCK_GRANTS: GrantMap = generateMockGrants(firstStockId);
 
 const generateMockRsuVests = (from: Date, grants: GrantMap): RsuVestsMap => {
   const map: RsuVestsMap = {};
@@ -424,8 +410,6 @@ const generateMockRsuVests = (from: Date, grants: GrantMap): RsuVestsMap => {
   }
   return map;
 };
-
-export const MOCK_RSU_VESTS: RsuVestsMap = generateMockRsuVests(startDate, MOCK_GRANTS);
 
 const generateMockSales = (from: Date, stockId: string): SalesMap => {
   const map: SalesMap = {};
@@ -451,8 +435,6 @@ const generateMockSales = (from: Date, stockId: string): SalesMap => {
   };
   return map;
 };
-
-export const MOCK_SALES: SalesMap = generateMockSales(startDate, firstStockId);
 
 const generateMockBalanceSnapshots = (
   from: Date,
@@ -546,58 +528,15 @@ const generateMockBalanceSnapshots = (
   return map;
 };
 
-export const MOCK_BALANCE_SNAPSHOTS: BalanceSnapshotsMap =
-  generateMockBalanceSnapshots(startDate, endDate);
-
-const forecastStartMonth = new Date(
-  startDate.getFullYear(),
-  startDate.getMonth(),
-  1,
-);
-
-export const MOCK_FORECAST_CONFIG: ForecastConfigData = {
-  startBalance: 10000,
-  reserve: 2000,
-  startDate: format(forecastStartMonth, "yyyy-MM-dd"),
-  endDate: format(endDate, "yyyy-MM-dd"),
-  incomeStreams: [
-    {
-      name: "Salary",
-      amount: 2300,
-      payPeriod: "semimonthly",
-      firstPaycheckDate: format(forecastStartMonth, "yyyy-MM-15"),
-      semimonthlyPayday1: 15,
-      semimonthlyPayday2: 31,
-    },
-  ],
-  expenses: [
-    { name: "Rent", day: 1, amount: 2000, period: "monthly" },
-    { name: "Utilities", day: 5, amount: 300, period: "monthly" },
-    { name: "Insurance", day: 1, amount: 150, period: "monthly" },
-    { name: "Car Loan", day: 15, amount: 400, period: "monthly" },
-    { name: "Student Loan", day: 10, amount: 300, period: "monthly" },
-    { name: "Groceries", day: 3, amount: 200, period: "biweekly" },
-    { name: "Gas", day: 8, amount: 40, period: "biweekly" },
-    { name: "Entertainment", day: 12, amount: 60, period: "monthly" },
-    { name: "Shopping", day: 18, amount: 100, period: "monthly" },
-    { name: "Misc", day: 22, amount: 80, period: "monthly" },
-  ],
-};
-
-export const MOCK_BRUSH_RANGE: [number, number] = [
-  startDate.getTime(),
-  endDate.getTime(),
-];
-
-const generateMockSsdiPayPeriods = (): Record<string, { id: string; beginDate: string; endDate: string; depositExpenseId: string; grossEarnings: number }> => {
+const generateMockSsdiPayPeriods = (expenses: StoreExpenseMap): Record<string, { id: string; beginDate: string; endDate: string; depositExpenseId: string; grossEarnings: number }> => {
   const map: Record<string, { id: string; beginDate: string; endDate: string; depositExpenseId: string; grossEarnings: number }> = {};
   const currentYear = new Date().getFullYear();
-  const expenseIds = Object.keys(MOCK_EXPENSES);
+  const expenseIds = Object.keys(expenses);
   const salaryIds = expenseIds.filter((id) => {
-    const exp = MOCK_EXPENSES[id];
+    const exp = expenses[id];
     return exp.description === "Salary";
-  }).sort((a, b) => new Date(MOCK_EXPENSES[a].date).getTime() - new Date(MOCK_EXPENSES[b].date).getTime());
-  const allExpenseIds = expenseIds.sort((a, b) => new Date(MOCK_EXPENSES[a].date).getTime() - new Date(MOCK_EXPENSES[b].date).getTime());
+  }).sort((a, b) => new Date(expenses[a].date).getTime() - new Date(expenses[b].date).getTime());
+  const allExpenseIds = expenseIds.sort((a, b) => new Date(expenses[a].date).getTime() - new Date(expenses[b].date).getTime());
 
   let periodStart = new Date(currentYear, 0, 1);
   let salaryIdx = 0;
@@ -623,28 +562,81 @@ const generateMockSsdiPayPeriods = (): Record<string, { id: string; beginDate: s
   return map;
 };
 
-export const MOCK_SSDI_PAY_PERIODS = generateMockSsdiPayPeriods();
+export type MockDataMap = Partial<Record<KnownStoreKeys, unknown>>;
 
-export const MOCK_SSDI_CONFIG: SsdiConfig = {
-  year: new Date().getFullYear(),
-  sgaByYear: { [new Date().getFullYear()]: 1620 },
+export const createMockData = (): MockDataMap => {
+  const now = new Date();
+  const startDate = subMonths(now, 12);
+  const endDate = now;
+
+  const expenses = generateRealisticExpenses(startDate, endDate);
+  const stocks = generateMockStocks();
+  const firstStockId = Object.keys(stocks)[0];
+  const grants = generateMockGrants(firstStockId, startDate);
+  const rsuVests = generateMockRsuVests(startDate, grants);
+  const sales = generateMockSales(startDate, firstStockId);
+  const balanceSnapshots = generateMockBalanceSnapshots(startDate, endDate);
+
+  const forecastStartMonth = new Date(
+    startDate.getFullYear(),
+    startDate.getMonth(),
+    1,
+  );
+
+  const forecastConfig: ForecastConfigData = {
+    startBalance: 10000,
+    reserve: 2000,
+    startDate: format(forecastStartMonth, "yyyy-MM-dd"),
+    endDate: format(endDate, "yyyy-MM-dd"),
+    incomeStreams: [
+      {
+        name: "Salary",
+        amount: 2300,
+        payPeriod: "semimonthly",
+        firstPaycheckDate: format(forecastStartMonth, "yyyy-MM-15"),
+        semimonthlyPayday1: 15,
+        semimonthlyPayday2: 31,
+      },
+    ],
+    expenses: [
+      { name: "Rent", day: 1, amount: 2000, period: "monthly" },
+      { name: "Utilities", day: 5, amount: 300, period: "monthly" },
+      { name: "Insurance", day: 1, amount: 150, period: "monthly" },
+      { name: "Car Loan", day: 15, amount: 400, period: "monthly" },
+      { name: "Student Loan", day: 10, amount: 300, period: "monthly" },
+      { name: "Groceries", day: 3, amount: 200, period: "biweekly" },
+      { name: "Gas", day: 8, amount: 40, period: "biweekly" },
+      { name: "Entertainment", day: 12, amount: 60, period: "monthly" },
+      { name: "Shopping", day: 18, amount: 100, period: "monthly" },
+      { name: "Misc", day: 22, amount: 80, period: "monthly" },
+    ],
+  };
+
+  const ssdiPayPeriods = generateMockSsdiPayPeriods(expenses);
+
+  const ssdiConfig: SsdiConfig = {
+    year: now.getFullYear(),
+    sgaByYear: { [now.getFullYear()]: 1620 },
+  };
+
+  const importHistory: ImportHistory = [
+    format(subMonths(now, 6), "yyyy-MM-dd"),
+    format(subMonths(now, 3), "yyyy-MM-dd"),
+    format(subMonths(now, 1), "yyyy-MM-dd"),
+  ];
+
+  return {
+    [KnownStoreKeys.Expenses]: expenses,
+    [KnownStoreKeys.Stocks]: stocks,
+    [KnownStoreKeys.Grants]: grants,
+    [KnownStoreKeys.RsuVests]: rsuVests,
+    [KnownStoreKeys.Sales]: sales,
+    [KnownStoreKeys.BalanceSnapshots]: balanceSnapshots,
+    [KnownStoreKeys.ForecastConfig]: forecastConfig,
+    [KnownStoreKeys.SsdiPayPeriods]: ssdiPayPeriods,
+    [KnownStoreKeys.SsdiConfig]: ssdiConfig,
+    [KnownStoreKeys.ImportHistory]: importHistory,
+  };
 };
 
-export const MOCK_IMPORT_HISTORY: ImportHistory = [
-  format(subMonths(now, 6), "yyyy-MM-dd"),
-  format(subMonths(now, 3), "yyyy-MM-dd"),
-  format(subMonths(now, 1), "yyyy-MM-dd"),
-];
-
-export const MOCK_DATA_MAP: Partial<Record<KnownStoreKeys, unknown>> = {
-  [KnownStoreKeys.Expenses]: MOCK_EXPENSES,
-  [KnownStoreKeys.Stocks]: MOCK_STOCKS,
-  [KnownStoreKeys.Grants]: MOCK_GRANTS,
-  [KnownStoreKeys.RsuVests]: MOCK_RSU_VESTS,
-  [KnownStoreKeys.Sales]: MOCK_SALES,
-  [KnownStoreKeys.BalanceSnapshots]: MOCK_BALANCE_SNAPSHOTS,
-  [KnownStoreKeys.ForecastConfig]: MOCK_FORECAST_CONFIG,
-  [KnownStoreKeys.SsdiPayPeriods]: MOCK_SSDI_PAY_PERIODS,
-  [KnownStoreKeys.SsdiConfig]: MOCK_SSDI_CONFIG,
-  [KnownStoreKeys.ImportHistory]: MOCK_IMPORT_HISTORY,
-};
+export const MOCK_DATA_MAP: MockDataMap = createMockData();

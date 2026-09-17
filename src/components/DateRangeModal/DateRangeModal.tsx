@@ -7,7 +7,6 @@ import { instantBrushRange$ } from "@/store/store";
 import { Box, Button, Input, VStack, Text } from "@chakra-ui/react";
 import { useCallback, useState } from "react";
 import { GenericModal } from "../GenericModal/GenericModal";
-import { updateDateRange } from "@/store/RustInterfaceHandlers";
 
 export const DateRangeModal = () => {
   const [startDate, setStartDate] = useState("");
@@ -18,11 +17,6 @@ export const DateRangeModal = () => {
   const isOpen = activeOverlay === Overlay.DateRangeModal;
 
   const onClose = useCallback(() => {
-    const v = instantBrushRange$.getValue();
-    if (v) {
-      updateDateRange(new Date(v[0]), new Date(v[1]));
-    }
-
     closeAllOverlays();
   }, []);
 
@@ -35,10 +29,8 @@ export const DateRangeModal = () => {
     const ts1 = d1.getTime();
     const ts2 = d2.getTime();
 
-    instantBrushRange$.next([ts1, ts2]);
     if (!Number.isNaN(ts1) && !Number.isNaN(ts2)) {
       instantBrushRange$.next([ts1, ts2]);
-      updateDateRange(d1, d2);
     }
   }, []);
 

@@ -1,5 +1,5 @@
 import "vite/modulepreload-polyfill";
-import { setMockMode } from "@/utils/utils";
+import { setMockMode } from "@/services/ServiceProvider";
 
 setMockMode(true);
 

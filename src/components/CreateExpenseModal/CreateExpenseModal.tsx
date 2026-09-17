@@ -3,10 +3,11 @@ import { GenericModal } from "../GenericModal/GenericModal";
 import { Alert, Button, Text, VStack } from "@chakra-ui/react";
 import { useCallback, useState } from "react";
 import { ExpenseForm } from "../ExpenseForm/ExpenseForm";
-import { API, Expense, Response } from "@/types/types";
-import { invoke } from "@tauri-apps/api/core";
+import { Expense, Response } from "@/types/types";
+import { useExpenseTrackerService } from "@/services/ServiceProvider";
 
 export const CreateExpenseModal = () => {
+  const service = useExpenseTrackerService();
   const onClose = useCallback(() => {
     setResult(null);
     closeAllOverlays();
@@ -26,9 +27,7 @@ export const CreateExpenseModal = () => {
       ...partial,
     };
 
-    const res = await invoke<Response<null>>(API.AddManualExpense, {
-      expense: updatedExpense,
-    });
+    const res = await service.addExpenseManual(updatedExpense);
 
     setResult(res);
 

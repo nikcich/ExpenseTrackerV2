@@ -2,12 +2,10 @@ import { GenericPage } from "@/components/GenericPage/GenericPage";
 import { Tooltip } from "@/components/ui/tooltip";
 import { useCustomCsvDefinitions } from "@/store/store";
 import type { DynamicCsvDefinition, PreviewResult } from "@/types/types";
-import { API, type Response } from "@/types/types";
-import { invoke } from "@tauri-apps/api/core";
-import { open } from "@tauri-apps/plugin-dialog";
 import { Spinner } from "@chakra-ui/react";
 import { LuInfo } from "react-icons/lu";
 import { useCallback, useMemo, useState } from "react";
+import { useExpenseTrackerService } from "@/services/ServiceProvider";
 import styles from "./CSVFormats.module.scss";
 
 const emptyForm = (): Omit<DynamicCsvDefinition, "id"> => ({
@@ -22,6 +20,7 @@ const emptyForm = (): Omit<DynamicCsvDefinition, "id"> => ({
 });
 
 export function CSVFormats() {
+  const service = useExpenseTrackerService();
   const { definitions, addDefinition, updateDefinition, removeDefinition } =
     useCustomCsvDefinitions();
 
@@ -42,7 +41,7 @@ export function CSVFormats() {
   const handlePreview = useCallback(async () => {
     setPreviewLoading(true);
     try {
-      const path = await open({
+      const path = await service.openFileDialog({
         multiple: false,
         directory: false,
         filters: [{ name: "CSV", extensions: ["csv"] }],
@@ -51,18 +50,16 @@ export function CSVFormats() {
         setPreviewLoading(false);
         return;
       }
-      setPreviewPath(path);
-      const res = await invoke<Response<string[][]>>(API.ReadCSVPreview, {
-        path,
-        rows: 10,
-      });
+      const filePath = typeof path === "string" ? path : path[0];
+      setPreviewPath(filePath);
+      const res = await service.readCsvPreview(filePath, 10);
       setPreviewData(res.message ?? []);
     } catch {
       setPreviewData([]);
       setPreviewPath(null);
     }
     setPreviewLoading(false);
-  }, []);
+  }, [service]);
 
   const handleSave = useCallback(() => {
     if (!form.name) return;
@@ -104,17 +101,14 @@ export function CSVFormats() {
     setParseLoading(true);
     try {
       const defJson = JSON.stringify({ ...form, id: "preview" });
-      const res = await invoke<Response<PreviewResult[]>>(API.PreviewParseCSV, {
-        path: previewPath,
-        definitionJson: defJson,
-      });
+      const res = await service.previewCsvParse(previewPath, defJson);
       setParseResults(res.message ?? []);
       setParsedSnapshot({ form: JSON.stringify(form), path: previewPath });
     } catch {
       setParseResults([]);
     }
     setParseLoading(false);
-  }, [previewPath, form]);
+  }, [previewPath, form, service]);
 
   const maxCols =
     previewData.length > 0

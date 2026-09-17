@@ -1,19 +1,24 @@
 import { BehaviorSubject } from "rxjs";
 import { useEffect, useState } from "react";
-import { invoke } from "@tauri-apps/api/core";
-import { mockMode$ } from "@/utils/utils";
+import { activeService$, getActiveService } from "@/services/ServiceProvider";
 
 export function createStore<T extends object>(initialState: T, persistKey?: string) {
   const state$ = new BehaviorSubject<T>(initialState);
 
   if (persistKey) {
-    invoke<Record<string, unknown> | null>("store_get_json_value", { key: persistKey })
-      .then((stored) => {
-        if (stored && typeof stored === "object") {
-          state$.next({ ...initialState, ...stored } as T);
-        }
-      })
-      .catch(() => {});
+    activeService$.subscribe(() => {
+      const service = getActiveService();
+      if (!service) return;
+      service
+        .getStoreValue<Record<string, unknown> | null>(persistKey)
+        .then((res) => {
+          if (res.status >= 400 || !res.message) return;
+          if (typeof res.message === "object") {
+            state$.next({ ...initialState, ...res.message } as T);
+          }
+        })
+        .catch(() => {});
+    });
   }
 
   const setState = (update: Partial<T> | ((prev: T) => Partial<T>)) => {
@@ -22,8 +27,8 @@ export function createStore<T extends object>(initialState: T, persistKey?: stri
     const next = { ...current, ...partial };
     state$.next(next);
 
-    if (persistKey && !mockMode$.getValue()) {
-      invoke("store_set_json_value", { key: persistKey, value: next }).catch(() => {});
+    if (persistKey) {
+      getActiveService()?.setStoreValue(persistKey, next).catch(() => {});
     }
   };
 
