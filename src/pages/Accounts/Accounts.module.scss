@@ -30,13 +30,13 @@
   border-radius: 0.5rem;
   border: 1px solid var(--border-color);
   background: transparent;
-  color: var(--fg-muted, #a0a0ab);
+  color: var(--fg-muted);
   font-size: 0.8rem;
   cursor: pointer;
   transition: all 0.15s ease;
 
   &:hover {
-    border-color: var(--fg-muted, #a0a0ab);
+    border-color: var(--fg-muted);
     color: var(--fg-default);
   }
 }
@@ -60,7 +60,7 @@
 .table th {
   text-align: left;
   padding: 0.5rem 0.75rem;
-  color: var(--fg-muted, #a0a0ab);
+  color: var(--fg-muted);
   font-weight: 500;
   font-size: 0.75rem;
   text-transform: uppercase;
@@ -84,14 +84,14 @@
   border-radius: 0.35rem;
   border: 1px solid var(--border-color);
   background: transparent;
-  color: var(--fg-subtle, #6b6b7b);
+  color: var(--fg-subtle);
   font-size: 0.75rem;
   cursor: pointer;
   transition: all 0.15s ease;
   margin-right: 0.35rem;
 
   &:hover {
-    border-color: var(--fg-muted, #a0a0ab);
+    border-color: var(--fg-muted);
     color: var(--fg-default);
   }
 }
@@ -108,7 +108,7 @@
   flex-wrap: wrap;
   gap: 0.5rem;
   padding: 0.75rem;
-  background: var(--bg-muted, #23232a);
+  background: var(--bg-muted);
   border-radius: 0.5rem;
   margin-bottom: 0.75rem;
   align-items: flex-end;
@@ -124,7 +124,7 @@
 
 .fieldLabel {
   font-size: 0.65rem;
-  color: var(--fg-subtle, #6b6b7b);
+  color: var(--fg-subtle);
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }
@@ -141,7 +141,7 @@
   height: 1.8rem;
 
   &:focus {
-    border-color: var(--fg-muted, #a0a0ab);
+    border-color: var(--fg-muted);
   }
 }
 
@@ -172,12 +172,12 @@
   border-radius: 0.35rem;
   border: 1px solid var(--border-color);
   background: transparent;
-  color: var(--fg-subtle, #6b6b7b);
+  color: var(--fg-subtle);
   font-size: 0.75rem;
   cursor: pointer;
 
   &:hover {
-    border-color: var(--fg-muted, #a0a0ab);
+    border-color: var(--fg-muted);
     color: var(--fg-default);
   }
 }
@@ -213,13 +213,13 @@
   font-size: 0.65rem;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  color: var(--fg-muted, #a0a0ab);
+  color: var(--fg-muted);
   font-weight: 500;
   text-align: left;
 }
 
 .summaryEmpty {
-  color: var(--fg-subtle, #6b6b7b);
+  color: var(--fg-subtle);
   font-size: 0.85rem;
 }
 
@@ -234,10 +234,6 @@
   flex-direction: column;
   gap: 0.15rem;
   align-items: flex-start;
-  background: var(--bg-default, #141417);
-  border: 1px solid var(--border-color);
-  border-radius: 0.5rem;
-  padding: 0.65rem 0.9rem;
   flex: 1 1 180px;
   min-width: 140px;
 }
@@ -250,14 +246,14 @@
 }
 
 .money {
-  color: var(--fg-success, #4ade80);
+  color: var(--fg-success);
 }
 
 .summaryStatLabel {
   font-size: 0.65rem;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  color: var(--fg-muted, #a0a0ab);
+  color: var(--fg-muted);
   font-weight: 500;
 }
 
@@ -269,7 +265,7 @@
 
 .summaryBalanceDate {
   font-size: 0.7rem;
-  color: var(--fg-subtle, #6b6b7b);
+  color: var(--fg-subtle);
 }
 
 .balanceMeta {
@@ -280,7 +276,7 @@
 }
 
 .deltaUp {
-  color: var(--fg-success, #4ade80);
+  color: var(--fg-success);
   font-size: 0.75rem;
   display: inline-flex;
   align-items: center;
@@ -288,7 +284,7 @@
 }
 
 .deltaDown {
-  color: var(--fg-error, #f87171);
+  color: var(--fg-error);
   font-size: 0.75rem;
   display: inline-flex;
   align-items: center;
@@ -352,33 +348,33 @@
 
 .netWorthBreakdown {
   font-size: 0.8rem;
-  color: var(--fg-subtle, #6b6b7b);
+  color: var(--fg-subtle);
   text-align: left;
 }
 
 .debtColor {
-  color: var(--fg-error, #f87171);
+  color: var(--fg-error);
 }
 
 .debtMoney {
-  color: var(--fg-error, #f87171);
+  color: var(--fg-error);
 }
 
 .typeAsset {
   font-size: 0.65rem;
-  color: var(--fg-success, #4ade80);
+  color: var(--fg-success);
   font-weight: 500;
 }
 
 .typeDebt {
   font-size: 0.65rem;
-  color: var(--fg-error, #f87171);
+  color: var(--fg-error);
   font-weight: 500;
 }
 
 .emptyRow {
   text-align: center;
   padding: 2rem;
-  color: var(--fg-subtle, #6b6b7b);
+  color: var(--fg-subtle);
   font-size: 0.85rem;
 }

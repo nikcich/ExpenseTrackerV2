@@ -41,7 +41,7 @@
   font-size: 0.65rem;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  color: var(--fg-muted, #a0a0ab);
+  color: var(--fg-muted);
   font-weight: 500;
 }
 
@@ -55,19 +55,19 @@
 
 .cardCaption {
   font-size: 0.7rem;
-  color: var(--fg-subtle, #6b6b7b);
+  color: var(--fg-subtle);
 }
 
 .valuePos {
-  color: var(--fg-success, #4ade80);
+  color: var(--fg-success);
 }
 
 .valueNeg {
-  color: var(--fg-error, #f87171);
+  color: var(--fg-error);
 }
 
 .valueNeutral {
-  color: var(--fg-warning, #eab308);
+  color: var(--fg-warning);
 }
 
 .metaCard {

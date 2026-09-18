@@ -46,7 +46,7 @@
   border-radius: 6px;
   border: 1px solid var(--chakra-colors-border-emphasized);
   background: transparent;
-  color: var(--fg-muted, #a0a0ab);
+  color: var(--fg-muted);
   font-size: 0.78rem;
   cursor: pointer;
   transition: all 0.15s ease;
@@ -76,7 +76,7 @@
   border-radius: 0.5rem;
   border: 1px solid var(--border-color);
   background: transparent;
-  color: var(--fg-muted, #a0a0ab);
+  color: var(--fg-muted);
   font-size: 0.85rem;
   cursor: pointer;
   transition: all 0.15s ease;
@@ -84,7 +84,7 @@
   font-family: inherit;
 
   &:hover {
-    border-color: var(--fg-muted, #a0a0ab);
+    border-color: var(--fg-muted);
     color: var(--fg-default);
   }
 }
@@ -94,14 +94,14 @@
   border-radius: 0.35rem;
   border: 1px solid var(--border-color);
   background: transparent;
-  color: var(--fg-subtle, #6b6b7b);
+  color: var(--fg-subtle);
   font-size: 0.75rem;
   cursor: pointer;
   transition: all 0.15s ease;
   font-family: inherit;
 
   &:hover {
-    border-color: var(--fg-muted, #a0a0ab);
+    border-color: var(--fg-muted);
     color: var(--fg-default);
   }
 }
@@ -122,7 +122,7 @@
 
 .fieldLabel {
   font-size: 0.65rem;
-  color: var(--fg-subtle, #6b6b7b);
+  color: var(--fg-subtle);
   text-transform: uppercase;
   letter-spacing: 0.05em;
   text-align: left;
@@ -142,7 +142,7 @@
   height: 1.8rem;
 
   &:focus {
-    border-color: var(--fg-muted, #a0a0ab);
+    border-color: var(--fg-muted);
   }
 }
 
@@ -218,6 +218,6 @@
 }
 
 .loadingText {
-  color: var(--fg-muted, #a0a0ab);
+  color: var(--fg-muted);
   font-size: 0.85rem;
 }

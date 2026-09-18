@@ -27,21 +27,21 @@
   font-size: 0.65rem;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  color: var(--fg-muted, #a0a0ab);
+  color: var(--fg-muted);
   font-weight: 500;
 }
 
 .summaryValue {
   font-size: 1.6rem;
   font-weight: 700;
-  color: var(--fg-error, #f87171);
+  color: var(--fg-error);
   line-height: 1.2;
 }
 
 .note {
   margin: 0;
   font-size: 0.8rem;
-  color: var(--fg-subtle, #6b6b7b);
+  color: var(--fg-subtle);
   line-height: 1.4;
   max-width: 480px;
   text-align: right;
@@ -66,7 +66,7 @@
 .table th {
   text-align: left;
   padding: 0.5rem 1rem;
-  color: var(--fg-muted, #a0a0ab);
+  color: var(--fg-muted);
   font-weight: 500;
   font-size: 0.75rem;
   text-transform: uppercase;
@@ -108,25 +108,25 @@
 
 .date {
   white-space: nowrap;
-  color: var(--fg-muted, #a0a0ab);
+  color: var(--fg-muted);
 }
 
 .category {
-  color: var(--fg-muted, #a0a0ab);
+  color: var(--fg-muted);
   font-weight: 500;
 }
 
 .amount {
   font-weight: 700;
-  color: var(--fg-error, #f87171);
+  color: var(--fg-error);
 }
 
 .typical {
-  color: var(--fg-subtle, #6b6b7b);
+  color: var(--fg-subtle);
 }
 
 .ratio {
-  color: var(--fg-warning, #eab308);
+  color: var(--fg-warning);
   font-weight: 600;
 }
 
@@ -138,6 +138,6 @@
 .empty {
   padding: 2.5rem 1.5rem;
   text-align: center;
-  color: var(--fg-subtle, #6b6b7b);
+  color: var(--fg-subtle);
   font-size: 0.9rem;
 }

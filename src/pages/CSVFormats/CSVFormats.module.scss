@@ -24,7 +24,7 @@
 
 .loadingText {
   font-size: 0.85rem;
-  color: var(--fg-muted, #a0a0ab);
+  color: var(--fg-muted);
 }
 
 .section {
@@ -65,7 +65,7 @@
 
 .fieldLabel {
   font-size: 0.65rem;
-  color: var(--fg-subtle, #6b6b7b);
+  color: var(--fg-subtle);
   text-transform: uppercase;
   letter-spacing: 0.05em;
   display: flex;
@@ -74,13 +74,13 @@
 }
 
 .infoIcon {
-  color: var(--fg-subtle, #6b6b7b);
+  color: var(--fg-subtle);
   cursor: help;
   display: inline-flex;
   transition: color 0.15s ease;
 
   &:hover {
-    color: var(--fg-muted, #a0a0ab);
+    color: var(--fg-muted);
   }
 }
 
@@ -88,7 +88,7 @@
   padding: 0.35rem 0.5rem;
   border-radius: 0.35rem;
   border: 1px solid var(--border-color);
-  background: var(--bg-sunken, #141418);
+  background: var(--bg-sunken);
   color: var(--fg-default);
   font-size: 0.8rem;
   outline: none;
@@ -98,11 +98,11 @@
   height: 1.8rem;
 
   &:focus {
-    border-color: var(--fg-muted, #a0a0ab);
+    border-color: var(--fg-muted);
   }
 
   &::placeholder {
-    color: var(--fg-subtle, #6b6b7b);
+    color: var(--fg-subtle);
   }
 }
 
@@ -113,7 +113,7 @@
 }
 
 .checkboxRow input[type="checkbox"] {
-  accent-color: var(--fg-info, #60a5fa);
+  accent-color: var(--fg-info);
   width: 1rem;
   height: 1rem;
 }
@@ -129,25 +129,25 @@
   border-radius: 0.5rem;
   border: 1px solid var(--border-color);
   background: transparent;
-  color: var(--fg-muted, #a0a0ab);
+  color: var(--fg-muted);
   font-size: 0.8rem;
   cursor: pointer;
   transition: all 0.15s ease;
   white-space: nowrap;
 
   &:hover {
-    border-color: var(--fg-muted, #a0a0ab);
+    border-color: var(--fg-muted);
     color: var(--fg-default);
   }
 }
 
 .primaryBtn {
   composes: btn;
-  border-color: var(--fg-info, #60a5fa);
-  color: var(--fg-info, #60a5fa);
+  border-color: var(--fg-info);
+  color: var(--fg-info);
 
   &:hover {
-    background: var(--fg-info, #60a5fa);
+    background: var(--fg-info);
     color: #000;
   }
 
@@ -157,7 +157,7 @@
 
     &:hover {
       background: transparent;
-      color: var(--fg-info, #60a5fa);
+      color: var(--fg-info);
     }
   }
 }
@@ -177,7 +177,7 @@
 }
 
 .emptyText {
-  color: var(--fg-subtle, #6b6b7b);
+  color: var(--fg-subtle);
   font-size: 0.85rem;
 }
 
@@ -208,8 +208,8 @@
 }
 
 .previewTable th {
-  background: var(--bg-sunken, #141418);
-  color: var(--fg-subtle, #6b6b7b);
+  background: var(--bg-sunken);
+  color: var(--fg-subtle);
   font-weight: 500;
   font-size: 0.65rem;
   text-transform: uppercase;
@@ -224,9 +224,9 @@
 }
 
 .indexCell {
-  color: var(--fg-info, #60a5fa);
+  color: var(--fg-info);
   font-weight: 600;
-  background: var(--bg-sunken, #141418);
+  background: var(--bg-sunken);
 }
 
 .actionsRow {
@@ -240,7 +240,7 @@
   align-items: center;
   gap: 0.75rem;
   font-size: 0.8rem;
-  color: var(--fg-muted, #a0a0ab);
+  color: var(--fg-muted);
 }
 
 .staleBadge {
@@ -274,7 +274,7 @@
   padding: 0.6rem 0.75rem;
   border: 1px solid var(--border-color);
   border-radius: 0.5rem;
-  background: var(--bg-sunken, #141418);
+  background: var(--bg-sunken);
 }
 
 .savedItemName {
@@ -284,7 +284,7 @@
 
 .savedItemMeta {
   font-size: 0.7rem;
-  color: var(--fg-subtle, #6b6b7b);
+  color: var(--fg-subtle);
 }
 
 .savedItemActions {

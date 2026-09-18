@@ -27,7 +27,7 @@
 }
 
 .resultItem:hover {
-  border-color: var(--fg-info, #4a90d9);
+  border-color: var(--fg-info);
 }
 
 .mainRow {
@@ -46,12 +46,12 @@
 }
 
 .positive {
-  color: var(--fg-success, #4caf7d);
+  color: var(--fg-success);
   white-space: nowrap;
 }
 
 .negative {
-  color: var(--fg-error, #e05c5c);
+  color: var(--fg-error);
   white-space: nowrap;
 }
 
@@ -60,7 +60,7 @@
   flex-wrap: wrap;
   align-items: center;
   gap: 0.4rem;
-  color: var(--fg-subtle, #6b6b7b);
+  color: var(--fg-subtle);
   font-size: 0.75rem;
 }
 
@@ -73,7 +73,7 @@
 .cancelBtn {
   background: transparent;
   border: 1px solid var(--border-color);
-  color: var(--fg-muted, #a0a0ab);
+  color: var(--fg-muted);
   border-radius: 0.35rem;
   padding: 0.4rem 0.9rem;
   cursor: pointer;

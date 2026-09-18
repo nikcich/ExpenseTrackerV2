@@ -23,7 +23,7 @@
 
 .subtitle {
   font-size: 0.82rem;
-  color: var(--fg-subtle, #6b6b7b);
+  color: var(--fg-subtle);
   line-height: 1.4;
 }
 
@@ -38,7 +38,7 @@
 
 .summary {
   font-size: 0.85rem;
-  color: var(--fg-muted, #a0a0ab);
+  color: var(--fg-muted);
 }
 
 .list {
@@ -78,7 +78,7 @@
 
 .descMeta {
   font-size: 0.78rem;
-  color: var(--fg-subtle, #6b6b7b);
+  color: var(--fg-subtle);
   display: flex;
   gap: 0.75rem;
   align-items: center;
@@ -100,7 +100,7 @@
 
 .matchCount {
   font-size: 0.72rem;
-  color: var(--fg-subtle, #6b6b7b);
+  color: var(--fg-subtle);
   white-space: nowrap;
 }
 
@@ -124,7 +124,7 @@
 
 .accept {
   background: var(--fg-default);
-  color: var(--bg-default, #141417);
+  color: var(--bg-default);
   border-color: var(--fg-default);
   font-weight: 600;
 
@@ -135,18 +135,18 @@
 }
 
 .decline {
-  color: var(--fg-muted, #a0a0ab);
+  color: var(--fg-muted);
 
   &:hover {
-    color: var(--fg-error, #f87171);
-    border-color: var(--fg-error, #f87171);
+    color: var(--fg-error);
+    border-color: var(--fg-error);
   }
 }
 
 .empty {
   padding: 2rem 0;
   text-align: center;
-  color: var(--fg-subtle, #6b6b7b);
+  color: var(--fg-subtle);
   font-size: 0.9rem;
 }
 
@@ -161,5 +161,5 @@
 
 .progressHint {
   font-size: 0.82rem;
-  color: var(--fg-muted, #a0a0ab);
+  color: var(--fg-muted);
 }

@@ -1,15 +1,18 @@
 import styles from "./SideNav.module.scss";
 import { useNavigate, useLocation } from "react-router-dom";
 import cx from "classnames";
+import { useEffect, useRef, useState } from "react";
 import { IoSettingsOutline } from "react-icons/io5";
 import { PiMagnifyingGlassBold } from "react-icons/pi";
 import type { IconType } from "react-icons";
+import { FiChevronRight, FiChevronLeft, FiChevronUp, FiChevronDown } from "react-icons/fi";
 import { Tooltip } from "@/components/ui/tooltip";
 import { enableOverlay, Overlay } from "@/store/OverlayStore";
 import { useSettingsStore, setSettingsStore } from "@/store/SettingsStore";
 import { useHasRsuData, useHasSsdiData } from "@/store/store";
 import { NAV_SECTIONS, type NavItem } from "@/types/nav";
-import { FiChevronRight,FiChevronLeft } from "react-icons/fi";
+
+const SCROLL_STEP_FACTOR = 0.85;
 
 const SideNavButton = ({
   Icon,
@@ -65,9 +68,49 @@ export function SideNav() {
     items: section.items.filter(isVisible),
   })).filter((section) => section.items.length > 0);
 
+  const navRef = useRef<HTMLDivElement>(null);
+  const [canScrollUp, setCanScrollUp] = useState(false);
+  const [canScrollDown, setCanScrollDown] = useState(false);
+  const scrollable = canScrollUp || canScrollDown;
+
+  const updateScrollState = () => {
+    const el = navRef.current;
+    if (!el) return;
+    setCanScrollUp(el.scrollTop > 0.5);
+    setCanScrollDown(el.scrollTop + el.clientHeight < el.scrollHeight - 0.5);
+  };
+
+  useEffect(() => {
+    updateScrollState();
+    const el = navRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver(updateScrollState);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [rsuTabEnabled, hasRsuData, ssdiTabEnabled, hasSsdiData]);
+
+  const scrollNav = (dir: 1 | -1) => {
+    const el = navRef.current;
+    if (!el) return;
+    el.scrollBy({
+      top: dir * Math.max(40, el.clientHeight * SCROLL_STEP_FACTOR),
+      behavior: "smooth",
+    });
+  };
+
   return (
     <div className={cx(styles.navContainer, expanded ? styles.expanded : styles.collapsed)}>
-      <div className={styles.navItems}>
+      {scrollable && (
+        <button
+          className={cx(styles.navButton, styles.chevronButton)}
+          disabled={!canScrollUp}
+          onClick={() => scrollNav(-1)}
+          aria-label="Scroll navigation up"
+        >
+          <FiChevronUp className={styles.icon} />
+        </button>
+      )}
+      <div className={styles.navItems} ref={navRef} onScroll={updateScrollState}>
         <SideNavButton
           Icon={PiMagnifyingGlassBold}
           label="Search (Ctrl+K)"
@@ -98,7 +141,16 @@ export function SideNav() {
           </div>
         ))}
       </div>
-      <div className={styles.spacer} />
+      {scrollable && (
+        <button
+          className={cx(styles.navButton, styles.chevronButton)}
+          disabled={!canScrollDown}
+          onClick={() => scrollNav(1)}
+          aria-label="Scroll navigation down"
+        >
+          <FiChevronDown className={styles.icon} />
+        </button>
+      )}
       <div className={styles.footer}>
         <SideNavButton
           Icon={IoSettingsOutline}

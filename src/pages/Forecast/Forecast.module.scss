@@ -23,7 +23,7 @@
 
 .chevron {
   font-size: 0.6rem;
-  color: var(--fg-muted, #a0a0ab);
+  color: var(--fg-muted);
   transition: transform 0.2s;
   line-height: 1;
 }
@@ -56,7 +56,7 @@
 
 .fieldLabel {
   font-size: 0.65rem;
-  color: var(--fg-subtle, #6b6b7b);
+  color: var(--fg-subtle);
   text-transform: uppercase;
   letter-spacing: 0.05em;
   text-align: left;
@@ -76,7 +76,7 @@
   height: 1.8rem;
 
   &:focus {
-    border-color: var(--fg-muted, #a0a0ab);
+    border-color: var(--fg-muted);
   }
 }
 
@@ -85,7 +85,7 @@
   flex-wrap: wrap;
   gap: 0.5rem;
   padding: 0.75rem;
-  background: var(--bg-muted, #23232a);
+  background: var(--bg-muted);
   border-radius: 0.5rem;
   align-items: flex-end;
 }
@@ -95,14 +95,14 @@
   border-radius: 0.5rem;
   border: 1px solid var(--border-color);
   background: transparent;
-  color: var(--fg-muted, #a0a0ab);
+  color: var(--fg-muted);
   font-size: 0.8rem;
   cursor: pointer;
   transition: all 0.15s ease;
   align-self: flex-start;
 
   &:hover {
-    border-color: var(--fg-muted, #a0a0ab);
+    border-color: var(--fg-muted);
     color: var(--fg-default);
   }
 }
@@ -112,7 +112,7 @@
   border-radius: 0.35rem;
   border: 1px solid var(--border-color);
   background: transparent;
-  color: var(--fg-subtle, #6b6b7b);
+  color: var(--fg-subtle);
   font-size: 0.75rem;
   cursor: pointer;
   transition: all 0.15s ease;
@@ -148,7 +148,7 @@
   font-size: 0.65rem;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  color: var(--fg-muted, #a0a0ab);
+  color: var(--fg-muted);
   font-weight: 500;
   text-align: left;
 }
@@ -161,15 +161,15 @@
 }
 
 .valuePos {
-  color: var(--fg-success, #4ade80);
+  color: var(--fg-success);
 }
 
 .valueNeg {
-  color: var(--fg-error, #f87171);
+  color: var(--fg-error);
 }
 
 .valueNeutral {
-  color: var(--fg-warning, #eab308);
+  color: var(--fg-warning);
 }
 
 .tableCard {
@@ -194,7 +194,7 @@
 .table th {
   text-align: left;
   padding: 0.5rem 0.75rem;
-  color: var(--fg-muted, #a0a0ab);
+  color: var(--fg-muted);
   font-weight: 500;
   font-size: 0.75rem;
   text-transform: uppercase;
@@ -213,20 +213,20 @@
 }
 
 .eventIncome {
-  color: var(--fg-success, #4ade80);
+  color: var(--fg-success);
 }
 
 .eventExpense {
-  color: var(--fg-error, #f87171);
+  color: var(--fg-error);
 }
 
 .eventTransfer {
-  color: var(--fg-warning, #eab308);
+  color: var(--fg-warning);
 }
 
 .emptyRow {
   text-align: center;
   padding: 2rem;
-  color: var(--fg-subtle, #6b6b7b);
+  color: var(--fg-subtle);
   font-size: 0.85rem;
 }

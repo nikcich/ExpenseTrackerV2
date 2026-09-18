@@ -9,26 +9,26 @@
   border-radius: 9999px;
   border: 1px solid var(--chakra-colors-border-emphasized);
   background: transparent;
-  color: var(--fg-muted, #a0a0ab);
+  color: var(--fg-muted);
   font-size: 0.8rem;
   cursor: pointer;
   transition: all 0.15s ease;
   line-height: 1.4;
 
   &:hover {
-    border-color: var(--fg-muted, #a0a0ab);
+    border-color: var(--fg-muted);
     color: var(--fg-default);
   }
 }
 
 .pillActive {
   background: var(--fg-default);
-  color: var(--bg-default, #141417);
+  color: var(--bg-default);
   border-color: var(--fg-default);
   font-weight: 600;
 
   &:hover {
-    color: var(--bg-default, #141417);
+    color: var(--bg-default);
     border-color: var(--fg-default);
   }
 }

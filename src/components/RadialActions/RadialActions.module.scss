@@ -31,8 +31,8 @@
 }
 
 .wedge {
-  fill: var(--chakra-colors-bg-panel, #1a1a2e);
-  stroke: var(--chakra-colors-border, #32323c);
+  fill: var(--chakra-colors-bg-panel);
+  stroke: var(--chakra-colors-border);
   stroke-width: 1;
   cursor: pointer;
   transition:
@@ -53,7 +53,7 @@
 }
 
 .label {
-  fill: var(--chakra-colors-fg, #e4e4e7);
+  fill: var(--chakra-colors-fg);
   font-size: 10px;
   font-weight: 600;
   text-anchor: middle;
@@ -68,7 +68,7 @@
 }
 
 .centerCircle {
-  fill: var(--chakra-colors-bg-muted, #2a2a3c);
-  stroke: var(--chakra-colors-border, #32323c);
+  fill: var(--chakra-colors-bg-muted);
+  stroke: var(--chakra-colors-border);
   stroke-width: 1;
 }
