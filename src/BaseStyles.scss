@@ -1,3 +1,40 @@
+:root {
+  --bg-panel: var(--chakra-colors-bg-panel);
+  --border-color: var(--chakra-colors-border);
+  --fg-default: var(--chakra-colors-fg);
+
+  --bg-base: var(--chakra-colors-bg);
+  --bg-surface: var(--chakra-colors-bg-panel);
+  --bg-elevated: var(--chakra-colors-bg-muted);
+  --bg-overlay: var(--chakra-colors-bg-emphasized);
+
+  --border-subtle: var(--chakra-colors-border-subtle);
+  --border-default: var(--chakra-colors-border);
+  --border-strong: var(--chakra-colors-border-emphasized);
+
+  --text-primary: var(--chakra-colors-fg);
+  --text-secondary: var(--chakra-colors-fg-muted);
+  --text-tertiary: var(--chakra-colors-fg-subtle);
+  --text-disabled: var(--chakra-colors-fg-disabled);
+
+  --accent-primary: var(--chakra-colors-accent-primary);
+  --accent-primary-hover: var(--chakra-colors-accent-primary-hover);
+  --accent-primary-muted: var(--chakra-colors-accent-primary-muted);
+
+  --success: var(--chakra-colors-fg-success);
+  --success-muted: var(--chakra-colors-bg-success);
+  --warning: var(--chakra-colors-fg-warning);
+  --warning-muted: var(--chakra-colors-bg-warning);
+  --error: var(--chakra-colors-fg-error);
+  --error-muted: var(--chakra-colors-bg-error);
+  --info: var(--chakra-colors-fg-info);
+  --info-muted: var(--chakra-colors-bg-info);
+
+  --shadow-color: 0deg 0% 0%;
+  --shadow-elevation-low: 0 1px 2px hsl(var(--shadow-color) / 0.3);
+  --shadow-elevation-high: 0 8px 24px hsl(var(--shadow-color) / 0.4);
+}
+
 * {
   font-family: "Open Sans", sans-serif;
 }

@@ -28,8 +28,8 @@
 }
 
 .section {
-  background: var(--bg-panel, #19191e);
-  border: 1px solid var(--border-color, #32323c);
+  background: var(--bg-panel);
+  border: 1px solid var(--border-color);
   border-radius: 0.75rem;
   padding: 1.25rem;
   display: flex;
@@ -40,7 +40,7 @@
 .sectionTitle {
   font-size: 0.95rem;
   font-weight: 600;
-  color: var(--fg-default, #e8e8ed);
+  color: var(--fg-default);
 }
 
 .formGrid {
@@ -87,9 +87,9 @@
 .fieldInput {
   padding: 0.35rem 0.5rem;
   border-radius: 0.35rem;
-  border: 1px solid var(--border-color, #32323c);
+  border: 1px solid var(--border-color);
   background: var(--bg-sunken, #141418);
-  color: var(--fg-default, #e8e8ed);
+  color: var(--fg-default);
   font-size: 0.8rem;
   outline: none;
   width: 100%;
@@ -120,14 +120,14 @@
 
 .checkboxLabel {
   font-size: 0.8rem;
-  color: var(--fg-default, #e8e8ed);
+  color: var(--fg-default);
   white-space: nowrap;
 }
 
 .btn {
   padding: 0.4rem 0.9rem;
   border-radius: 0.5rem;
-  border: 1px solid var(--border-color, #32323c);
+  border: 1px solid var(--border-color);
   background: transparent;
   color: var(--fg-muted, #a0a0ab);
   font-size: 0.8rem;
@@ -137,7 +137,7 @@
 
   &:hover {
     border-color: var(--fg-muted, #a0a0ab);
-    color: var(--fg-default, #e8e8ed);
+    color: var(--fg-default);
   }
 }
 
@@ -183,7 +183,7 @@
 
 .tableScroll {
   overflow-x: auto;
-  border: 1px solid var(--border-color, #32323c);
+  border: 1px solid var(--border-color);
   border-radius: 0.5rem;
   max-height: 300px;
   overflow-y: auto;
@@ -195,7 +195,7 @@
   font-size: 0.75rem;
   font-family: "SF Mono", "Fira Code", "Cascadia Code", monospace;
   font-variant-numeric: tabular-nums;
-  color: var(--fg-default, #e8e8ed);
+  color: var(--fg-default);
 }
 
 .previewTable th,
@@ -203,8 +203,8 @@
   padding: 0.35rem 0.6rem;
   text-align: left;
   white-space: nowrap;
-  border-bottom: 1px solid var(--border-color, #32323c);
-  border-right: 1px solid var(--border-color, #32323c);
+  border-bottom: 1px solid var(--border-color);
+  border-right: 1px solid var(--border-color);
 }
 
 .previewTable th {
@@ -272,14 +272,14 @@
   align-items: center;
   justify-content: space-between;
   padding: 0.6rem 0.75rem;
-  border: 1px solid var(--border-color, #32323c);
+  border: 1px solid var(--border-color);
   border-radius: 0.5rem;
   background: var(--bg-sunken, #141418);
 }
 
 .savedItemName {
   font-size: 0.85rem;
-  color: var(--fg-default, #e8e8ed);
+  color: var(--fg-default);
 }
 
 .savedItemMeta {

@@ -18,7 +18,7 @@ export function GroupedBarChartCard({
   onOpen?: (payload: ChartOpenPayload) => void;
 }) {
   return (
-    <ChartCard>
+    <ChartCard plain>
       <BarChart
         x={groups}
         legend={legend}

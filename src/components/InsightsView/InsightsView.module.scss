@@ -12,8 +12,8 @@
 }
 
 .monthFilterCard {
-  background: var(--bg-panel, #19191e);
-  border: 1px solid var(--border-color, #32323c);
+  background: var(--bg-panel);
+  border: 1px solid var(--border-color);
   border-radius: 0.75rem;
   padding: 0.85rem 1.25rem;
 }
@@ -25,8 +25,8 @@
 }
 
 .summaryCard {
-  background: var(--bg-panel, #19191e);
-  border: 1px solid var(--border-color, #32323c);
+  background: var(--bg-panel);
+  border: 1px solid var(--border-color);
   border-radius: 0.75rem;
   padding: 1rem 1.25rem;
   text-align: left;
@@ -48,7 +48,7 @@
 .cardValue {
   font-size: 1.6rem;
   font-weight: 700;
-  color: var(--fg-default, #e8e8ed);
+  color: var(--fg-default);
   line-height: 1.2;
   font-variant-numeric: tabular-nums;
 }
@@ -71,8 +71,8 @@
 }
 
 .metaCard {
-  background: var(--bg-panel, #19191e);
-  border: 1px solid var(--border-color, #32323c);
+  background: var(--bg-panel);
+  border: 1px solid var(--border-color);
   border-radius: 0.75rem;
   padding: 1rem 1.25rem;
   display: flex;
@@ -90,14 +90,14 @@
 .metaValue {
   font-size: 1.05rem;
   font-weight: 600;
-  color: var(--fg-default, #e8e8ed);
+  color: var(--fg-default);
   line-height: 1.2;
   font-variant-numeric: tabular-nums;
 }
 
 .card {
-  background: var(--bg-panel, #19191e);
-  border: 1px solid var(--border-color, #32323c);
+  background: var(--bg-panel);
+  border: 1px solid var(--border-color);
   border-radius: 0.75rem;
   padding: 1.25rem;
   display: flex;
@@ -116,7 +116,7 @@
 .cardTitle {
   font-size: 0.95rem;
   font-weight: 600;
-  color: var(--fg-default, #e8e8ed);
+  color: var(--fg-default);
 }
 
 .chartRow {

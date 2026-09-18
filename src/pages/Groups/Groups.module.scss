@@ -12,8 +12,8 @@
 }
 
 .renameCard {
-  background: var(--bg-panel, #19191e);
-  border: 1px solid var(--border-color, #32323c);
+  background: var(--bg-panel);
+  border: 1px solid var(--border-color);
   border-radius: 0.75rem;
   padding: 1rem 1.25rem;
   display: flex;
@@ -30,10 +30,10 @@
 
 .fieldInput {
   background: var(--bg-default, #141417);
-  border: 1px solid var(--border-color, #32323c);
+  border: 1px solid var(--border-color);
   border-radius: 0.5rem;
   padding: 0.5rem 0.75rem;
-  color: var(--fg-default, #e8e8ed);
+  color: var(--fg-default);
   font-size: 0.9rem;
   outline: none;
 
@@ -49,8 +49,8 @@
 }
 
 .groupCard {
-  background: var(--bg-panel, #19191e);
-  border: 1px solid var(--border-color, #32323c);
+  background: var(--bg-panel);
+  border: 1px solid var(--border-color);
   border-radius: 0.75rem;
   padding: 1.25rem;
   display: flex;
@@ -67,7 +67,7 @@
 .groupName {
   font-size: 1.05rem;
   font-weight: 700;
-  color: var(--fg-default, #e8e8ed);
+  color: var(--fg-default);
 }
 
 .groupMetaRow {
@@ -89,7 +89,7 @@
   flex-direction: column;
   gap: 0.15rem;
   background: var(--bg-default, #141417);
-  border: 1px solid var(--border-color, #32323c);
+  border: 1px solid var(--border-color);
   border-radius: 0.5rem;
   padding: 0.6rem 0.85rem;
 }
@@ -97,7 +97,7 @@
 .statValue {
   font-size: 1.05rem;
   font-weight: 600;
-  color: var(--fg-default, #e8e8ed);
+  color: var(--fg-default);
   line-height: 1.2;
   font-variant-numeric: tabular-nums;
 }

@@ -1,7 +1,7 @@
 import { Heading, SkeletonText, Flex } from "@chakra-ui/react";
 import styles from "./GenericPage.module.scss";
 import { JSX, useEffect, useMemo, useState } from "react";
-import { useDebouncedBrushRange } from "@/store/store";
+import { useDebouncedBrushRange, setInstantBrushRange } from "@/store/store";
 import { format } from "date-fns";
 import {
   useFilteredExpenses,
@@ -9,6 +9,7 @@ import {
   useFilteredSavings,
 } from "@/hooks/expenses";
 import { EmptyState } from "@/components/ui/empty-state";
+import { FaXmark } from "react-icons/fa6";
 import { useLocation } from "react-router-dom";
 import { FiInbox } from "react-icons/fi";
 
@@ -134,10 +135,21 @@ export const GenericPage = ({
   return (
     <div className={styles.container}>
       <div className={styles.header}>
-        <Heading size="xl">
-          {title}
-          {hasRange ? (dateRangeText !== "" ? `: ${dateRangeText}` : "") : ""}
-        </Heading>
+        <div className={styles.titleWrap}>
+          <Heading size="xl">
+            {title}
+            {hasRange ? (dateRangeText !== "" ? `: ${dateRangeText}` : "") : ""}
+          </Heading>
+          {hasRange && range && (
+            <button
+              className={styles.clearRange}
+              onClick={() => setInstantBrushRange(undefined)}
+              aria-label="Clear date range"
+            >
+              <FaXmark /> Clear
+            </button>
+          )}
+        </div>
 
         <div className={styles.actions}>{actions}</div>
       </div>

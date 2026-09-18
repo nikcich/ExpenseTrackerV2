@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import * as d3 from "d3";
-import { instantBrushRange$, useImportHistory } from "@/store/store";
+import { instantBrushRange$, setInstantBrushRange, useImportHistory } from "@/store/store";
 import { debounceTime, distinctUntilChanged } from "rxjs";
 import { useExpenses, useIncome, useSavings } from "@/hooks/expenses";
 import { enableOverlay, Overlay } from "@/store/OverlayStore";
@@ -173,7 +173,10 @@ export const BrushScrubber: React.FC<BrushScrubberProps> = ({
     [snappedExtent]
   );
 
-  const resetZoom = useCallback(() => setViewDomain(null), []);
+  const resetZoom = useCallback(() => {
+    setInstantBrushRange(undefined);
+    setViewDomain(null);
+  }, []);
 
   useEffect(() => {
     const svg = svgRef.current;
@@ -388,7 +391,11 @@ export const BrushScrubber: React.FC<BrushScrubberProps> = ({
         })
       )
       .subscribe((range) => {
-        if (range) updateBrush(range);
+        if (range) {
+          updateBrush(range);
+        } else {
+          setViewDomain(null);
+        }
       });
 
     return () => sub.unsubscribe();

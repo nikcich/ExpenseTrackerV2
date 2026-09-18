@@ -6,8 +6,8 @@
 }
 
 .headerCard {
-  background: var(--bg-panel, #19191e);
-  border: 1px solid var(--border-color, #32323c);
+  background: var(--bg-panel);
+  border: 1px solid var(--border-color);
   border-radius: 0.75rem;
   padding: 1rem 1.25rem;
   display: flex;
@@ -48,8 +48,8 @@
 }
 
 .tableCard {
-  background: var(--bg-panel, #19191e);
-  border: 1px solid var(--border-color, #32323c);
+  background: var(--bg-panel);
+  border: 1px solid var(--border-color);
   border-radius: 0.75rem;
   padding: 0.5rem 0;
   overflow-x: auto;
@@ -60,7 +60,7 @@
   border-collapse: collapse;
   font-size: 0.85rem;
   font-variant-numeric: tabular-nums;
-  color: var(--fg-default, #e8e8ed);
+  color: var(--fg-default);
 }
 
 .table th {
@@ -71,7 +71,7 @@
   font-size: 0.75rem;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  border-bottom: 1px solid var(--border-color, #32323c);
+  border-bottom: 1px solid var(--border-color);
   white-space: nowrap;
   user-select: none;
 }
@@ -81,7 +81,7 @@
 }
 
 .sortable:hover {
-  color: var(--fg-default, #e8e8ed);
+  color: var(--fg-default);
 }
 
 .sortIndicator {
@@ -90,7 +90,7 @@
 
 .table td {
   padding: 0.5rem 1rem;
-  border-bottom: 1px solid var(--border-color, #32323c);
+  border-bottom: 1px solid var(--border-color);
   text-align: left;
 }
 
@@ -132,7 +132,7 @@
 
 .excess {
   font-weight: 600;
-  color: var(--fg-default, #e8e8ed);
+  color: var(--fg-default);
 }
 
 .empty {

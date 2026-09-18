@@ -10,6 +10,7 @@ type Settings = {
   anomalyMinOver: number;
   anomalyWindow: number;
   compactAmounts: boolean;
+  navExpanded: boolean;
 };
 
 export const { useStore: useSettingsStore, setState: setSettingsStore } =
@@ -23,4 +24,5 @@ export const { useStore: useSettingsStore, setState: setSettingsStore } =
     anomalyMinOver: 150,
     anomalyWindow: 12,
     compactAmounts: false,
+    navExpanded: false,
   }, "settings");

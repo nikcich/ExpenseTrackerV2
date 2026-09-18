@@ -1,23 +1,69 @@
 .navContainer {
-  width: 2.75rem;
   flex-shrink: 0;
-  background: var(--chakra-colors-bg-panel);
   display: flex;
   flex-direction: column;
-  align-items: center;
-  padding: 0.5rem 0;
+  background: var(--chakra-colors-bg-panel);
   border-right: 1px solid var(--chakra-colors-border);
+  transition: width 0.15s ease;
+}
+
+.collapsed {
+  width: 2.75rem;
+}
+
+.expanded {
+  width: 11.5rem;
 }
 
 .navItems {
   display: flex;
   flex-direction: column;
+  gap: 2px;
+  padding: 0.5rem 0.25rem 0;
+  overflow-y: auto;
+}
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.sectionTitle {
+  height: 1.75rem;
+  display: flex;
   align-items: center;
-  gap: 4px;
+  font-size: 0.6rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--chakra-colors-fg-muted);
+  padding: 0 0.5rem;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.sectionDividerWrap {
+  height: 1.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.sectionDivider {
+  width: 1.25rem;
+  height: 1px;
+  background: var(--chakra-colors-border);
 }
 
 .spacer {
   flex: 1;
+}
+
+.footer {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 0 0.25rem 0.5rem;
 }
 
 .navButton {
@@ -25,22 +71,20 @@
   border: none;
   outline: none;
   height: 2rem;
-  width: 2rem;
+  width: 100%;
   display: flex;
   justify-content: center;
   align-items: center;
+  justify-content: flex-start;
+  gap: 8px;
+  padding: 0 6px 0 8px;
   border-radius: 4px;
   color: var(--chakra-colors-fg-muted);
   cursor: pointer;
   transition:
     background 0.15s,
     color 0.15s;
-
-  > * {
-    height: 100%;
-    width: 100%;
-    padding: 6px;
-  }
+  flex-shrink: 0;
 }
 
 .navButton:hover {
@@ -51,4 +95,17 @@
 .active {
   background: var(--chakra-colors-bg-emphasized);
   color: var(--chakra-colors-fg);
+}
+
+.icon {
+  width: 1.25rem;
+  height: 1.25rem;
+  flex-shrink: 0;
+}
+
+.label {
+  font-size: 0.8rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }

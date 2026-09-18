@@ -2,20 +2,10 @@ import { useEffect, useRef } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { enableOverlay, Overlay, useOverlayStore } from "@/store/OverlayStore";
 import { Pages } from "@/types/routes";
+import { NAV_PAGE_ORDER } from "@/types/nav";
 import { SHORTCUT_COOLDOWN } from "@/utils/utils";
 
-const PAGE_ORDER = [
-  Pages.Overview,
-  Pages.Accounts,
-  Pages.Forecast,
-  Pages.TableView,
-  Pages.AverageSpending,
-  Pages.RangeIncomeExpense,
-  Pages.BarChart,
-  Pages.StackedBarChart,
-  Pages.YTDChart,
-  Pages.Sankey,
-];
+const PAGE_ORDER = NAV_PAGE_ORDER;
 
 export const useGlobalShortcuts = () => {
   const navigate = useNavigate();

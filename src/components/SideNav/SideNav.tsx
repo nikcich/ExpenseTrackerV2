@@ -1,95 +1,118 @@
-import React from "react";
 import styles from "./SideNav.module.scss";
-import { Pages } from "../../types/routes";
-import { useNavigate } from "react-router-dom";
-import { useLocation } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import cx from "classnames";
-import { FaTable } from "react-icons/fa6";
-import { FaChartBar } from "react-icons/fa";
-import { LuChartColumnStacked } from "react-icons/lu";
 import { IoSettingsOutline } from "react-icons/io5";
-import { RiBarChartHorizontalFill } from "react-icons/ri";
-import { FaChartLine } from "react-icons/fa6";
-import { BsAlignMiddle } from "react-icons/bs";
-import { TbChartSankey } from "react-icons/tb";
-import { MdOutlineTrendingUp } from "react-icons/md";
-import { PiCompassLight, PiChartPieSlice, PiMagnifyingGlassBold } from "react-icons/pi";
-import { LuLayers } from "react-icons/lu";
-import { FaCoins } from "react-icons/fa";
-import { LuFileSpreadsheet } from "react-icons/lu";
+import { PiMagnifyingGlassBold } from "react-icons/pi";
+import type { IconType } from "react-icons";
 import { Tooltip } from "@/components/ui/tooltip";
 import { enableOverlay, Overlay } from "@/store/OverlayStore";
-import { useSettingsStore } from "@/store/SettingsStore";
+import { useSettingsStore, setSettingsStore } from "@/store/SettingsStore";
 import { useHasRsuData, useHasSsdiData } from "@/store/store";
-import { HiOutlineDocumentText } from "react-icons/hi2";
-import { FaExclamationTriangle } from "react-icons/fa";
+import { NAV_SECTIONS, type NavItem } from "@/types/nav";
+import { FiChevronRight,FiChevronLeft } from "react-icons/fi";
 
-const NavButton = ({ Icon, page, label }: { Icon: React.FC; page: string; label: string }) => {
-  const navigate = useNavigate();
-  const location = useLocation();
+const SideNavButton = ({
+  Icon,
+  label,
+  active,
+  expanded,
+  onClick,
+}: {
+  Icon: IconType;
+  label: string;
+  active?: boolean;
+  expanded: boolean;
+  onClick: () => void;
+}) => {
+  const content = (
+    <button
+      className={cx(
+        styles.navButton,
+        active && styles.active,
+        expanded && styles.expanded,
+      )}
+      onClick={onClick}
+    >
+      <Icon className={styles.icon} />
+      {expanded && <span className={styles.label}>{label}</span>}
+    </button>
+  );
+  if (expanded) return content;
   return (
     <Tooltip content={label} positioning={{ placement: "right" }}>
-      <button
-        className={cx(
-          styles.navButton,
-          location.pathname === page ? styles.active : ""
-        )}
-        onClick={() => { if (location.pathname !== page) navigate(page); }}
-      >
-        <Icon />
-      </button>
+      {content}
     </Tooltip>
   );
 };
 
 export function SideNav() {
+  const navigate = useNavigate();
+  const location = useLocation();
   const rsuTabEnabled = useSettingsStore("rsuTabEnabled");
   const hasRsuData = useHasRsuData();
-  const showRsu = rsuTabEnabled || hasRsuData;
-  const hasSsdiData = useHasSsdiData();
   const ssdiTabEnabled = useSettingsStore("ssdiTabEnabled");
-  const showSsdi = ssdiTabEnabled || hasSsdiData;
+  const hasSsdiData = useHasSsdiData();
+  const expanded = useSettingsStore("navExpanded");
+
+  const isVisible = (item: NavItem) => {
+    if (item.conditional === "rsu") return rsuTabEnabled || hasRsuData;
+    if (item.conditional === "ssdi") return ssdiTabEnabled || hasSsdiData;
+    return true;
+  };
+
+  const sections = NAV_SECTIONS.map((section) => ({
+    ...section,
+    items: section.items.filter(isVisible),
+  })).filter((section) => section.items.length > 0);
 
   return (
-    <div className={styles.navContainer}>
+    <div className={cx(styles.navContainer, expanded ? styles.expanded : styles.collapsed)}>
       <div className={styles.navItems}>
-        <Tooltip content="Search (Ctrl+K)" positioning={{ placement: "right" }}>
-          <button
-            className={styles.navButton}
-            onClick={() => enableOverlay(Overlay.SearchModal)}
-          >
-            <PiMagnifyingGlassBold />
-          </button>
-        </Tooltip>
-        <NavButton Icon={PiCompassLight} page={Pages.Overview} label="Overview" />
-        <NavButton Icon={PiChartPieSlice} page={Pages.Accounts} label="Accounts" />
-        {showRsu && <NavButton Icon={FaCoins} page={Pages.RSU} label="RSU" />}
-        {showSsdi && <NavButton Icon={HiOutlineDocumentText} page={Pages.SSDI} label="SSDI" />}
-        <NavButton Icon={MdOutlineTrendingUp} page={Pages.Forecast} label="Forecast" />
-        <NavButton Icon={LuLayers} page={Pages.Groups} label="Groups" />
-        <NavButton Icon={FaExclamationTriangle} page={Pages.Anomalies} label="Anomalies" />
-        <NavButton Icon={FaTable} page={Pages.TableView} label="Data Table" />
-        <NavButton Icon={BsAlignMiddle} page={Pages.AverageSpending} label="Average Spending" />
-        <NavButton
-          Icon={RiBarChartHorizontalFill}
-          page={Pages.RangeIncomeExpense}
-          label="Income vs Expenses"
+        <SideNavButton
+          Icon={PiMagnifyingGlassBold}
+          label="Search (Ctrl+K)"
+          expanded={expanded}
+          onClick={() => enableOverlay(Overlay.SearchModal)}
         />
-        <NavButton Icon={FaChartBar} page={Pages.BarChart} label="Bar Chart" />
-        <NavButton Icon={LuChartColumnStacked} page={Pages.StackedBarChart} label="Stacked Bar Chart" />
-        <NavButton Icon={FaChartLine} page={Pages.YTDChart} label="Year to Date" />
-        <NavButton Icon={TbChartSankey} page={Pages.Sankey} label="Sankey" />
-        <NavButton Icon={LuFileSpreadsheet} page={Pages.CSVFormats} label="CSV Formats" />
+        {sections.map((section) => (
+          <div key={section.title} className={styles.section}>
+            {expanded ? (
+              <div className={styles.sectionTitle}>{section.title}</div>
+            ) : (
+              <div className={styles.sectionDividerWrap}>
+                <div className={styles.sectionDivider} />
+              </div>
+            )}
+            {section.items.map((item) => (
+              <SideNavButton
+                key={item.page}
+                Icon={item.icon}
+                label={item.label}
+                active={location.pathname === item.page}
+                expanded={expanded}
+                onClick={() => {
+                  if (location.pathname !== item.page) navigate(item.page);
+                }}
+              />
+            ))}
+          </div>
+        ))}
       </div>
       <div className={styles.spacer} />
-      <Tooltip content="Settings" positioning={{ placement: "right" }}>
-        <button
-          className={styles.navButton}
+      <div className={styles.footer}>
+        <SideNavButton
+          Icon={IoSettingsOutline}
+          label="Settings"
+          expanded={expanded}
           onClick={() => enableOverlay(Overlay.SettingsModal)}
-        >
-          <IoSettingsOutline />
-        </button>
-      </Tooltip>
+        />
+        <SideNavButton
+          Icon={expanded ? FiChevronLeft : FiChevronRight}
+          label="Collapse"
+          expanded={expanded}
+          onClick={() => setSettingsStore({ navExpanded: !expanded })}
+        />
+      </div>
     </div>
   );
 }

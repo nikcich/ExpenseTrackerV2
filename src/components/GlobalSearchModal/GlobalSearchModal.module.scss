@@ -17,8 +17,8 @@
   flex-direction: column;
   gap: 0.25rem;
   text-align: left;
-  background: var(--bg-panel, #19191e);
-  border: 1px solid var(--border-color, #32323c);
+  background: var(--bg-panel);
+  border: 1px solid var(--border-color);
   border-radius: 0.5rem;
   padding: 0.6rem 0.8rem;
   cursor: pointer;
@@ -39,7 +39,7 @@
 
 .description {
   font-weight: 500;
-  color: var(--fg-default, #e8e8ed);
+  color: var(--fg-default);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -72,7 +72,7 @@
 
 .cancelBtn {
   background: transparent;
-  border: 1px solid var(--border-color, #32323c);
+  border: 1px solid var(--border-color);
   color: var(--fg-muted, #a0a0ab);
   border-radius: 0.35rem;
   padding: 0.4rem 0.9rem;

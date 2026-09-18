@@ -10,7 +10,7 @@ export function SankeyCard({
   toolbar?: ReactNode;
 }) {
   return (
-    <ChartCard toolbar={toolbar}>
+    <ChartCard plain toolbar={toolbar}>
       <Sankey data={data} />
     </ChartCard>
   );

@@ -31,6 +31,7 @@ export function AverageSpendingCard({
 
   return (
     <ChartCard
+      plain
       toolbar={
         groupTraces ? (
           <BreakdownToggle value={breakdown} onChange={setBreakdown} />

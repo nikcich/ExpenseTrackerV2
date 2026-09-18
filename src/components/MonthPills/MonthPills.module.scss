@@ -7,7 +7,7 @@
 .pill {
   padding: 0.35rem 0.9rem;
   border-radius: 9999px;
-  border: 1px solid var(--border-color, #3f3f4b);
+  border: 1px solid var(--chakra-colors-border-emphasized);
   background: transparent;
   color: var(--fg-muted, #a0a0ab);
   font-size: 0.8rem;
@@ -17,18 +17,18 @@
 
   &:hover {
     border-color: var(--fg-muted, #a0a0ab);
-    color: var(--fg-default, #e8e8ed);
+    color: var(--fg-default);
   }
 }
 
 .pillActive {
-  background: var(--fg-default, #e8e8ed);
+  background: var(--fg-default);
   color: var(--bg-default, #141417);
-  border-color: var(--fg-default, #e8e8ed);
+  border-color: var(--fg-default);
   font-weight: 600;
 
   &:hover {
     color: var(--bg-default, #141417);
-    border-color: var(--fg-default, #e8e8ed);
+    border-color: var(--fg-default);
   }
 }

@@ -8,7 +8,7 @@
 .table td {
   padding: 0.5rem 0.75rem;
   text-align: left;
-  border-bottom: 1px solid var(--border-color, #32323c);
+  border-bottom: 1px solid var(--border-color);
 }
 
 .table th {
@@ -25,8 +25,8 @@
 
 .key {
   display: inline-block;
-  background: var(--bg-panel, #19191e);
-  border: 1px solid var(--border-color, #32323c);
+  background: var(--bg-panel);
+  border: 1px solid var(--border-color);
   border-radius: 0.25rem;
   padding: 0.1rem 0.4rem;
   font-family: monospace;

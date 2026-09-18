@@ -35,7 +35,7 @@
 .sectionTitle {
   font-size: 1rem;
   font-weight: 600;
-  color: var(--fg-default, #e8e8ed);
+  color: var(--fg-default);
   text-align: left;
 }
 
@@ -65,9 +65,9 @@
 .fieldInput {
   padding: 0.35rem 0.5rem;
   border-radius: 0.35rem;
-  border: 1px solid var(--border-color, #32323c);
-  background: var(--bg-panel, #19191e);
-  color: var(--fg-default, #e8e8ed);
+  border: 1px solid var(--border-color);
+  background: var(--bg-panel);
+  color: var(--fg-default);
   font-size: 0.8rem;
   outline: none;
   width: 100%;
@@ -93,7 +93,7 @@
 .addBtn {
   padding: 0.4rem 0.9rem;
   border-radius: 0.5rem;
-  border: 1px solid var(--border-color, #32323c);
+  border: 1px solid var(--border-color);
   background: transparent;
   color: var(--fg-muted, #a0a0ab);
   font-size: 0.8rem;
@@ -103,14 +103,14 @@
 
   &:hover {
     border-color: var(--fg-muted, #a0a0ab);
-    color: var(--fg-default, #e8e8ed);
+    color: var(--fg-default);
   }
 }
 
 .deleteBtn {
   padding: 0.35rem 0.6rem;
   border-radius: 0.35rem;
-  border: 1px solid var(--border-color, #32323c);
+  border: 1px solid var(--border-color);
   background: transparent;
   color: var(--fg-subtle, #6b6b7b);
   font-size: 0.75rem;
@@ -132,8 +132,8 @@
 }
 
 .summaryCard {
-  background: var(--bg-panel, #19191e);
-  border: 1px solid var(--border-color, #32323c);
+  background: var(--bg-panel);
+  border: 1px solid var(--border-color);
   border-radius: 0.75rem;
   padding: 1rem 1.25rem;
   flex: 1 1 180px;
@@ -173,8 +173,8 @@
 }
 
 .tableCard {
-  background: var(--bg-panel, #19191e);
-  border: 1px solid var(--border-color, #32323c);
+  background: var(--bg-panel);
+  border: 1px solid var(--border-color);
   border-radius: 0.75rem;
   padding: 1.25rem;
   overflow: hidden;
@@ -188,7 +188,7 @@
   border-collapse: collapse;
   font-size: 0.85rem;
   font-variant-numeric: tabular-nums;
-  color: var(--fg-default, #e8e8ed);
+  color: var(--fg-default);
 }
 
 .table th {
@@ -199,12 +199,12 @@
   font-size: 0.75rem;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  border-bottom: 1px solid var(--border-color, #32323c);
+  border-bottom: 1px solid var(--border-color);
 }
 
 .table td {
   padding: 0.5rem 0.75rem;
-  border-bottom: 1px solid var(--border-color, #32323c);
+  border-bottom: 1px solid var(--border-color);
   text-align: left;
 }
 

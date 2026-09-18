@@ -10,6 +10,8 @@ const useDebouncedBrushRangeInner = createDebouncedObservableHook(instantBrushRa
 
 export const useInstantBrushRange = () => [useInstantBrushRangeInner()] as const;
 export const useDebouncedBrushRange = () => [useDebouncedBrushRangeInner()] as const;
+export const setInstantBrushRange = (range?: [number, number]) =>
+  instantBrushRange$.next(range);
 
 const [useExpensesStoreInner, expenses$] =
   createStoreHook<StoreExpenseMap>({

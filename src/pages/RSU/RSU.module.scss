@@ -22,13 +22,13 @@
 .sectionTitle {
   font-size: 1.1rem;
   font-weight: 600;
-  color: var(--fg-default, #e8e8ed);
+  color: var(--fg-default);
 }
 
 .addBtn {
   padding: 0.4rem 0.9rem;
   border-radius: 0.5rem;
-  border: 1px solid var(--border-color, #32323c);
+  border: 1px solid var(--border-color);
   background: transparent;
   color: var(--fg-muted, #a0a0ab);
   font-size: 0.8rem;
@@ -37,13 +37,13 @@
 
   &:hover {
     border-color: var(--fg-muted, #a0a0ab);
-    color: var(--fg-default, #e8e8ed);
+    color: var(--fg-default);
   }
 }
 
 .tableCard {
-  background: var(--bg-panel, #19191e);
-  border: 1px solid var(--border-color, #32323c);
+  background: var(--bg-panel);
+  border: 1px solid var(--border-color);
   border-radius: 0.75rem;
   padding: 1.25rem;
   overflow: hidden;
@@ -65,13 +65,13 @@
   font-size: 0.75rem;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  border-bottom: 1px solid var(--border-color, #32323c);
+  border-bottom: 1px solid var(--border-color);
 }
 
 .table td {
   padding: 0.5rem 0.75rem;
-  color: var(--fg-default, #e8e8ed);
-  border-bottom: 1px solid var(--border-color, #32323c);
+  color: var(--fg-default);
+  border-bottom: 1px solid var(--border-color);
   text-align: left;
 }
 
@@ -80,9 +80,9 @@
 }
 
 .summaryTotalsRow td {
-  border-top: 2px solid var(--border-color, #32323c);
+  border-top: 2px solid var(--border-color);
   font-weight: 700;
-  color: var(--fg-default, #e8e8ed);
+  color: var(--fg-default);
   background: rgba(255, 255, 255, 0.02);
 }
 
@@ -95,7 +95,7 @@
 .actionBtn {
   padding: 0.25rem 0.6rem;
   border-radius: 0.35rem;
-  border: 1px solid var(--border-color, #32323c);
+  border: 1px solid var(--border-color);
   background: transparent;
   color: var(--fg-subtle, #6b6b7b);
   font-size: 0.75rem;
@@ -105,7 +105,7 @@
 
   &:hover {
     border-color: var(--fg-muted, #a0a0ab);
-    color: var(--fg-default, #e8e8ed);
+    color: var(--fg-default);
   }
 }
 
@@ -146,9 +146,9 @@
 .fieldInput {
   padding: 0.35rem 0.5rem;
   border-radius: 0.35rem;
-  border: 1px solid var(--border-color, #32323c);
-  background: var(--bg-panel, #19191e);
-  color: var(--fg-default, #e8e8ed);
+  border: 1px solid var(--border-color);
+  background: var(--bg-panel);
+  color: var(--fg-default);
   font-size: 0.8rem;
   outline: none;
   box-sizing: border-box;
@@ -193,7 +193,7 @@
 .cancelBtn {
   padding: 0.35rem 0.8rem;
   border-radius: 0.35rem;
-  border: 1px solid var(--border-color, #32323c);
+  border: 1px solid var(--border-color);
   background: transparent;
   color: var(--fg-subtle, #6b6b7b);
   font-size: 0.75rem;
@@ -201,7 +201,7 @@
 
   &:hover {
     border-color: var(--fg-muted, #a0a0ab);
-    color: var(--fg-default, #e8e8ed);
+    color: var(--fg-default);
   }
 }
 
@@ -221,8 +221,8 @@
 }
 
 .summaryCard {
-  background: var(--bg-panel, #19191e);
-  border: 1px solid var(--border-color, #32323c);
+  background: var(--bg-panel);
+  border: 1px solid var(--border-color);
   border-radius: 0.75rem;
   padding: 1rem 1.25rem;
   flex: 1 1 300px;
@@ -258,7 +258,7 @@
   gap: 0.15rem;
   align-items: flex-start;
   background: var(--bg-default, #141417);
-  border: 1px solid var(--border-color, #32323c);
+  border: 1px solid var(--border-color);
   border-radius: 0.5rem;
   padding: 0.65rem 0.9rem;
   flex: 1 1 180px;
@@ -268,7 +268,7 @@
 .summaryStatValue {
   font-size: 1.3rem;
   font-weight: 700;
-  color: var(--fg-default, #e8e8ed);
+  color: var(--fg-default);
   line-height: 1.2;
 }
 
@@ -295,8 +295,8 @@
 }
 
 .sparklineCard {
-  background: var(--bg-panel, #19191e);
-  border: 1px solid var(--border-color, #32323c);
+  background: var(--bg-panel);
+  border: 1px solid var(--border-color);
   border-radius: 0.75rem;
   padding: 1rem 1.25rem;
   flex: 1 1 400px;
@@ -309,7 +309,7 @@
 .sparklineTitle {
   font-size: 0.75rem;
   font-weight: 600;
-  color: var(--fg-default, #e8e8ed);
+  color: var(--fg-default);
 }
 
 .distributionInputs {
@@ -361,10 +361,10 @@
 .distChip {
   padding: 0.2rem 0.5rem;
   border-radius: 0.3rem;
-  background: var(--bg-panel, #19191e);
-  border: 1px solid var(--border-color, #32323c);
+  background: var(--bg-panel);
+  border: 1px solid var(--border-color);
   font-size: 0.7rem;
-  color: var(--fg-default, #e8e8ed);
+  color: var(--fg-default);
   font-variant-numeric: tabular-nums;
 }
 
@@ -378,8 +378,8 @@
   display: flex;
   flex-direction: column;
   gap: 0.15rem;
-  background: var(--bg-panel, #19191e);
-  border: 1px solid var(--border-color, #32323c);
+  background: var(--bg-panel);
+  border: 1px solid var(--border-color);
   border-radius: 0.5rem;
   padding: 0.65rem 0.9rem;
   flex: 1 1 180px;
@@ -387,8 +387,8 @@
 }
 
 .forecastChartCard {
-  background: var(--bg-panel, #19191e);
-  border: 1px solid var(--border-color, #32323c);
+  background: var(--bg-panel);
+  border: 1px solid var(--border-color);
   border-radius: 0.75rem;
   padding: 1.25rem;
   height: 300px;
@@ -442,9 +442,9 @@
   width: 4.5rem;
   padding: 0.25rem 0.4rem;
   border-radius: 0.35rem;
-  border: 1px solid var(--border-color, #32323c);
-  background: var(--bg-panel, #19191e);
-  color: var(--fg-default, #e8e8ed);
+  border: 1px solid var(--border-color);
+  background: var(--bg-panel);
+  color: var(--fg-default);
   font-size: 0.8rem;
   font-variant-numeric: tabular-nums;
   outline: none;
@@ -467,7 +467,7 @@
   height: 4px;
   -webkit-appearance: none;
   appearance: none;
-  background: var(--border-color, #32323c);
+  background: var(--border-color);
   border-radius: 2px;
   outline: none;
 

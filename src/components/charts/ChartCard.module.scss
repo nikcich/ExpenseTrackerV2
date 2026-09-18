@@ -1,6 +1,6 @@
 .card {
-  background: var(--bg-panel, #19191e);
-  border: 1px solid var(--border-color, #32323c);
+  background: var(--bg-panel);
+  border: 1px solid var(--border-color);
   border-radius: 0.75rem;
   padding: 1.25rem;
   flex: 1;
@@ -8,6 +8,13 @@
   flex-direction: column;
   overflow: hidden;
   min-height: 300px;
+}
+
+.card.plain {
+  background: none;
+  border: none;
+  border-radius: 0;
+  padding: 0;
 }
 
 .toolbar {

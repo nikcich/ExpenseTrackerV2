@@ -15,7 +15,7 @@ export function RangeIncomeExpenseChartCard({
   legendDirection?: "v" | "h";
 }) {
   return (
-    <ChartCard>
+    <ChartCard plain>
       <BarChart
         horizontal={true}
         x={[""]}

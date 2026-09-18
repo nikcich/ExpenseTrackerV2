@@ -15,7 +15,7 @@ export function YearToDateChartCard({
   legendDirection?: "v" | "h";
 }) {
   return (
-    <ChartCard>
+    <ChartCard plain>
       <LineChart
         legend={legend}
         legendDirection={legendDirection}

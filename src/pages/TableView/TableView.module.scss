@@ -9,8 +9,8 @@
 }
 
 .card {
-  background: var(--bg-panel, #19191e);
-  border: 1px solid var(--border-color, #32323c);
+  background: var(--bg-panel);
+  border: 1px solid var(--border-color);
   border-radius: 0.75rem;
   padding: 1.25rem;
   display: flex;
@@ -38,13 +38,13 @@
 
 .navFilterText {
   font-size: 0.85rem;
-  color: var(--fg-default, #e8e8ed);
+  color: var(--fg-default);
 }
 
 .navFilterClear {
   padding: 0.2rem 0.6rem;
   border-radius: 6px;
-  border: 1px solid var(--border-color, #3f3f4b);
+  border: 1px solid var(--chakra-colors-border-emphasized);
   background: transparent;
   color: var(--fg-muted, #a0a0ab);
   font-size: 0.78rem;
@@ -53,8 +53,8 @@
   white-space: nowrap;
 
   &:hover {
-    color: var(--fg-default, #e8e8ed);
-    border-color: var(--fg-default, #e8e8ed);
+    color: var(--fg-default);
+    border-color: var(--fg-default);
   }
 }
 
@@ -68,13 +68,13 @@
 .cardTitle {
   font-size: 0.95rem;
   font-weight: 600;
-  color: var(--fg-default, #e8e8ed);
+  color: var(--fg-default);
 }
 
 .importBtn {
   padding: 0.5rem 1rem;
   border-radius: 0.5rem;
-  border: 1px solid var(--border-color, #32323c);
+  border: 1px solid var(--border-color);
   background: transparent;
   color: var(--fg-muted, #a0a0ab);
   font-size: 0.85rem;
@@ -85,14 +85,14 @@
 
   &:hover {
     border-color: var(--fg-muted, #a0a0ab);
-    color: var(--fg-default, #e8e8ed);
+    color: var(--fg-default);
   }
 }
 
 .resetBtn {
   padding: 0.35rem 0.6rem;
   border-radius: 0.35rem;
-  border: 1px solid var(--border-color, #32323c);
+  border: 1px solid var(--border-color);
   background: transparent;
   color: var(--fg-subtle, #6b6b7b);
   font-size: 0.75rem;
@@ -102,7 +102,7 @@
 
   &:hover {
     border-color: var(--fg-muted, #a0a0ab);
-    color: var(--fg-default, #e8e8ed);
+    color: var(--fg-default);
   }
 }
 
@@ -131,9 +131,9 @@
 .fieldInput {
   padding: 0.35rem 0.5rem;
   border-radius: 0.35rem;
-  border: 1px solid var(--border-color, #32323c);
-  background: var(--bg-panel, #19191e);
-  color: var(--fg-default, #e8e8ed);
+  border: 1px solid var(--border-color);
+  background: var(--bg-panel);
+  color: var(--fg-default);
   font-size: 0.8rem;
   outline: none;
   width: 100%;

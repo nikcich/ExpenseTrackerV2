@@ -24,7 +24,7 @@ Components must accept data via props — never call hooks or fetch data interna
 - Card/chart component: pure rendering from props
 
 Existing reusable card components in `src/components/charts/`:
-- `ChartCard` — dark card wrapper (var `--bg-panel`, border `--border-color`, border-radius 0.75rem, padding 1.25rem); optional `toolbar` prop renders a right-aligned slot above the chart
+- `ChartCard` — dark card wrapper (var `--bg-panel`, border `--border-color`, border-radius 0.75rem, padding 1.25rem); optional `toolbar` prop renders a right-aligned slot above the chart. `plain` prop strips the chrome (no bg/border/radius/padding) for full-page charts — chart pages use `plain` so the chart renders full-bleed on the page background.
 - `BreakdownToggle` — TAGS/GROUPS segmented control (`Breakdown` type); used by tag-based charts to switch aggregation
 - `SankeyCard` — accepts `SankeyData`
 - `YearToDateChartCard` — accepts `charts` + `groups`
@@ -36,8 +36,8 @@ Existing reusable card components in `src/components/charts/`:
 ### Styling
 
 - SCSS modules (`.module.scss`). Import as `styles` and use `className={styles.card}`.
-- CSS variables: `--bg-panel` (card bg), `--border-color` (card border), `--fg-default` (text).
-- Consistent card pattern: background `var(--bg-panel, #19191e)`, border `1px solid var(--border-color, #32323c)`, border-radius `0.75rem`, padding `1.25rem`.
+- CSS variables: `--bg-panel` (card bg), `--border-color` (card border), `--fg-default` (text). These are defined ONCE in `src/BaseStyles.scss` (`:root`) as aliases to the Chakra semantic tokens (`--chakra-colors-bg-panel` etc.), which are defined in `src/theme.ts` — that file is the single source of truth for all colors. Never hardcode a hex fallback in SCSS; just use `var(--bg-panel)` etc. Use `var(--chakra-colors-border-emphasized)` for the stronger border variant. The full palette is also exposed under raw names (`--bg-base`/`--bg-surface`/`--bg-elevated`/`--bg-overlay`, `--border-subtle`/`--border-default`/`--border-strong`, `--text-primary`/`--text-secondary`/`--text-tertiary`/`--text-disabled`, `--accent-primary(-hover/-muted)`, status `--success`/`--warning`/`--error`/`--info` + `-muted`, and `--shadow-elevation-low/high`) — all aliased to the Chakra tokens except the shadows, which are raw values in BaseStyles.
+- Consistent card pattern: background `var(--bg-panel)`, border `1px solid var(--border-color)`, border-radius `0.75rem`, padding `1.25rem`.
 - Form fields follow `.field` > `.fieldLabel` + `.fieldInput` pattern.
 - When styling tables, `.table td` has higher specificity than a standalone class like `.eventIncome`, so set base color on `.table` (inherited) rather than on `.table td` directly.
 - Card header pattern: `.cardHeader` (flex, space-between, align-center, mb: 1rem), `.cardTitle` (0.95rem, 600 weight).
@@ -81,7 +81,7 @@ Pages breakdown:
 - **Investments** (`/investments`) — RSU vest tracking and balance snapshots (assets/debts). Card-based layout.
 - **TableView** (`/table-view`) — Full data table with virtualized rows (`@tanstack/react-virtual`), filter toggles (Expenses/Income/Savings), CSV import card at top. Bulk edit/delete via SelectionStore. CSV download utility. Sortable columns.
 - **Forecast** (`/forecast`) — Cash flow forecast using `computeCashFlowForecast()`. Fully CSS-module-styled (no Chakra UI components), uses custom form field pattern with `.field`/`.fieldLabel`/`.fieldInput` classes.
-- **Chart pages** (Sankey, YearToDateChart, GroupedBarChart, RangeIncomeExpenseChart, AverageSpending, TagStackedBarChart) — Each renders a `<GenericPage>` shell, calls data hooks, transforms data, and passes to the corresponding card component. All use the same `div style={{ padding: "1.5rem 2rem", height: "100%", display: "flex", flexDirection: "column" }}` outer container. Uses `<BrushScrubber />` as footer for range filtering. Some use `<SegmentGroup.Root>` in actions for mode switching (MONTHLY/DAILY/YEARLY).
+- **Chart pages** (Sankey, YearToDateChart, GroupedBarChart, RangeIncomeExpenseChart, AverageSpending, TagStackedBarChart) — Each renders a `<GenericPage>` shell, calls data hooks, transforms data, and passes to the corresponding card component. All use the same `div style={{ padding: "1.5rem 2rem", height: "100%", display: "flex", flexDirection: "column" }}` outer container. Uses `<BrushScrubber />` as footer for range filtering. Some use `<SegmentGroup.Root>` in actions for mode switching (MONTHLY/DAILY/YEARLY). Chart page widgets use `ChartCard plain` (full-bleed, no card box) — only the toolbar survives.
 
 ### Modals
 
@@ -92,7 +92,7 @@ Rendered via `OverlayStore` enum + `GenericModal` pattern in `src/Overlays.tsx`.
 
 ### Side Navigation
 
-`SideNav.tsx` renders a vertical icon bar at the left edge. Contains icon buttons for all routes defined in `Pages` enum (Home, Overview, Investments, TableView, BarChart, StackedBarChart, RangeIncomeExpense, YTDChart, AverageSpending, Sankey, Forecast). Settings button opens the SettingsModal overlay (not a route). No Import CSV button in sidebar.
+`SideNav.tsx` renders a vertical icon rail at the left edge with a collapse/expand toggle (shows labels when expanded; `navExpanded` setting in `SettingsStore`). Sections, icons, labels, and keyboard order all come from `src/types/nav.ts` (`NAV_SECTIONS`) — the single source of truth. `NAV_PAGE_ORDER` (non-conditional pages, in nav order) drives the ArrowUp/Down and `1-9,0` jump shortcuts in `useGlobalShortcuts`, so keyboard order always matches the visual rail. RSU/SSDI items are conditional (hidden unless `rsuTabEnabled`/`ssdiTabEnabled` or data exists). Settings button opens the SettingsModal overlay (not a route). No Import CSV button in sidebar.
 
 ### Expense Data Model
 

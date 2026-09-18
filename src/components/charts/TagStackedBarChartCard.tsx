@@ -31,6 +31,7 @@ export function TagStackedBarChartCard({
 
   return (
     <ChartCard
+      plain
       toolbar={
         groupTraces ? (
           <BreakdownToggle value={breakdown} onChange={setBreakdown} />

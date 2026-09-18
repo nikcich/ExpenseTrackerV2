@@ -15,8 +15,8 @@
 }
 
 .summaryCard {
-  background: var(--bg-panel, #19191e);
-  border: 1px solid var(--border-color, #32323c);
+  background: var(--bg-panel);
+  border: 1px solid var(--border-color);
   border-radius: 0.75rem;
   padding: 1rem 1.25rem;
   text-align: left;
@@ -38,7 +38,7 @@
 .cardValue {
   font-size: 1.6rem;
   font-weight: 700;
-  color: var(--fg-default, #e8e8ed);
+  color: var(--fg-default);
   line-height: 1.2;
 }
 
@@ -82,8 +82,8 @@
 }
 
 .card {
-  background: var(--bg-panel, #19191e);
-  border: 1px solid var(--border-color, #32323c);
+  background: var(--bg-panel);
+  border: 1px solid var(--border-color);
   border-radius: 0.75rem;
   padding: 1.25rem;
   display: flex;
@@ -116,7 +116,7 @@
 .emptyText {
   font-size: 1rem;
   font-weight: 600;
-  color: var(--fg-default, #e8e8ed);
+  color: var(--fg-default);
 }
 
 .emptyHint {
@@ -145,7 +145,7 @@
 .cardTitle {
   font-size: 0.95rem;
   font-weight: 600;
-  color: var(--fg-default, #e8e8ed);
+  color: var(--fg-default);
 }
 
 .donutContainer {
@@ -187,7 +187,7 @@
 }
 
 .legendName {
-  color: var(--fg-default, #e8e8ed);
+  color: var(--fg-default);
   text-align: left;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -268,7 +268,7 @@
 .statValue {
   font-size: 1.3rem;
   font-weight: 700;
-  color: var(--fg-default, #e8e8ed);
+  color: var(--fg-default);
   line-height: 1.2;
 }
 
@@ -292,7 +292,7 @@
   flex-direction: column;
   gap: 0.15rem;
   background: var(--bg-default, #141417);
-  border: 1px solid var(--border-color, #32323c);
+  border: 1px solid var(--border-color);
   border-radius: 0.5rem;
   padding: 0.65rem 0.9rem;
   flex: 1 1 180px;
@@ -308,7 +308,7 @@
 .accountName {
   font-size: 0.9rem;
   font-weight: 600;
-  color: var(--fg-default, #e8e8ed);
+  color: var(--fg-default);
 }
 
 .accountDate {
@@ -319,7 +319,7 @@
 .accountBalance {
   font-size: 1.1rem;
   font-weight: 600;
-  color: var(--fg-default, #e8e8ed);
+  color: var(--fg-default);
   font-variant-numeric: tabular-nums;
 }
 
@@ -370,7 +370,7 @@
   flex-direction: column;
   gap: 0.15rem;
   background: var(--bg-default, #141417);
-  border: 1px solid var(--border-color, #32323c);
+  border: 1px solid var(--border-color);
   border-radius: 0.5rem;
   padding: 0.6rem 0.85rem;
   flex: 1 1 140px;
@@ -380,7 +380,7 @@
 .investValue {
   font-size: 1.15rem;
   font-weight: 700;
-  color: var(--fg-default, #e8e8ed);
+  color: var(--fg-default);
   line-height: 1.2;
 }
 
