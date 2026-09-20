@@ -49,6 +49,8 @@ export default defineConfig({
       "@tauri-apps/api/event": path.resolve(here, "src/demo/shim-event.ts"),
       "@tauri-apps/plugin-dialog": path.resolve(here, "src/demo/shim-dialog.ts"),
       "@tauri-apps/plugin-opener": path.resolve(here, "src/demo/shim-opener.ts"),
+      "@tauri-apps/plugin-updater": path.resolve(here, "src/demo/shim-updater.ts"),
+      "@tauri-apps/plugin-process": path.resolve(here, "src/demo/shim-process.ts"),
     },
   },
 });

@@ -90,4 +90,5 @@ jobs:
           releaseBody: "See the assets for download links."
           releaseDraft: false
           prerelease: false
+          uploadUpdaterJson: true
           args: --bundles ${{ matrix.bundles }}

@@ -28,6 +28,25 @@
   border-top: 1px solid var(--border-color);
 }
 
+.updateRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.updateResult {
+  margin-top: 0.5rem;
+}
+
+.updateAvailableText {
+  color: var(--success);
+}
+
+.updateErrorText {
+  color: var(--error);
+}
+
 .layout {
   display: flex;
   gap: 1.5rem;

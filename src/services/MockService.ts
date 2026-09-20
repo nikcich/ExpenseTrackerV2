@@ -9,6 +9,7 @@ import type {
   OpenFileDialogOptions,
   SaveFileDialogOptions,
   Unsubscribe,
+  UpdateCheckResult,
 } from "./ExpenseTrackerService";
 
 const ok = <T>(message: T): Response<T> => ({
@@ -153,5 +154,13 @@ export class MockService implements ExpenseTrackerService {
 
   async getAppVersion(): Promise<string> {
     return __APP_VERSION__;
+  }
+
+  async checkForUpdates(): Promise<UpdateCheckResult> {
+    return { updateAvailable: false, currentVersion: __APP_VERSION__ };
+  }
+
+  async installUpdate(): Promise<void> {
+    throw new Error("No update available");
   }
 }

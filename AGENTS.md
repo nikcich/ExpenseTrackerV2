@@ -66,7 +66,7 @@ Existing reusable card components in `src/components/charts/`:
 
 ### Service Layer
 
-- **`ExpenseTrackerService`** interface methods: `getStoreValue`/`setStoreValue`/`onStoreChanged` (the `"store-changed"` event is Tauri-specific; a different backend maps its own change notification here), expense CRUD (`addExpenseManual`, `updateExpense`, `updateBulkExpenses`, `removeExpense`, `removeBulkExpenses`), CSV (`openCsvFromPath`, `parseCsvFromPath`, `saveCsvToPath`, `readTextFile`, `readCsvPreview`, `previewCsvParse`), backup (`exportAllData`, `importAllData`), dialogs (`openFileDialog`, `saveFileDialog`), and `revealItemInDir`.
+- **`ExpenseTrackerService`** interface methods: `getStoreValue`/`setStoreValue`/`onStoreChanged` (the `"store-changed"` event is Tauri-specific; a different backend maps its own change notification here), expense CRUD (`addExpenseManual`, `updateExpense`, `updateBulkExpenses`, `removeExpense`, `removeBulkExpenses`), CSV (`openCsvFromPath`, `parseCsvFromPath`, `saveCsvToPath`, `readTextFile`, `readCsvPreview`, `previewCsvParse`), backup (`exportAllData`, `importAllData`), dialogs (`openFileDialog`, `saveFileDialog`), `revealItemInDir`, `getAppVersion` (`plugin:app|version`), `checkForUpdates`/`installUpdate` (the Tauri updater plugin; `MockService` always reports up-to-date and throws on install).
 - All methods keep the `Response<T>` envelope (`{ status, header, message }`) so call sites do `res.status >= 400` checks — HTTP-like, backend-agnostic.
 - Store keys, Tauri command strings, and the import-date/export/import shapes are centralized in `src/types/types.ts` (`API` enum, `KnownStoreKeys`, `Response<T>`).
 - To add a new backend: implement `ExpenseTrackerService` and mount `<ExpenseTrackerServiceProvider service={myBackend}>`. If it uses polling/change-notification, `activeService$` handles the store layer re-fetch.
@@ -186,6 +186,13 @@ Each page route is wrapped in `<ErrorBoundary>` from `react-error-boundary` in `
 ### Rust Backend
 
 The Tauri backend lives in `src-tauri/`. Key commands registered: store CRUD (`store_set_json_value`, `store_get_json_value`), CSV operations (`open_csv_from_path`, `parse_csv_from_path`), expense CRUD (`update_expense`, `update_bulk_expenses`, `add_expense_manual`, `remove_expense`, `remove_bulk_expenses`). Expenses stored in local JSON via `tauri-plugin-store`.
+
+### Auto-Updates & Releases
+
+- Auto-update uses `tauri-plugin-updater` + `tauri-plugin-process`, configured in `src-tauri/tauri.conf.json` under `plugins.updater` (`pubkey`, GitHub releases `latest.json` endpoint, `installMode: passive`). The bundle sets `createUpdaterArtifacts: true`.
+- Signing key lives OUTSIDE the repo: `~/.tauri/expense-tracker-v2.key` (+ password in `expense-tracker-v2.key-password`). The pubkey is embedded in `tauri.conf.json`. GitHub secrets needed for CI: `TAURI_SIGNING_PRIVATE_KEY` (file contents) + `TAURI_SIGNING_PRIVATE_KEY_PASSWORD`.
+- `.github/workflows/release.yml` builds on `rel-*` branches (matrix: ubuntu appimage/deb, windows nsis/msi, macos dmg/app), extracts the version from the branch name, syncs Tauri/Cargo versions, and publishes with `uploadUpdaterJson: true`.
+- The `.opencode/command/release.md` slash command (`/release [major|minor|fix]`) bumps the three version files and pushes a `rel-[version]` branch to trigger a release; CI creates the tagged GitHub release.
 
 ### Routing
 

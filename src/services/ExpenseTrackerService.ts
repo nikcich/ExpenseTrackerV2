@@ -32,6 +32,14 @@ export type ImportAllDataResponse = {
   imported_keys: string[];
 };
 
+export type UpdateCheckResult = {
+  updateAvailable: boolean;
+  currentVersion: string;
+  latestVersion?: string;
+  url?: string;
+  body?: string;
+};
+
 export interface ExpenseTrackerService {
   getStoreValue<T>(key: string): Promise<Response<T>>;
   setStoreValue<T>(key: string, value: T): Promise<Response<null>>;
@@ -72,4 +80,6 @@ export interface ExpenseTrackerService {
   revealItemInDir(path: string): Promise<void>;
 
   getAppVersion(): Promise<string>;
+  checkForUpdates(): Promise<UpdateCheckResult>;
+  installUpdate(): Promise<void>;
 }

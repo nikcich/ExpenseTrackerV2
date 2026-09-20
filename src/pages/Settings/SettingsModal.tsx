@@ -4,6 +4,7 @@ import { Overlay, closeAllOverlays } from "@/store/OverlayStore";
 import { CheckboxCard, Heading, Switch, Text, Button } from "@chakra-ui/react";
 import { setSettingsStore, useSettingsStore } from "@/store/SettingsStore";
 import { setMockMode, useExpenseTrackerService } from "@/services/ServiceProvider";
+import type { UpdateCheckResult } from "@/services/ExpenseTrackerService";
 import { useAllGroups, useAllTags } from "@/utils/tags";
 import { useHasRsuData, useHasSsdiData, useSsdiConfig } from "@/store/store";
 import { exportAllData, importAllData } from "@/utils/download";
@@ -61,6 +62,12 @@ export function SettingsModal() {
   const [activeSection, setActiveSection] = useState<SectionId>("general");
   const service = useExpenseTrackerService();
   const [appVersion, setAppVersion] = useState<string | null>(null);
+  const [updateResult, setUpdateResult] = useState<UpdateCheckResult | null>(
+    null,
+  );
+  const [checking, setChecking] = useState(false);
+  const [installing, setInstalling] = useState(false);
+  const [installError, setInstallError] = useState<string | null>(null);
 
   useEffect(() => {
     let mounted = true;
@@ -74,6 +81,30 @@ export function SettingsModal() {
       mounted = false;
     };
   }, [service]);
+
+  const checkForUpdates = async () => {
+    setChecking(true);
+    setUpdateResult(null);
+    setInstallError(null);
+    try {
+      setUpdateResult(await service.checkForUpdates());
+    } catch {
+      setUpdateResult(null);
+    } finally {
+      setChecking(false);
+    }
+  };
+
+  const installUpdate = async () => {
+    setInstalling(true);
+    try {
+      await service.installUpdate();
+    } catch (e) {
+      setInstallError(String(e));
+    } finally {
+      setInstalling(false);
+    }
+  };
   const disabledTags = useSettingsStore("disabledTags");
   const disabledGroups = useSettingsStore("disabledGroups");
   const mockDataEnabled = useSettingsStore("mockDataEnabled");
@@ -155,9 +186,60 @@ export function SettingsModal() {
                   When enabled, all charts and pages show fake sample data instead of real stored expenses. Useful for screenshots and demos.
                 </Text>
                 <div className={styles.about}>
-                  <Text fontSize="sm" color="fg.subtle">
-                    Expense Tracker · v{appVersion ?? "—"}
-                  </Text>
+                  <div className={styles.updateRow}>
+                    <Text fontSize="sm" color="fg.subtle">
+                      Expense Tracker · v{appVersion ?? "—"}
+                    </Text>
+                    <Button
+                      size="xs"
+                      variant="outline"
+                      onClick={checkForUpdates}
+                      disabled={checking}
+                      loading={checking}
+                      loadingText="Checking…"
+                    >
+                      Check for updates
+                    </Button>
+                  </div>
+                  {updateResult &&
+                    (updateResult.updateAvailable ? (
+                      <div className={styles.updateResult}>
+                        <Text
+                          fontSize="sm"
+                          className={styles.updateAvailableText}
+                        >
+                          Update available: v{updateResult.latestVersion}
+                        </Text>
+                        <Button
+                          size="xs"
+                          colorPalette="green"
+                          mt={1}
+                          disabled={installing}
+                          loading={installing}
+                          loadingText="Installing…"
+                          onClick={installUpdate}
+                        >
+                          Install & Restart
+                        </Button>
+                        {installError && (
+                          <Text
+                            fontSize="sm"
+                            className={styles.updateErrorText}
+                            mt={1}
+                          >
+                            Install failed: {installError}
+                          </Text>
+                        )}
+                      </div>
+                    ) : (
+                      <Text
+                        fontSize="sm"
+                        color="fg.muted"
+                        className={styles.updateResult}
+                      >
+                        You're up to date
+                      </Text>
+                    ))}
                 </div>
               </div>
             )}

@@ -2,6 +2,8 @@ import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { open, save } from "@tauri-apps/plugin-dialog";
 import { revealItemInDir as tauriRevealItemInDir } from "@tauri-apps/plugin-opener";
+import { check, type Update } from "@tauri-apps/plugin-updater";
+import { relaunch } from "@tauri-apps/plugin-process";
 import { API, type Expense, type PreviewResult, type Response } from "@/types/types";
 import type {
   CsvParseResponse,
@@ -11,9 +13,12 @@ import type {
   OpenFileDialogOptions,
   SaveFileDialogOptions,
   Unsubscribe,
+  UpdateCheckResult,
 } from "./ExpenseTrackerService";
 
 export class TauriService implements ExpenseTrackerService {
+  private pendingUpdate: Update | null = null;
+
   async getStoreValue<T>(key: string): Promise<Response<T>> {
     return await invoke<Response<T>>(API.GetJsonValue, { key });
   }
@@ -130,5 +135,37 @@ export class TauriService implements ExpenseTrackerService {
 
   async getAppVersion(): Promise<string> {
     return await invoke<string>("plugin:app|version");
+  }
+
+  async checkForUpdates(): Promise<UpdateCheckResult> {
+    const currentVersion = await this.getAppVersion();
+    try {
+      const update = await check();
+      if (!update) {
+        this.pendingUpdate = null;
+        return { updateAvailable: false, currentVersion };
+      }
+      this.pendingUpdate = update;
+      return {
+        updateAvailable: true,
+        currentVersion,
+        latestVersion: update.version,
+        body: update.body,
+      };
+    } catch {
+      this.pendingUpdate = null;
+      return { updateAvailable: false, currentVersion };
+    }
+  }
+
+  async installUpdate(): Promise<void> {
+    const update = this.pendingUpdate;
+    if (!update) throw new Error("No update available");
+    await update.downloadAndInstall();
+    try {
+      await relaunch();
+    } catch {
+      return;
+    }
   }
 }
