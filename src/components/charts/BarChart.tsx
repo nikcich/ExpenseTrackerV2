@@ -1,6 +1,7 @@
-import { useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useMemo, useRef, type ReactNode } from "react";
 import { scaleBand, scaleLinear } from "d3-scale";
 import styles from "./BarChart.module.scss";
+import { useElementSize } from "@/hooks/useElementSize";
 import { ChartOpenPayload } from "./StackedBarChart";
 import {
   useChartTooltip,
@@ -44,21 +45,8 @@ export const BarChart = <T extends Datum>({
   onOpen,
 }: BarChartProps<T>) => {
   const plotRef = useRef<HTMLDivElement | null>(null);
-  const [size, setSize] = useState({ width: 0, height: 0 });
+  const size = useElementSize(plotRef);
   const { containerRef, tip, show, hide } = useChartTooltip();
-
-  useLayoutEffect(() => {
-    const node = plotRef.current;
-    if (!node) return;
-    const update = () => {
-      const rect = node.getBoundingClientRect();
-      setSize({ width: rect.width, height: rect.height });
-    };
-    update();
-    const ro = new ResizeObserver(update);
-    ro.observe(node);
-    return () => ro.disconnect();
-  }, []);
 
   const margin = useMemo(() => {
     if (horizontal) {

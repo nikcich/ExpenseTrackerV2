@@ -53,35 +53,10 @@ const emptyStateConfig: Record<string, { title: string; description: string }> =
       description:
         "Import a CSV file or create an expense manually to populate the table.",
     },
-    "/bar-chart": {
+    "/charts": {
       title: "No data to chart",
       description:
-        "Add some expenses or adjust the date range to see your bar chart.",
-    },
-    "/stacked-bar-chart": {
-      title: "No data to chart",
-      description:
-        "Add some expenses or adjust the date range to see your stacked bar chart.",
-    },
-    "/range-income-expense": {
-      title: "No data to display",
-      description:
-        "Add income or expenses in the selected date range to see the comparison.",
-    },
-    "/year-to-date-chart": {
-      title: "No data for year-over-year",
-      description:
-        "Add expenses across multiple years to see the year-to-date comparison.",
-    },
-    "/average-spending": {
-      title: "No spending data",
-      description:
-        "Add some expenses to see your average monthly spending breakdown.",
-    },
-    "/Sankey": {
-      title: "No cash flow data",
-      description:
-        "Add income and expenses to see your cash flow Sankey diagram.",
+        "Add some expenses or adjust the date range to populate your charts.",
     },
     "/settings": {
       title: "No tags available",
@@ -102,6 +77,7 @@ export const GenericPage = ({
   footer,
   hasRange = true,
   needsData = true,
+  scrollSnap = false,
 }: {
   actions?: JSX.Element;
   title: string;
@@ -109,6 +85,7 @@ export const GenericPage = ({
   footer?: JSX.Element;
   hasRange?: boolean;
   needsData?: boolean;
+  scrollSnap?: boolean;
 }) => {
   const [range] = useDebouncedBrushRange();
   const hasDisplayData = useHasDisplayData();
@@ -153,7 +130,9 @@ export const GenericPage = ({
 
         <div className={styles.actions}>{actions}</div>
       </div>
-      <div className={styles.children}>
+      <div
+        className={`${styles.children} ${scrollSnap ? styles.snapScroll : ""}`}
+      >
         {initialLoading && needsData && (
           <Flex direction="column" gap={4} p={6}>
             <SkeletonText noOfLines={1} height="6" width="40%" />

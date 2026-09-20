@@ -1,4 +1,4 @@
-import { memo, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { memo, useMemo, useRef, type ReactNode } from "react";
 import { scaleBand, scaleLinear } from "d3-scale";
 import {
   line as d3line,
@@ -8,6 +8,7 @@ import {
   curveStepBefore,
 } from "d3-shape";
 import styles from "./LineChart.module.scss";
+import { useElementSize } from "@/hooks/useElementSize";
 import {
   useChartTooltip,
   ChartTooltip,
@@ -42,21 +43,8 @@ export const LineChart = memo(function LineChart<T extends Datum>({
   lineShape = "linear",
 }: LineChartProps<T>) {
   const plotRef = useRef<HTMLDivElement | null>(null);
-  const [size, setSize] = useState({ width: 0, height: 0 });
+  const size = useElementSize(plotRef);
   const { containerRef, tip, show, hide } = useChartTooltip();
-
-  useLayoutEffect(() => {
-    const node = plotRef.current;
-    if (!node) return;
-    const update = () => {
-      const rect = node.getBoundingClientRect();
-      setSize({ width: rect.width, height: rect.height });
-    };
-    update();
-    const ro = new ResizeObserver(update);
-    ro.observe(node);
-    return () => ro.disconnect();
-  }, []);
 
   const margin = {
     top: 20,

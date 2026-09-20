@@ -1,12 +1,23 @@
 import { GenericPage } from "@/components/GenericPage/GenericPage";
 import { Tooltip } from "@/components/ui/tooltip";
-import { useCustomCsvDefinitions } from "@/store/store";
-import type { DynamicCsvDefinition, PreviewResult } from "@/types/types";
+import {
+  useCustomCsvDefinitions,
+  useExpensesStore,
+  useImportHistory,
+} from "@/store/store";
+import type { DynamicCsvDefinition, PreviewResult, Response } from "@/types/types";
 import { Spinner } from "@chakra-ui/react";
 import { LuInfo } from "react-icons/lu";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useExpenseTrackerService } from "@/services/ServiceProvider";
-import styles from "./CSVFormats.module.scss";
+import { useLocation } from "react-router-dom";
+import {
+  downloadExpensesCSV,
+  exportAllData,
+  importAllData,
+} from "@/utils/download";
+import { toaster } from "@/components/ui/toaster";
+import styles from "./Data.module.scss";
 
 const emptyForm = (): Omit<DynamicCsvDefinition, "id"> => ({
   name: "",
@@ -19,10 +30,98 @@ const emptyForm = (): Omit<DynamicCsvDefinition, "id"> => ({
   creditDebitColumn: undefined,
 });
 
-export function CSVFormats() {
+const useFileOpener = (appendImportDate: (date: string) => void) => {
+  const service = useExpenseTrackerService();
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<
+    Response<string[]> | Response<string> | null
+  >(null);
+  const [selectedFile, setSelectedFile] = useState<string | null>(null);
+  const [selectedFormat, setSelectedFormat] = useState<string | undefined>(
+    undefined
+  );
+  const { definitions } = useCustomCsvDefinitions();
+
+  const pickFile = useCallback(async () => {
+    setLoading(true);
+    setResult(null);
+    setSelectedFormat(undefined);
+
+    const file = (await service.openFileDialog({
+      multiple: false,
+      directory: false,
+    })) as string | null;
+
+    if (file) {
+      const customJson = definitions.length > 0 ? JSON.stringify(definitions) : undefined;
+      const res: Response<string[]> = await service.openCsvFromPath(file, customJson);
+      setSelectedFile(file);
+      setResult(res);
+    }
+
+    setLoading(false);
+  }, [service, definitions]);
+
+  const reset = useCallback(() => {
+    setResult(null);
+    setSelectedFile(null);
+    setSelectedFormat(undefined);
+  }, []);
+
+  const parseFile = useCallback(async () => {
+    if (!selectedFile || !selectedFormat) return;
+    setLoading(true);
+    const customJson = definitions.length > 0 ? JSON.stringify(definitions) : undefined;
+    const res = await service.parseCsvFromPath(selectedFile, selectedFormat, customJson);
+
+    if (res.status < 400 && res.message) {
+      appendImportDate(res.message.importDate);
+      setResult({ status: res.status, header: res.header, message: res.message.message });
+    } else {
+      setResult({ status: res.status, header: res.header, message: typeof res.message === "string" ? res.message : null });
+    }
+    setLoading(false);
+    if (res.status < 400) reset();
+  }, [selectedFile, selectedFormat, reset, definitions, appendImportDate, service]);
+
+  return {
+    loading,
+    result,
+    pickFile,
+    selectedFile,
+    selectedFormat,
+    setSelectedFormat,
+    parseFile,
+    reset,
+    definitions,
+  };
+};
+
+export function Data() {
   const service = useExpenseTrackerService();
   const { definitions, addDefinition, updateDefinition, removeDefinition } =
     useCustomCsvDefinitions();
+
+  const { value: allStoreExpenses } = useExpensesStore();
+  const { importHistory, setImportHistory } = useImportHistory();
+
+  const appendImportDate = useCallback(
+    (date: string) => {
+      setImportHistory([...(importHistory ?? []), date]);
+    },
+    [importHistory, setImportHistory]
+  );
+
+  const {
+    loading,
+    result,
+    pickFile,
+    selectedFile,
+    selectedFormat,
+    setSelectedFormat,
+    parseFile,
+    reset,
+  } = useFileOpener(appendImportDate);
 
   const [previewData, setPreviewData] = useState<string[][]>([]);
   const [previewPath, setPreviewPath] = useState<string | null>(null);
@@ -32,6 +131,15 @@ export function CSVFormats() {
   const [parseResults, setParseResults] = useState<PreviewResult[]>([]);
   const [parseLoading, setParseLoading] = useState(false);
   const [parsedSnapshot, setParsedSnapshot] = useState<{ form: string; path: string | null } | null>(null);
+
+  const location = useLocation();
+
+  useEffect(() => {
+    if (location.state?.csvImport) {
+      pickFile();
+      window.history.replaceState({}, "");
+    }
+  }, [pickFile]);
 
   const isStale = useMemo(() => {
     if (!parsedSnapshot || parseResults.length === 0) return false;
@@ -110,13 +218,66 @@ export function CSVFormats() {
     setParseLoading(false);
   }, [previewPath, form, service]);
 
+  const handleExportCsv = useCallback(async () => {
+    const path = await downloadExpensesCSV(allStoreExpenses);
+    if (path) {
+      toaster.create({
+        title: "CSV exported",
+        description: "File saved successfully",
+        type: "success",
+        action: {
+          label: "Open folder",
+          onClick: () => service.revealItemInDir(path),
+        },
+      });
+    }
+  }, [allStoreExpenses, service]);
+
+  const handleExportBackup = useCallback(async () => {
+    try {
+      const path = await exportAllData();
+      if (path) {
+        toaster.create({
+          title: "Export complete",
+          description: `Saved to ${path}`,
+          type: "success",
+        });
+      }
+    } catch (e) {
+      toaster.create({
+        title: "Export failed",
+        description: String(e),
+        type: "error",
+      });
+    }
+  }, []);
+
+  const handleImportBackup = useCallback(async () => {
+    try {
+      const keys = await importAllData();
+      if (keys.length > 0) {
+        toaster.create({
+          title: "Import complete",
+          description: `Imported: ${keys.join(", ")}`,
+          type: "success",
+        });
+      }
+    } catch (e) {
+      toaster.create({
+        title: "Import failed",
+        description: String(e),
+        type: "error",
+      });
+    }
+  }, []);
+
   const maxCols =
     previewData.length > 0
       ? Math.max(...previewData.map((r) => r.length))
       : 0;
 
   return (
-    <GenericPage title="CSV Format Designer" hasRange={false} needsData={false}>
+    <GenericPage title="Data" hasRange={false} needsData={false}>
       <div className={styles.page}>
         {previewLoading && (
           <div className={styles.loadingOverlay}>
@@ -124,6 +285,90 @@ export function CSVFormats() {
             <span className={styles.loadingText}>Reading CSV...</span>
           </div>
         )}
+
+        <div className={styles.section}>
+          <div className={styles.importHeader}>
+            <span className={styles.sectionTitle}>CSV Import</span>
+            {selectedFile && (
+              <button className={styles.btn} onClick={reset}>
+                Clear
+              </button>
+            )}
+          </div>
+
+          {result && (
+            <div
+              className={`${styles.alert} ${result.status >= 400 ? styles.alertError : styles.alertSuccess}`}
+            >
+              <span>{result.header}</span>
+              <span className={styles.alertMessage}>
+                {typeof result.message === "string"
+                  ? result.message
+                  : Array.isArray(result.message)
+                    ? result.message.join(", ")
+                    : ""}
+              </span>
+            </div>
+          )}
+
+          {loading ? (
+            <span className={styles.loadingText}>Loading...</span>
+          ) : !selectedFile ? (
+            <button className={styles.previewBtn} onClick={pickFile}>
+              Select CSV File
+            </button>
+          ) : (
+            <div className={styles.formatRow}>
+              <div className={styles.formatField}>
+                <span className={styles.fieldLabel}>CSV Format</span>
+                <select
+                  className={styles.fieldInput}
+                  value={selectedFormat}
+                  onChange={(e) => setSelectedFormat(e.target.value)}
+                >
+                  <option value="">Choose format...</option>
+                  {Array.isArray(result?.message)
+                    ? result.message.map((key) => {
+                        const customDef = definitions.find((d) => d.id === key);
+                        const label = customDef?.name ?? key;
+                        return (
+                          <option key={key} value={key}>
+                            {label}
+                          </option>
+                        );
+                      })
+                    : null}
+                </select>
+              </div>
+              <button
+                className={styles.parseBtn}
+                disabled={!selectedFormat}
+                onClick={parseFile}
+              >
+                Parse
+              </button>
+            </div>
+          )}
+        </div>
+
+        <div className={styles.section}>
+          <span className={styles.sectionTitle}>Export & Backup</span>
+          <span className={styles.emptyText}>
+            Export all expenses to CSV, back up the full dataset to JSON, or
+            restore from a previous backup.
+          </span>
+          <div className={styles.actionsRow}>
+            <button className={styles.primaryBtn} onClick={handleExportCsv}>
+              Export CSV
+            </button>
+            <button className={styles.primaryBtn} onClick={handleExportBackup}>
+              Export Full Backup
+            </button>
+            <button className={styles.btn} onClick={handleImportBackup}>
+              Import Backup
+            </button>
+          </div>
+        </div>
 
         <div className={styles.section}>
           <span className={styles.sectionTitle}>CSV Preview</span>

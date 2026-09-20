@@ -11,20 +11,15 @@ import { JSX, useSyncExternalStore } from "react";
 import { mockMode$ } from "./services/ServiceProvider";
 
 import { TableView } from "./pages/TableView/TableView";
-import { GroupedBarChart } from "./pages/GroupedBarChart/GroupedBarChart";
-import { TagStackedBarChart } from "./pages/TagStackedBarChart/TagStackedBarChart";
+import { Charts } from "./pages/Charts/Charts";
 import { Overlays } from "./Overlays";
 import { Toaster } from "./components/ui/toaster";
-import { RangeIncomeExpenseChart } from "./pages/RangeIncomeExpenseChart/RangeIncomeExpenseChart";
-import { YearToDateChart } from "./pages/YearToDateChart/YearToDateChart";
-import { AverageSpending } from "./pages/AverageSpending/AverageSpending";
 import { ErrorBoundary } from "react-error-boundary";
-import { ExpenseSankey } from "./pages/Sankey/ExpenseSankey";
 import { Forecast } from "./pages/Forecast/Forecast";
 import { Overview } from "./pages/Overview/Overview";
 import { Accounts } from "./pages/Accounts/Accounts";
 import { RSU } from "./pages/RSU/RSU";
-import { CSVFormats } from "./pages/CSVFormats/CSVFormats";
+import { Data } from "./pages/Data/Data";
 import { useGlobalShortcuts } from "./hooks/useGlobalShortcuts";
 import { SSDI } from "./pages/SSDI/SSDI";
 import { SelectionInsights } from "./pages/SelectionInsights/SelectionInsights";
@@ -106,33 +101,8 @@ export function AppRouter() {
           />
 
           <Route
-            path={Pages.RangeIncomeExpense}
-            element={<RouteComponent element={<RangeIncomeExpenseChart />} />}
-          />
-
-          <Route
-            path={Pages.BarChart}
-            element={<RouteComponent element={<GroupedBarChart />} />}
-          />
-
-          <Route
-            path={Pages.StackedBarChart}
-            element={<RouteComponent element={<TagStackedBarChart />} />}
-          />
-
-          <Route
-            path={Pages.YTDChart}
-            element={<RouteComponent element={<YearToDateChart />} />}
-          />
-
-          <Route
-            path={Pages.AverageSpending}
-            element={<RouteComponent element={<AverageSpending />} />}
-          />
-
-          <Route
-            path={Pages.Sankey}
-            element={<RouteComponent element={<ExpenseSankey />} />}
+            path={Pages.Charts}
+            element={<RouteComponent element={<Charts />} />}
           />
 
           <Route
@@ -156,8 +126,8 @@ export function AppRouter() {
           />
 
           <Route
-            path={Pages.CSVFormats}
-            element={<RouteComponent element={<CSVFormats />} />}
+            path={Pages.Data}
+            element={<RouteComponent element={<Data />} />}
           />
 
           <Route

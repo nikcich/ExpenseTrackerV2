@@ -1,6 +1,7 @@
-import { memo, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { memo, useMemo, useRef, useState, type ReactNode } from "react";
 import { scaleBand, scaleLinear } from "d3-scale";
 import styles from "./StackedBarChart.module.scss";
+import { useElementSize } from "@/hooks/useElementSize";
 import { chartDateCompare } from "@/utils/utils";
 import { colorForName } from "@/utils/colors";
 import { ChartOpenPayload } from "@/utils/custom-filter";
@@ -64,7 +65,7 @@ export const StackedBarChart = memo(function StackedBarChart({
   onOpen?: (payload: ChartOpenPayload) => void;
 }) {
   const plotRef = useRef<HTMLDivElement | null>(null);
-  const [size, setSize] = useState({ width: 0, height: 0 });
+  const size = useElementSize(plotRef);
   const [disabled, setDisabled] = useState<Set<string>>(new Set());
   const { containerRef, tip, show, hide } = useChartTooltip();
 
@@ -78,19 +79,6 @@ export const StackedBarChart = memo(function StackedBarChart({
   };
 
   const visibleData = useMemo(() => data.filter((d) => !disabled.has(d.name)), [data, disabled]);
-
-  useLayoutEffect(() => {
-    const node = plotRef.current;
-    if (!node) return;
-    const update = () => {
-      const rect = node.getBoundingClientRect();
-      setSize({ width: rect.width, height: rect.height });
-    };
-    update();
-    const ro = new ResizeObserver(update);
-    ro.observe(node);
-    return () => ro.disconnect();
-  }, []);
 
   const margin = { top: 15, right: 20, bottom: 60, left: 45 };
 

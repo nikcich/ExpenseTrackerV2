@@ -1,39 +1,12 @@
-import { GenericPage } from "@/components/GenericPage/GenericPage";
-import {
-  useExpenses,
-  useFilteredExpenses,
-  useFilteredIncome,
-  useFilteredSavings,
-  useIncome,
-  useSavings,
-} from "@/hooks/expenses";
 import { Expense } from "@/types/types";
-import { BrushScrubber } from "@/components/Brush/BrushScrubber";
 import { tagLabel } from "@/utils/expense-utils";
 import { colorForName } from "@/utils/colors";
-import { useMemo, useState } from "react";
-import { SegmentGroup } from "@chakra-ui/react";
-import { SankeyCard } from "@/components/charts/SankeyCard";
+import { Breakdown } from "@/components/charts/BreakdownToggle";
 import {
   SankeyData,
   SankeyLink,
   SankeyNode,
 } from "@/components/Sankey/Sankey";
-import {
-  Breakdown,
-  BreakdownToggle,
-} from "@/components/charts/BreakdownToggle";
-
-const filterYear = (data: Expense[], beforeNow: number = 0) => {
-  const now = new Date();
-  const startOfYear = new Date(now.getFullYear() - beforeNow, 0, 1);
-  const endOfYear = new Date(startOfYear.getFullYear() + 1, 0, 1);
-
-  return data.filter((e) => {
-    const d = new Date(e.date);
-    return d < endOfYear && d >= startOfYear;
-  });
-};
 
 const sumAmounts = (expenses: Expense[]): number => {
   const num = expenses.reduce((sum, e) => sum + e.amount, 0);
@@ -59,7 +32,7 @@ const BAND = 0.96;
 const NODE_GAP = 0.015;
 const TERMINAL_GAP = 0.03;
 
-function buildCashFlowSankey(
+export function buildCashFlowSankey(
   income: Expense[],
   savings: Expense[],
   trueExpenses: Expense[],
@@ -261,80 +234,4 @@ function buildCashFlowSankey(
   pushColumn(2, terminalEntries);
 
   return { nodes, links };
-}
-
-enum Mode {
-  YEAR = "YEAR TO DATE",
-  ALL_TIME = "ALL TIME",
-  RANGE = "RANGE",
-}
-
-const filterExpenseMode = (
-  mode: Mode,
-  rawData: Expense[],
-  filteredData: Expense[]
-) => {
-  if (mode === Mode.RANGE) return filteredData;
-
-  if (mode === Mode.ALL_TIME) return rawData;
-
-  return filterYear(rawData);
-};
-
-export function ExpenseSankey() {
-  const [mode, setMode] = useState<Mode>(Mode.RANGE);
-  const [breakdown, setBreakdown] = useState<Breakdown>("GROUPS");
-
-  const rawExpenses = useExpenses();
-  const rawIncome = useIncome();
-  const rawSavings = useSavings();
-  const filteredIncome = useFilteredIncome();
-  const filteredExpenses = useFilteredExpenses();
-  const filteredSavings = useFilteredSavings();
-
-  const income = useMemo(
-    () => filterExpenseMode(mode, rawIncome, filteredIncome),
-    [mode, filteredIncome, rawIncome]
-  );
-  const expense = useMemo(
-    () => filterExpenseMode(mode, rawExpenses, filteredExpenses),
-    [mode, filteredExpenses, rawExpenses]
-  );
-  const savings = useMemo(
-    () => filterExpenseMode(mode, rawSavings, filteredSavings),
-    [mode, filteredSavings, rawSavings]
-  );
-
-  const sankeyData = useMemo(
-    () => buildCashFlowSankey(income, savings, expense, breakdown),
-    [income, expense, savings, breakdown]
-  );
-
-  return (
-    <GenericPage
-      title="Comp and Spending Flow Chart"
-      hasRange={mode === Mode.RANGE}
-      footer={mode === Mode.RANGE ? <BrushScrubber /> : <></>}
-      actions={
-        <>
-          <SegmentGroup.Root
-            value={mode}
-            onValueChange={(e) => setMode(e.value as Mode)}
-          >
-            <SegmentGroup.Indicator />
-            <SegmentGroup.Items items={Object.values(Mode)} />
-          </SegmentGroup.Root>
-        </>
-      }
-    >
-      <div style={{ padding: "1.5rem 2rem", height: "100%", display: "flex", flexDirection: "column" }}>
-        <SankeyCard
-          data={sankeyData}
-          toolbar={
-            <BreakdownToggle value={breakdown} onChange={setBreakdown} />
-          }
-        />
-      </div>
-    </GenericPage>
-  );
 }

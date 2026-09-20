@@ -1,8 +1,7 @@
-import { Flex, Input, Text } from "@chakra-ui/react";
+import { Flex, Text } from "@chakra-ui/react";
 import {
   memo,
   useCallback,
-  useDeferredValue,
   useEffect,
   useMemo,
   useRef,
@@ -10,8 +9,6 @@ import {
 } from "react";
 import { Expense, Tag } from "@/types/types";
 import { getExpenseKind, ExpenseKind } from "@/utils/expense-utils";
-import { BrushScrubber } from "../Brush/BrushScrubber";
-import { GenericPage } from "../GenericPage/GenericPage";
 import { Tag as TagComp } from "@chakra-ui/react";
 import { FaChevronDown } from "react-icons/fa";
 import { FaChevronUp } from "react-icons/fa";
@@ -19,10 +16,8 @@ import styles from "./DataTable.module.scss";
 import { setSelection, useSelection } from "@/store/SelectionStore";
 import { enableOverlay, Overlay } from "@/store/OverlayStore";
 import { useSettingsStore } from "@/store/SettingsStore";
-import { debounce } from "lodash";
 import { format } from "date-fns";
 import { formatCompactCurrency } from "@/utils/utils";
-import { expenseMatchesSearch } from "@/utils/search";
 import { useQuickWheel } from "@/hooks/useQuickWheel";
 import { RadialActions } from "../RadialActions/RadialActions";
 
@@ -75,71 +70,6 @@ const compareDates = (
   } else {
     return date1Obj > date2Obj ? -1 : 1;
   }
-};
-
-export const DataTable = ({ items }: { items: Expense[] }) => {
-  const [searchString, setSearchString] = useState("");
-
-  const normalizedSearch = useMemo(
-    () => searchString.trim().toLowerCase(),
-    [searchString]
-  );
-
-  const deferredSearch = useDeferredValue(normalizedSearch);
-
-  const debouncedSetSearch = useMemo(
-    () => debounce((value: string) => setSearchString(value), 300),
-    []
-  );
-
-  useEffect(() => {
-    return () => debouncedSetSearch.cancel();
-  }, [debouncedSetSearch]);
-
-  const filteredItems = useMemo(() => {
-    if (!deferredSearch) return items;
-    return items.filter((item) => expenseMatchesSearch(item, deferredSearch));
-  }, [items, deferredSearch]);
-
-  return (
-    <GenericPage
-      title={`Expenses (${filteredItems.length})`}
-      footer={<BrushScrubber />}
-    >
-      <div
-        style={{
-          width: "100%",
-          height: "100%",
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-          padding: "0.5rem",
-        }}
-      >
-        <Input
-          type="search"
-          placeholder="Search..."
-          onChange={(e) => debouncedSetSearch(e.target.value)}
-          style={{
-            width: "100%",
-            zIndex: 100,
-            minHeight: "40px",
-          }}
-        />
-
-        <div
-          style={{
-            width: "100%",
-            overflow: "hidden",
-            flexGrow: 1,
-            paddingTop: "0.75rem",
-          }}
-        >
-          <CoreTable items={filteredItems} />
-        </div>
-      </div>
-    </GenericPage>
-  );
 };
 
 const ROW_HEIGHT = 70;

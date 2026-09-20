@@ -88,7 +88,7 @@ export const useGlobalShortcuts = () => {
 
       const lower = e.key.toLowerCase();
       if (lower === "i") {
-        navigateFrom(Pages.TableView, { csvImport: true });
+        navigateFrom(Pages.Data, { csvImport: true });
         return;
       }
 

@@ -4,7 +4,6 @@
   flex-direction: column;
   background: var(--chakra-colors-bg-panel);
   border-right: 1px solid var(--chakra-colors-border);
-  transition: width 0.15s ease;
 }
 
 .collapsed {
@@ -42,6 +41,7 @@
   padding: 0 0.5rem;
   text-align: left;
   white-space: nowrap;
+  animation: navContentIn 0.16s ease;
 }
 
 .sectionDividerWrap {
@@ -121,4 +121,14 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  animation: navContentIn 0.16s ease;
+}
+
+@keyframes navContentIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }

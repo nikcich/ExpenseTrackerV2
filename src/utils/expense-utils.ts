@@ -85,6 +85,17 @@ export function groupAndSumExpenses<T>(
   return sumGroupedExpenses(grouped);
 }
 
+export function filterYear(data: Expense[], beforeNow: number = 0): Expense[] {
+  const now = new Date();
+  const startOfYear = new Date(now.getFullYear() - beforeNow, 0, 1);
+  const endOfYear = new Date(startOfYear.getFullYear() + 1, 0, 1);
+
+  return data.filter((e) => {
+    const d = new Date(e.date);
+    return d < endOfYear && d >= startOfYear;
+  });
+}
+
 export const byYear = (e: Expense) => {
   const year = parseDate(e.date).getFullYear();
   return `${year}‎`;

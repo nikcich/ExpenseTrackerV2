@@ -1,22 +1,23 @@
-import { DataTable } from "@/components/DataTable/DataTable";
+import { CoreTable } from "@/components/DataTable/DataTable";
+import { GenericPage } from "@/components/GenericPage/GenericPage";
+import { BrushScrubber } from "@/components/Brush/BrushScrubber";
 import styles from "./TableView.module.scss";
 import {
   useFilteredExpenses,
   useFilteredIncome,
   useFilteredSavings,
 } from "@/hooks/expenses";
-import { useExpensesStore, useCustomCsvDefinitions, useImportHistory } from "@/store/store";
-import { Response } from "@/types/types";
+import { useExpensesStore } from "@/store/store";
 import { getExpenseKind } from "@/utils/expense-utils";
-import { downloadExpensesCSV } from "@/utils/download";
+import { expenseMatchesSearch } from "@/utils/search";
 import { useExpenseTrackerService } from "@/services/ServiceProvider";
-import { toaster } from "@/components/ui/toaster";
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useCallback, useDeferredValue, useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   Button,
   CloseButton,
   Dialog,
+  Input,
   Menu,
   Portal,
   Text,
@@ -28,88 +29,19 @@ import { useSelection, setSelection } from "@/store/SelectionStore";
 import { useFilterRules } from "@/store/FilterStore";
 import { useNavFilter, clearNavFilter } from "@/store/NavFilterStore";
 import { matchesRules } from "@/utils/custom-filter";
+import { debounce } from "lodash";
 import { Pages } from "@/types/routes";
-
-const useFileOpener = (appendImportDate: (date: string) => void) => {
-  const service = useExpenseTrackerService();
-  const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState<
-    Response<string[]> | Response<string> | null
-  >(null);
-  const [selectedFile, setSelectedFile] = useState<string | null>(null);
-  const [selectedFormat, setSelectedFormat] = useState<string | undefined>(
-    undefined
-  );
-  const { definitions } = useCustomCsvDefinitions();
-
-  const pickFile = useCallback(async () => {
-    setLoading(true);
-    setResult(null);
-    setSelectedFormat(undefined);
-
-    const file = (await service.openFileDialog({
-      multiple: false,
-      directory: false,
-    })) as string | null;
-
-    if (file) {
-      const customJson = definitions.length > 0 ? JSON.stringify(definitions) : undefined;
-      const res: Response<string[]> = await service.openCsvFromPath(file, customJson);
-      setSelectedFile(file);
-      setResult(res);
-    }
-
-    setLoading(false);
-  }, [service, definitions]);
-
-  const reset = useCallback(() => {
-    setResult(null);
-    setSelectedFile(null);
-    setSelectedFormat(undefined);
-  }, []);
-
-  const parseFile = useCallback(async () => {
-    if (!selectedFile || !selectedFormat) return;
-    setLoading(true);
-    const customJson = definitions.length > 0 ? JSON.stringify(definitions) : undefined;
-    const res = await service.parseCsvFromPath(selectedFile, selectedFormat, customJson);
-
-    if (res.status < 400 && res.message) {
-      appendImportDate(res.message.importDate);
-      setResult({ status: res.status, header: res.header, message: res.message.message });
-    } else {
-      setResult({ status: res.status, header: res.header, message: typeof res.message === "string" ? res.message : null });
-    }
-    setLoading(false);
-    if (res.status < 400) reset();
-  }, [selectedFile, selectedFormat, reset, definitions, appendImportDate, service]);
-
-  return {
-    loading,
-    result,
-    pickFile,
-    selectedFile,
-    selectedFormat,
-    setSelectedFormat,
-    parseFile,
-    reset,
-    definitions,
-  };
-};
 
 const ResetExpensesDialog = ({
   open,
   onOpenChange,
-  onClear,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onClear: () => void;
 }) => {
   const { setValue: setExpenses } = useExpensesStore();
   const clearExpenses = async () => {
     setExpenses({});
-    onClear();
   };
 
   return (
@@ -231,28 +163,9 @@ const DeleteSelectionDialog = ({
 };
 
 export function TableView() {
-  const service = useExpenseTrackerService();
   const expenses = useFilteredExpenses();
   const income = useFilteredIncome();
   const savings = useFilteredSavings();
-  const { value: allStoreExpenses } = useExpensesStore();
-  const { importHistory, setImportHistory } = useImportHistory();
-
-  const appendImportDate = useCallback((date: string) => {
-    setImportHistory([...(importHistory ?? []), date]);
-  }, [importHistory, setImportHistory]);
-
-  const {
-    loading,
-    result,
-    pickFile,
-    selectedFile,
-    selectedFormat,
-    setSelectedFormat,
-    parseFile,
-    reset,
-    definitions,
-  } = useFileOpener(appendImportDate);
 
   const [includeIncome, setIncludeIncome] = useState(true);
   const [includeExpenses, setIncludeExpenses] = useState(true);
@@ -260,9 +173,24 @@ export function TableView() {
   const [includeUntagged, setIncludeUntagged] = useState(true);
   const [deleteAllOpen, setDeleteAllOpen] = useState(false);
   const [deleteSelectionOpen, setDeleteSelectionOpen] = useState(false);
+  const [searchString, setSearchString] = useState("");
   const selection = useSelection();
   const customRules = useFilterRules();
   const navFilter = useNavFilter();
+
+  const normalizedSearch = useMemo(
+    () => searchString.trim().toLowerCase(),
+    [searchString]
+  );
+
+  const deferredSearch = useDeferredValue(normalizedSearch);
+
+  const debouncedSetSearch = useMemo(
+    () => debounce((value: string) => setSearchString(value), 300),
+    []
+  );
+
+  useEffect(() => () => debouncedSetSearch.cancel(), [debouncedSetSearch]);
 
   const allItems = useMemo(
     () => [...expenses, ...income, ...savings],
@@ -296,99 +224,18 @@ export function TableView() {
     return base.filter((item) => matchesRules(navFilter.rules, item));
   }, [customFilteredItems, navFilter]);
 
-  const location = useLocation();
+  const displayedItems = useMemo(() => {
+    if (!deferredSearch) return items;
+    return items.filter((item) => expenseMatchesSearch(item, deferredSearch));
+  }, [items, deferredSearch]);
+
   const navigate = useNavigate();
 
-  useEffect(() => {
-    if (location.state?.csvImport) {
-      pickFile();
-      window.history.replaceState({}, "");
-    }
-  }, [pickFile]);
-
   return (
-    <div className={styles.container}>
-      <div className={styles.card}>
-        <div className={styles.cardHeader}>
-          <span className={styles.cardTitle}>CSV Import</span>
-          {selectedFile && (
-            <button className={styles.resetBtn} onClick={reset}>
-              Clear
-            </button>
-          )}
-        </div>
-
-        {result && (
-          <div
-            className={`${styles.alert} ${result.status >= 400 ? styles.alertError : styles.alertSuccess}`}
-          >
-            <span>{result.header}</span>
-            <span className={styles.alertMessage}>
-              {typeof result.message === "string"
-                ? result.message
-                : Array.isArray(result.message)
-                  ? result.message.join(", ")
-                  : ""}
-            </span>
-          </div>
-        )}
-
-        {loading ? (
-          <span className={styles.loadingText}>Loading...</span>
-        ) : !selectedFile ? (
-          <button className={styles.importBtn} onClick={pickFile}>
-            Select CSV File
-          </button>
-        ) : (
-          <div className={styles.formatRow}>
-            <div className={styles.field}>
-              <span className={styles.fieldLabel}>CSV Format</span>
-              <select
-                className={styles.fieldInput}
-                value={selectedFormat}
-                onChange={(e) => setSelectedFormat(e.target.value)}
-              >
-                <option value="">Choose format...</option>
-                {Array.isArray(result?.message)
-                  ? result.message.map((key) => {
-                      const customDef = definitions.find((d) => d.id === key);
-                      const label = customDef?.name ?? key;
-                      return (
-                        <option key={key} value={key}>
-                          {label}
-                        </option>
-                      );
-                    })
-                  : null}
-              </select>
-            </div>
-            <button
-              className={styles.parseBtn}
-              disabled={!selectedFormat}
-              onClick={parseFile}
-            >
-              Parse
-            </button>
-          </div>
-        )}
-      </div>
-
-      <div className={`${styles.card} ${styles.tableCard}`}>
-        {navFilter && navFilter.rules.length > 0 && (
-          <div className={styles.navFilterBanner}>
-            <span className={styles.navFilterText}>
-              Filtered from <strong>{navFilter.source}</strong> — {navFilter.rules.length}{" "}
-              rule{navFilter.rules.length === 1 ? "" : "s"} applied.
-            </span>
-            <button className={styles.navFilterClear} onClick={clearNavFilter}>
-              Clear
-            </button>
-          </div>
-        )}
-        <div className={styles.cardHeader}>
-          <span className={styles.cardTitle}>
-            All Items ({allItems.length})
-          </span>
+    <>
+      <GenericPage
+        title={`All Items (${displayedItems.length})`}
+        actions={
           <div className={styles.actionRow}>
             <Button size="sm" variant="outline" onClick={() => enableOverlay(Overlay.AutoCategorizeModal)}>
               Auto-Categorize
@@ -476,25 +323,6 @@ export function TableView() {
               <Menu.Positioner>
                 <Menu.Content>
                   <Menu.Item
-                    value="download"
-                    onClick={async () => {
-                      const path = await downloadExpensesCSV(allStoreExpenses);
-                      if (path) {
-                        toaster.create({
-                          title: "CSV exported",
-                          description: "File saved successfully",
-                          type: "success",
-                          action: {
-                            label: "Open folder",
-                            onClick: () => service.revealItemInDir(path),
-                          },
-                        });
-                      }
-                    }}
-                  >
-                    Download CSV
-                  </Menu.Item>
-                  <Menu.Item
                     value="create-expense"
                     onClick={() => enableOverlay(Overlay.ManualModal)}
                   >
@@ -548,19 +376,41 @@ export function TableView() {
               </Menu.Positioner>
             </Menu.Root>
           </div>
+        }
+        footer={<BrushScrubber />}
+      >
+        <div className={styles.content}>
+          {navFilter && navFilter.rules.length > 0 && (
+            <div className={styles.navFilterBanner}>
+              <span className={styles.navFilterText}>
+                Filtered from <strong>{navFilter.source}</strong> — {navFilter.rules.length}{" "}
+                rule{navFilter.rules.length === 1 ? "" : "s"} applied.
+              </span>
+              <button className={styles.navFilterClear} onClick={clearNavFilter}>
+                Clear
+              </button>
+            </div>
+          )}
+          <Input
+            type="search"
+            placeholder="Search..."
+            onChange={(e) => debouncedSetSearch(e.target.value)}
+            className={styles.searchInput}
+          />
+          <div className={styles.tableWrap}>
+            <CoreTable items={displayedItems} />
+          </div>
         </div>
-        <DataTable items={items} />
-      </div>
+      </GenericPage>
 
       <ResetExpensesDialog
         open={deleteAllOpen}
         onOpenChange={setDeleteAllOpen}
-        onClear={() => setImportHistory([])}
       />
       <DeleteSelectionDialog
         open={deleteSelectionOpen}
         onOpenChange={setDeleteSelectionOpen}
       />
-    </div>
+    </>
   );
 }

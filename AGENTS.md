@@ -33,6 +33,8 @@ Existing reusable card components in `src/components/charts/`:
 - `AverageSpendingCard` — accepts `traces` + optional `groupTraces` (toggle shown when provided)
 - `TagStackedBarChartCard` — accepts `traces` + optional `groupTraces` (toggle shown when provided)
 
+`CoreTable` (`src/components/DataTable/DataTable.tsx`) is the reusable virtualized expenses table — props: `items: Expense[]`, `selectable?`. It owns selection, sorting, and the quick-wheel radial actions but no search/shell; page components render it inside a `GenericPage`. Used by TableView (with search + type/custom/nav filters), Overview, and InsightsView.
+
 ### Styling
 
 - SCSS modules (`.module.scss`). Import as `styles` and use `className={styles.card}`.
@@ -56,7 +58,7 @@ Existing reusable card components in `src/components/charts/`:
 - All backend/API access is decoupled behind the **`ExpenseTrackerService`** interface (`src/services/ExpenseTrackerService.ts`) — Tauri-agnostic. The Tauri implementation is the only place that imports `@tauri-apps/*`: `TauriService` (`src/services/TauriService.ts`, uses `invoke` + `listen` + dialog/opener plugins). A non-Tauri backend (e.g. HTTP container) would implement the same interface and be passed to the provider.
 - `ExpenseTrackerServiceProvider` (`src/services/ServiceProvider.tsx`) wraps `AppRouter` and provides the active service via context. Components/hooks call `useExpenseTrackerService()`. The module-scope store polling layer (can't use React context) reads `getActiveService()` / subscribes to `activeService$` (a `BehaviorSubject`) — same pattern as `mockMode$`. Switching the provider's service triggers an immediate re-fetch of all stores.
 - Expenses are stored in Tauri's `tauri-plugin-store` (key `"expenses"`), polled every 2s via `createStoreHook` (renamed from `createTauriStoreHook`).
-- Custom RxJS store in `src/store/generic-store.ts` using `BehaviorSubject`. Provides `setState`, `getState`, and a React `useStore(key)` hook. Only `SettingsStore` passes a `persistKey` (`"settings"`); it hydrates/persists through `getActiveService()` on service change.
+- Custom RxJS store in `src/store/generic-store.ts` using `BehaviorSubject`. Provides `setState`, `getState`, and a React `useStore(key)` hook. `SettingsStore` (`"settings"`) and `ChartsStore` (`"charts_layout"`) pass a `persistKey`; they hydrate/persist through `getActiveService()` on service change. Other stores (e.g. `NavFilterStore`, `FilterStore`, selection) are in-memory only.
 - Hooks in `src/hooks/expenses.ts`: `useExpenses()`, `useFilteredExpenses()`, `useIncome()`, `useFilteredIncome()`, `useSavings()`, `useFilteredSavings()`, `useGetExpenseById()`, `useDateExtents()`.
 - Date range: D3 brush scrubber (`BrushScrubber`), held locally in a `BehaviorSubject` (`instantBrushRange$` in `src/store/store.ts`, no Tauri/backend sync). Consumed via `useDebouncedBrushRange()` from `src/store/store.ts`.
 - Tags: `src/utils/tags.ts` exports `useAllTags()` (collects unique tags from all expenses/savings/income + ALL_TAGS enum, reference-stable), `useAllTagsOptions()` (for dropdowns).
@@ -72,17 +74,18 @@ Existing reusable card components in `src/components/charts/`:
 
 ### Pages
 
-12 page components in `src/pages/`, each in its own directory. All use `<GenericPage>` as the page shell.
+Page components live in `src/pages/`, each in its own directory. All use `<GenericPage>` as the page shell.
 
-**GenericPage props**: `title: string`, `actions?: JSX.Element` (rendered in header next to title), `children`, `footer?: JSX.Element` (bottom slot, typically `<BrushScrubber />`), `hasRange?: boolean` (default true, shows date range in subtitle), `needsData?: boolean` (default true, shows empty state when no data). GenericPage internally calls `useHasDisplayData()` to decide whether to show children or an empty state. It also reads `useDebouncedBrushRange()` for the date range subtitle.
+**GenericPage props**: `title: string`, `actions?: JSX.Element` (rendered in header next to title), `children`, `footer?: JSX.Element` (bottom slot, typically `<BrushScrubber />`), `hasRange?: boolean` (default true, shows date range in subtitle), `needsData?: boolean` (default true, shows empty state when no data), `scrollSnap?: boolean` (default false, applies `scroll-snap-type: y proximity` to the scrolling children container). GenericPage internally calls `useHasDisplayData()` to decide whether to show children or an empty state. It also reads `useDebouncedBrushRange()` for the date range subtitle.
 
 Pages breakdown:
 - **Overview** (`/overview`) — Most complex page. Dashboard layout with SummaryCards (4 cards: income, spending, net, savings — each with value, prev, YTD, Delta), DonutChart (spending by tag, with disabled tag filter support), MonthPills (12-month navigation), NetSparkline (trend), InvestmentsCard (RSU + assets − debts net worth). Uses `computeMonthData` and `computeYtdFromExpenses` utils from `./utils.ts`.
 - **Home** (`/`) — Landing page, simple layout.
 - **Investments** (`/investments`) — RSU vest tracking and balance snapshots (assets/debts). Card-based layout.
-- **TableView** (`/table-view`) — Full data table with virtualized rows (`@tanstack/react-virtual`), filter toggles (Expenses/Income/Savings), CSV import card at top. Bulk edit/delete via SelectionStore. CSV download utility. Sortable columns.
+- **TableView** (`/table-view`) — Full data table with virtualized rows (`@tanstack/react-virtual`), filter toggles (Expenses/Income/Savings). Bulk edit/delete via SelectionStore. Sortable columns.
+- **Data** (`/data`) — Single home for all data I/O, styled with CSS modules (no Chakra). Three concerns: **CSV Import** (select file → pick a format → parse; appends an import date to `importHistory`, consumed by `BrushScrubber` markers), **Export & Backup** (expenses → CSV via `downloadExpensesCSV`, full-dataset JSON backup via `exportAllData`/`importAllData`), and the **CSV Format Designer** (preview a CSV, build/edit `DynamicCsvDefinition`s, run a parse preview). The `i` global shortcut navigates here with `{ csvImport: true }`, which auto-opens the file picker.
 - **Forecast** (`/forecast`) — Cash flow forecast using `computeCashFlowForecast()`. Fully CSS-module-styled (no Chakra UI components), uses custom form field pattern with `.field`/`.fieldLabel`/`.fieldInput` classes.
-- **Chart pages** (Sankey, YearToDateChart, GroupedBarChart, RangeIncomeExpenseChart, AverageSpending, TagStackedBarChart) — Each renders a `<GenericPage>` shell, calls data hooks, transforms data, and passes to the corresponding card component. All use the same `div style={{ padding: "1.5rem 2rem", height: "100%", display: "flex", flexDirection: "column" }}` outer container. Uses `<BrushScrubber />` as footer for range filtering. Some use `<SegmentGroup.Root>` in actions for mode switching (MONTHLY/DAILY/YEARLY). Chart page widgets use `ChartCard plain` (full-bleed, no card box) — only the toolbar survives.
+- **Charts** (`/charts`) — The single home for chart visualizations; it replaced the old per-chart pages (Sankey, YearToDateChart, GroupedBarChart, RangeIncomeExpenseChart, AverageSpending, TagStackedBarChart), which have been removed. Single-column scrolling list of user-managed full-width tiles driven by `ChartsStore` (persisted under `charts_layout`); each tile body is 70vh tall and tiles snap on scroll (`scrollSnap` prop on `GenericPage`). Each tile = header (label + optional MONTHLY/DAILY/YEARLY toggle + move up/down + remove). A full-width "Add Chart" button sits after the last tile and appends new tiles; its menu only lists chart types not already on the dashboard (hidden once every type is present). Widget definitions live in `src/pages/Charts/widgets.tsx` (`CHART_WIDGET_DEFS`): each entry has `type`, `label`, optional `modes`, and a `Component({ instance })` that calls data hooks, transforms data, and renders the still-shared props-driven chart cards (`src/components/charts/`) with `ChartCard plain`. `sankey-flow` and `year-to-date` pure logic lives in `src/utils/` and is used by the widgets. Tiles are boxed (`--bg-panel`/border) even though the nested cards are `plain`.
 
 ### Modals
 
@@ -162,7 +165,8 @@ A global mock mode exists for screenshots/demos. When enabled via Settings modal
 - `src/utils/expense-utils.ts`: `groupAndSumExpenses(expenses, ...keyFns)`, `byMonth`, `byYear`, `byDay`, `byTag`
 - `src/utils/utils.ts`: `chartDateCompare(a, b)` — sorts date-group strings, `parseDate()` — date-fns parser, `createStoreHook<T>()` — polling-based store hooks
 - `src/utils/cash-flow-forecast.ts`: `computeCashFlowForecast()` — forecast engine (daily cash flow events from config)
-- `src/utils/download.ts`: `downloadExpensesCSV()` — exports expenses to CSV blob
+- `src/utils/download.ts`: `downloadExpensesCSV()` — exports expenses to CSV blob; `exportAllData()` / `importAllData()` — full-dataset JSON backup/restore (surfaced on the Data page)
+- `src/hooks/useElementSize.ts`: `useElementSize(ref, delay = 90)` — ResizeObserver-backed element size. Coalesces bursts to at most one commit per `delay` ms (plus a trailing commit) and skips no-op/rounded-equal sizes, so chart SVGs don't re-render on every frame of a layout animation (e.g. SideNav expand). Used by `BarChart`, `LineChart`, `StackedBarChart`, and `Sankey`.
 - `src/types/mockExpenses.ts`: All mock data generators for the mock system (expenses, RSU, snapshots, forecast config, brush range) and `createMockData()` factory
 
 ### Segment Controls
@@ -185,4 +189,4 @@ The Tauri backend lives in `src-tauri/`. Key commands registered: store CRUD (`s
 
 ### Routing
 
-React Router v7 with `BrowserRouter`. RouteComponent wraps each page with `<Overlays /> + <SideNav /> + <ErrorBoundary>`. 11 routes defined via `Pages` enum (Settings and FileOpener were removed — Settings is a modal, FileOpener was merged into TableView).
+React Router v7 with `BrowserRouter`. RouteComponent wraps each page with `<Overlays /> + <SideNav /> + <ErrorBoundary>`. Routes are defined via the `Pages` enum (Settings and FileOpener were removed — Settings is a modal, the old FileOpener/CSV-formats page was consolidated into the Data page; the per-chart pages were consolidated into the Charts dashboard).
