@@ -355,8 +355,8 @@
 }
 
 .investGrid {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
   gap: 0.5rem;
   width: 100%;
 }
@@ -365,8 +365,7 @@
   display: flex;
   flex-direction: column;
   gap: 0.15rem;
-  flex: 1 1 140px;
-  min-width: 110px;
+  min-width: 0;
 }
 
 .investValue {
