@@ -28,6 +28,10 @@ export default defineConfig({
 
   define: {
     __DEMO_USE_HASH_ROUTER__: JSON.stringify(true),
+    __APP_VERSION__: JSON.stringify(
+      JSON.parse(fs.readFileSync(path.resolve(here, "package.json"), "utf8"))
+        .version
+    ),
   },
 
   build: {

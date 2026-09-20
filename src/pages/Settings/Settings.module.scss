@@ -22,6 +22,12 @@
   width: 100px;
 }
 
+.about {
+  margin-top: 2.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border-color);
+}
+
 .layout {
   display: flex;
   gap: 1.5rem;

@@ -150,4 +150,8 @@ export class MockService implements ExpenseTrackerService {
   }
 
   async revealItemInDir(_path: string): Promise<void> {}
+
+  async getAppVersion(): Promise<string> {
+    return __APP_VERSION__;
+  }
 }

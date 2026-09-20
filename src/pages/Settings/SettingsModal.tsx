@@ -1,9 +1,9 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { GenericModal } from "@/components/GenericModal/GenericModal";
 import { Overlay, closeAllOverlays } from "@/store/OverlayStore";
 import { CheckboxCard, Heading, Switch, Text, Button } from "@chakra-ui/react";
 import { setSettingsStore, useSettingsStore } from "@/store/SettingsStore";
-import { setMockMode } from "@/services/ServiceProvider";
+import { setMockMode, useExpenseTrackerService } from "@/services/ServiceProvider";
 import { useAllGroups, useAllTags } from "@/utils/tags";
 import { useHasRsuData, useHasSsdiData, useSsdiConfig } from "@/store/store";
 import { exportAllData, importAllData } from "@/utils/download";
@@ -59,6 +59,21 @@ const SECTIONS: { id: SectionId; label: string }[] = [
 
 export function SettingsModal() {
   const [activeSection, setActiveSection] = useState<SectionId>("general");
+  const service = useExpenseTrackerService();
+  const [appVersion, setAppVersion] = useState<string | null>(null);
+
+  useEffect(() => {
+    let mounted = true;
+    service
+      .getAppVersion()
+      .then((v) => {
+        if (mounted) setAppVersion(v);
+      })
+      .catch(() => {});
+    return () => {
+      mounted = false;
+    };
+  }, [service]);
   const disabledTags = useSettingsStore("disabledTags");
   const disabledGroups = useSettingsStore("disabledGroups");
   const mockDataEnabled = useSettingsStore("mockDataEnabled");
@@ -139,6 +154,11 @@ export function SettingsModal() {
                 <Text fontSize="sm" color="fg.muted" mt={2}>
                   When enabled, all charts and pages show fake sample data instead of real stored expenses. Useful for screenshots and demos.
                 </Text>
+                <div className={styles.about}>
+                  <Text fontSize="sm" color="fg.subtle">
+                    Expense Tracker · v{appVersion ?? "—"}
+                  </Text>
+                </div>
               </div>
             )}
 

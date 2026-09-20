@@ -70,4 +70,6 @@ export interface ExpenseTrackerService {
   openFileDialog(options?: OpenFileDialogOptions): Promise<string | string[] | null>;
   saveFileDialog(options?: SaveFileDialogOptions): Promise<string | null>;
   revealItemInDir(path: string): Promise<void>;
+
+  getAppVersion(): Promise<string>;
 }

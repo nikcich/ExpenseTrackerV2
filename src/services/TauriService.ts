@@ -127,4 +127,8 @@ export class TauriService implements ExpenseTrackerService {
   async revealItemInDir(path: string): Promise<void> {
     await tauriRevealItemInDir(path);
   }
+
+  async getAppVersion(): Promise<string> {
+    return await invoke<string>("plugin:app|version");
+  }
 }
