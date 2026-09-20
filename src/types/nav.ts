@@ -2,7 +2,7 @@ import type { IconType } from "react-icons";
 import { Pages } from "./routes";
 import { PiChartPieSlice, PiCompassLight } from "react-icons/pi";
 import { FaCoins, FaExclamationTriangle, FaTable } from "react-icons/fa";
-import { LuFileSpreadsheet, LuLayers } from "react-icons/lu";
+import { LuFileInput, LuLayers } from "react-icons/lu";
 import { MdOutlineTrendingUp } from "react-icons/md";
 import { TbLayoutDashboard } from "react-icons/tb";
 import { HiOutlineDocumentText } from "react-icons/hi2";
@@ -52,7 +52,7 @@ export const NAV_SECTIONS: NavSection[] = [
   {
     title: "Utilities",
     items: [
-      { page: Pages.Data, label: "Data", icon: LuFileSpreadsheet },
+      { page: Pages.Data, label: "Data", icon: LuFileInput },
     ],
   },
 ];
