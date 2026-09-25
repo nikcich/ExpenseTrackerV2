@@ -12,6 +12,7 @@ import { mockMode$ } from "./services/ServiceProvider";
 
 import { TableView } from "./pages/TableView/TableView";
 import { Charts } from "./pages/Charts/Charts";
+import { ChartDetail } from "./pages/Charts/ChartDetail";
 import { Overlays } from "./Overlays";
 import { Toaster } from "./components/ui/toaster";
 import { ErrorBoundary } from "react-error-boundary";
@@ -103,6 +104,11 @@ export function AppRouter() {
           <Route
             path={Pages.Charts}
             element={<RouteComponent element={<Charts />} />}
+          />
+
+          <Route
+            path={`${Pages.Charts}/:type`}
+            element={<RouteComponent element={<ChartDetail />} />}
           />
 
           <Route

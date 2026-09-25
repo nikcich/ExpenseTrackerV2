@@ -1,0 +1,31 @@
+.page {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  padding: 1.5rem 2rem 2.5rem;
+  box-sizing: border-box;
+}
+
+.back {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  background: none;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  color: var(--chakra-colors-fg-muted);
+  padding: 0.25rem 0.6rem;
+  font-size: 0.8rem;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition:
+    background 0.15s,
+    color 0.15s,
+    border-color 0.15s;
+}
+
+.back:hover {
+  background: var(--chakra-colors-bg-emphasized);
+  color: var(--chakra-colors-fg);
+  border-color: var(--border-strong);
+}

@@ -1,6 +1,15 @@
 import { ComponentType, useCallback, useMemo, useState } from "react";
 import { NativeSelect } from "@chakra-ui/react";
 import { useNavigate } from "react-router-dom";
+import { IconType } from "react-icons";
+import {
+  LuArrowDownUp,
+  LuCalculator,
+  LuCalendarDays,
+  LuChartBar,
+  LuGitFork,
+  LuLayers,
+} from "react-icons/lu";
 import { Expense, Mode } from "@/types/types";
 import {
   useDateExtents,
@@ -46,10 +55,7 @@ import {
   groupAndSum,
   withTransparency,
 } from "@/utils/year-to-date";
-import {
-  ChartWidgetInstance,
-  ChartWidgetType,
-} from "@/store/ChartsStore";
+import { ChartWidgetType } from "@/store/ChartsStore";
 import styles from "./Charts.module.scss";
 
 const useChartOpen = () => {
@@ -65,7 +71,7 @@ const useChartOpen = () => {
   );
 };
 
-type WidgetProps = { instance: ChartWidgetInstance };
+type WidgetProps = { mode: Mode };
 
 const addTopLevelGroup = (
   data: { group: string; total: number }[],
@@ -167,8 +173,7 @@ const getGroupedAndSortedData = (mode: Mode, data: Expense[]) => {
   return grouped.sort((a, b) => chartDateCompare(a.group, b.group));
 };
 
-function DateGroupedWidget({ instance }: WidgetProps) {
-  const mode = instance.mode ?? Mode.MONTHLY;
+function DateGroupedWidget({ mode }: WidgetProps) {
   const filteredExpenses = useFilteredExpenses();
   const filteredIncome = useFilteredIncome();
   const filteredSavings = useFilteredSavings();
@@ -278,8 +283,7 @@ function DateGroupedWidget({ instance }: WidgetProps) {
   );
 }
 
-function TagStackedWidget({ instance }: WidgetProps) {
-  const mode = instance.mode ?? Mode.MONTHLY;
+function TagStackedWidget({ mode }: WidgetProps) {
   const filteredExpenses = useFilteredExpenses();
   const open = useChartOpen();
 
@@ -466,6 +470,7 @@ export type ChartWidgetDef = {
   type: ChartWidgetType;
   label: string;
   description: string;
+  icon: IconType;
   modes?: Mode[];
   defaultMode?: Mode;
   Component: ComponentType<WidgetProps>;
@@ -476,18 +481,21 @@ export const CHART_WIDGET_DEFS: ChartWidgetDef[] = [
     type: "average-spending",
     label: "Average Monthly Spending",
     description: "Average spend per month by tag or group",
+    icon: LuCalculator,
     Component: AverageSpendingWidget,
   },
   {
     type: "income-vs-expenses",
     label: "Income vs Expenses",
     description: "Totals for the selected range",
+    icon: LuArrowDownUp,
     Component: IncomeVsExpensesWidget,
   },
   {
     type: "date-grouped",
     label: "Date Grouped Expenses",
     description: "Expenses, income and savings over time",
+    icon: LuChartBar,
     modes: Object.values(Mode),
     defaultMode: Mode.MONTHLY,
     Component: DateGroupedWidget,
@@ -496,6 +504,7 @@ export const CHART_WIDGET_DEFS: ChartWidgetDef[] = [
     type: "tag-stacked",
     label: "Expenses by Tag",
     description: "Stacked spend by tag or group over time",
+    icon: LuLayers,
     modes: Object.values(Mode),
     defaultMode: Mode.MONTHLY,
     Component: TagStackedWidget,
@@ -504,12 +513,14 @@ export const CHART_WIDGET_DEFS: ChartWidgetDef[] = [
     type: "year-to-date",
     label: "Year To Date",
     description: "Year-over-year cumulative flows",
+    icon: LuCalendarDays,
     Component: YearToDateWidget,
   },
   {
     type: "sankey",
     label: "Cash Flow Sankey",
     description: "Income flowing to expenses and savings",
+    icon: LuGitFork,
     Component: SankeyWidget,
   },
 ];

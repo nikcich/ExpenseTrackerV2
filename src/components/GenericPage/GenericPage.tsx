@@ -72,20 +72,20 @@ const emptyStateConfig: Record<string, { title: string; description: string }> =
 
 export const GenericPage = ({
   actions,
+  leading,
   title,
   children,
   footer,
   hasRange = true,
   needsData = true,
-  scrollSnap = false,
 }: {
   actions?: JSX.Element;
+  leading?: JSX.Element;
   title: string;
   children: React.ReactNode;
   footer?: JSX.Element;
   hasRange?: boolean;
   needsData?: boolean;
-  scrollSnap?: boolean;
 }) => {
   const [range] = useDebouncedBrushRange();
   const hasDisplayData = useHasDisplayData();
@@ -113,6 +113,7 @@ export const GenericPage = ({
     <div className={styles.container}>
       <div className={styles.header}>
         <div className={styles.titleWrap}>
+          {leading}
           <Heading size="xl">
             {title}
             {hasRange ? (dateRangeText !== "" ? `: ${dateRangeText}` : "") : ""}
@@ -130,9 +131,7 @@ export const GenericPage = ({
 
         <div className={styles.actions}>{actions}</div>
       </div>
-      <div
-        className={`${styles.children} ${scrollSnap ? styles.snapScroll : ""}`}
-      >
+      <div className={styles.children}>
         {initialLoading && needsData && (
           <Flex direction="column" gap={4} p={6}>
             <SkeletonText noOfLines={1} height="6" width="40%" />

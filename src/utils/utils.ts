@@ -163,7 +163,9 @@ export function createDebouncedObservableHook<T>(
   debounceMs: number = 500,
 ) {
   return function useDebouncedObservableValue() {
-    const [value, setValue] = useState<T | undefined>(initialValue);
+    const [value, setValue] = useState<T | undefined>(
+      initialValue ?? (observable as BehaviorSubject<T>).value,
+    );
 
     useEffect(() => {
       const subscription = observable

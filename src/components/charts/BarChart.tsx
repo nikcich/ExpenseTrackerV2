@@ -50,11 +50,15 @@ export const BarChart = <T extends Datum>({
 
   const margin = useMemo(() => {
     if (horizontal) {
+      const maxLabelLen = Math.max(
+        1,
+        ...x.map((d) => String(d).length)
+      );
       return {
         top: 22,
         right: 30,
         bottom: 30,
-        left: legend ? 90 : 60,
+        left: Math.min(140, Math.max(24, maxLabelLen * 7.5 + 12)),
       };
     }
     return {
@@ -63,7 +67,7 @@ export const BarChart = <T extends Datum>({
       bottom: 60,
       left: 45,
     };
-  }, [horizontal, legend]);
+  }, [horizontal, legend, x]);
 
   const { width, height } = size;
   const innerWidth = Math.max(0, width - margin.left - margin.right);
