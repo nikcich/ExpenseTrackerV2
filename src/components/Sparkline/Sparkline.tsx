@@ -16,6 +16,8 @@ export type SparklineProps = {
   showLabels?: "auto" | "all" | "none";
   labelFontSize?: number;
   labelColor?: string;
+  yMin?: number;
+  yMax?: number;
   emptyText?: string;
   className?: string;
 };
@@ -35,6 +37,8 @@ export function Sparkline({
   showLabels = "none",
   labelFontSize = 8,
   labelColor = "var(--fg-subtle, #6b6b7b)",
+  yMin,
+  yMax,
   emptyText = "No data",
   className,
 }: SparklineProps) {
@@ -77,17 +81,17 @@ export function Sparkline({
   const innerH = height - pad.top - pad.bottom;
 
   const values = data.map((d) => d.value);
-  const yMin = Math.min(0, ...values);
-  const yMax = Math.max(0, ...values);
-  const yRange = yMax - yMin || 1;
+  const domainMin = Math.min(yMin ?? 0, ...values);
+  const domainMax = Math.max(yMax ?? 0, ...values);
+  const yRange = domainMax - domainMin || 1;
 
   const xScale = useCallback(
     (i: number) => pad.left + (i / Math.max(data.length - 1, 1)) * innerW,
     [pad.left, data.length, innerW],
   );
   const yScale = useCallback(
-    (v: number) => pad.top + innerH - ((v - yMin) / yRange) * innerH,
-    [pad.top, innerH, yMin, yRange],
+    (v: number) => pad.top + innerH - ((v - domainMin) / yRange) * innerH,
+    [pad.top, innerH, domainMin, yRange],
   );
 
   const points = data.map((d, i) => ({ x: xScale(i), y: yScale(d.value) }));

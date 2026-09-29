@@ -20,6 +20,13 @@ export const NetSparkline = memo(function NetSparkline({
     [data, months, fmt],
   );
 
+  const { yMin, yMax } = useMemo(() => {
+    const lo = Math.min(0, ...data);
+    const hi = Math.max(0, ...data);
+    const headroom = (hi - lo || 1) * 0.12;
+    return { yMin: lo - headroom, yMax: hi + headroom };
+  }, [data]);
+
   return (
     <Sparkline
       data={points}
@@ -29,6 +36,8 @@ export const NetSparkline = memo(function NetSparkline({
       }}
       height={60}
       padding={{ top: 2, right: 15, bottom: 14, left: 15 }}
+      yMin={yMin}
+      yMax={yMax}
       showArea
       showDots
       selectedIndex={selectedIndex}
