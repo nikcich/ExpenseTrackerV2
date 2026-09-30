@@ -1,4 +1,4 @@
-import { Heading, SkeletonText, Flex } from "@chakra-ui/react";
+import { Heading, SkeletonText, Flex, Spinner } from "@chakra-ui/react";
 import styles from "./GenericPage.module.scss";
 import { JSX, useEffect, useMemo, useState } from "react";
 import { useDebouncedBrushRange, setInstantBrushRange } from "@/store/store";
@@ -133,9 +133,8 @@ export const GenericPage = ({
       </div>
       <div className={styles.children}>
         {initialLoading && needsData && (
-          <Flex direction="column" gap={4} p={6}>
-            <SkeletonText noOfLines={1} height="6" width="40%" />
-            <SkeletonText noOfLines={6} gap={4} />
+          <Flex direction="column" gap={4} p={6} height="100%" align={"center"} justify={"center"}>
+            <Spinner scale={5}/>
           </Flex>
         )}
         {!initialLoading && displayContent && <>{children}</>}
