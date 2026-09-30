@@ -1,4 +1,4 @@
-import { Heading, SkeletonText, Flex, Spinner } from "@chakra-ui/react";
+import { Heading, Flex, Spinner } from "@chakra-ui/react";
 import styles from "./GenericPage.module.scss";
 import { JSX, useEffect, useMemo, useState } from "react";
 import { useDebouncedBrushRange, setInstantBrushRange } from "@/store/store";
