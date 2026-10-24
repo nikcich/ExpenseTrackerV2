@@ -1,4 +1,4 @@
-import { useMemo, type ReactNode } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import { scaleBand, scaleLinear } from "d3-scale";
 import sharedStyles from "./ChartPrimitives.module.scss";
 import styles from "./BarChart.module.scss";
@@ -60,11 +60,33 @@ export const BarChart = <T extends Datum>({
     };
   }, [horizontal, x]);
 
-  const allValues = useMemo(() => barCharts.flatMap((c) => c.y), [barCharts]);
+  const [disabled, setDisabled] = useState<Set<string>>(new Set());
+
+  const toggleDisabled = (name: string) => {
+    setDisabled((prev) => {
+      const next = new Set(prev);
+      if (next.has(name)) next.delete(name);
+      else next.add(name);
+      return next;
+    });
+  };
+
+  const visibleCharts = useMemo(
+    () => barCharts.filter((c) => !disabled.has(c.name)),
+    [barCharts, disabled]
+  );
+
+  const allValues = useMemo(() => visibleCharts.flatMap((c) => c.y), [visibleCharts]);
 
   const legendItems: LegendEntry[] = useMemo(
-    () => barCharts.map((c) => ({ name: c.name, color: c.color })),
-    [barCharts]
+    () =>
+      barCharts.map((c) => ({
+        name: c.name,
+        color: c.color,
+        dimmed: disabled.has(c.name),
+        onToggle: () => toggleDisabled(c.name),
+      })),
+    [barCharts, disabled]
   );
 
   return (
@@ -81,7 +103,7 @@ export const BarChart = <T extends Datum>({
           innerHeight={innerHeight}
           margin={m}
           x={x}
-          barCharts={barCharts}
+          barCharts={visibleCharts}
           horizontal={horizontal}
           threshold={threshold}
           xTickColors={xTickColors}
