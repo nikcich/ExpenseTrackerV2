@@ -36,8 +36,8 @@ const MockBanner = () => {
   if (!enabled) return null;
   return (
     <div style={{
-      background: "#f59e0b",
-      color: "#1a1a1a",
+      background: "var(--fg-warning)",
+      color: "var(--chakra-colors-fg-inverted)",
       textAlign: "center",
       padding: "0.3rem 1rem",
       fontSize: "0.75rem",

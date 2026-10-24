@@ -1,6 +1,8 @@
 import { Box } from "@chakra-ui/react";
 import { useActiveOverlay, Overlay, closeAllOverlays } from "@/store/OverlayStore";
 import { useEffect, useRef } from "react";
+import cx from "classnames";
+import styles from "./GenericModal.module.scss";
 
 const FOCUSABLE_SELECTOR =
   'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])';
@@ -84,25 +86,16 @@ export const GenericModal = ({ children, overlay, fullscreen = false }: ModalPro
   return (
     <div
       ref={containerRef}
-      style={{
-        position: "fixed",
-        inset: 0,
-        background: "rgba(0, 0, 0, 0.5)",
-        backdropFilter: "blur(10px)",
-        zIndex: 101,
-        display: "flex",
-        justifyContent: "center",
-        alignItems: "center",
-        padding: fullscreen ? "24px" : 0,
-      }}
+      className={cx(styles.backdrop, fullscreen && styles.fullscreen)}
     >
       <Box
         bg="bg.panel"
         borderRadius={fullscreen ? "lg" : "xl"}
         p={fullscreen ? 6 : 5}
-        width={fullscreen ? "100%" : "50%"}
+        width={fullscreen ? "100%" : "clamp(320px, 50%, 640px)"}
         height={fullscreen ? "100%" : undefined}
         maxHeight={fullscreen ? "100%" : "80vh"}
+        maxWidth={fullscreen ? undefined : "calc(100vw - 48px)"}
         overflow={fullscreen ? "hidden" : "auto"}
         boxShadow="lg"
         borderWidth="1px"

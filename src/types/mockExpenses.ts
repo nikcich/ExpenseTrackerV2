@@ -6,6 +6,7 @@ import {
   ImportHistory,
   KnownStoreKeys,
   RsuVestsMap,
+  RsuSettlementsMap,
   SalesMap,
   SsdiConfig,
   StockMap,
@@ -382,7 +383,7 @@ const generateMockGrants = (stockId: string, vestStartDate: Date): GrantMap => {
     name: "Q1 2024 RSU Grant",
     stockId,
     grantPrice: 150,
-    totalShares: 200,
+    totalShares: 300,
     vestingSchedule: {
       startDate: format(vestStartDate, "yyyy-MM-dd"),
       totalYears: 4,
@@ -397,15 +398,39 @@ const generateMockRsuVests = (from: Date, grants: GrantMap): RsuVestsMap => {
   const map: RsuVestsMap = {};
   const grantId = Object.keys(grants)[0];
   if (!grantId) return map;
-  for (let i = 0; i < 4; i++) {
+  // 5 vests so far; only the first 4 have gone through a settlement (see
+  // generateMockRsuSettlements) — the most recent one is deliberately left
+  // pending, to demonstrate the "Pending Settlement" state.
+  for (const month of [1, 4, 7, 10, 11]) {
     const id = uuidv4();
-    const vestDate = addMonths(from, i * 3 + 1);
+    const vestDate = addMonths(from, month);
     map[id] = {
       id,
       grantId,
       vestDate: format(vestDate, "yyyy-MM-dd"),
       shares: 50,
+    };
+  }
+  return map;
+};
+
+const generateMockRsuSettlements = (from: Date, grants: GrantMap): RsuSettlementsMap => {
+  const map: RsuSettlementsMap = {};
+  const grantId = Object.keys(grants)[0];
+  if (!grantId) return map;
+  // Settlement happens semi-annually here, bundling two quarterly vest
+  // tranches (100 gross shares) per settlement, with ~28% withheld for taxes
+  // — demonstrates that vest and settlement can run on different cadences.
+  for (const month of [4, 10]) {
+    const id = uuidv4();
+    const settlementDate = addMonths(from, month);
+    map[id] = {
+      id,
+      grantId,
+      date: format(settlementDate, "yyyy-MM-dd"),
+      shares: 100,
       basisPrice: Math.round((45 + Math.random() * 15) * 10) / 10,
+      sharesWithheld: 28,
     };
   }
   return map;
@@ -574,6 +599,7 @@ export const createMockData = (): MockDataMap => {
   const firstStockId = Object.keys(stocks)[0];
   const grants = generateMockGrants(firstStockId, startDate);
   const rsuVests = generateMockRsuVests(startDate, grants);
+  const rsuSettlements = generateMockRsuSettlements(startDate, grants);
   const sales = generateMockSales(startDate, firstStockId);
   const balanceSnapshots = generateMockBalanceSnapshots(startDate, endDate);
 
@@ -630,6 +656,7 @@ export const createMockData = (): MockDataMap => {
     [KnownStoreKeys.Stocks]: stocks,
     [KnownStoreKeys.Grants]: grants,
     [KnownStoreKeys.RsuVests]: rsuVests,
+    [KnownStoreKeys.RsuSettlements]: rsuSettlements,
     [KnownStoreKeys.Sales]: sales,
     [KnownStoreKeys.BalanceSnapshots]: balanceSnapshots,
     [KnownStoreKeys.ForecastConfig]: forecastConfig,

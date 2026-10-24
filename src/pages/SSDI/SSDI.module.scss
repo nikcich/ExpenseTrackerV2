@@ -58,7 +58,7 @@
 }
 
 .fieldInput:focus {
-  border-color: #3b82f6;
+  border-color: var(--fg-muted);
 }
 
 .searchContainer {
@@ -79,7 +79,7 @@
 }
 
 .searchInput:focus {
-  border-color: #3b82f6;
+  border-color: var(--fg-muted);
 }
 
 .previewContainer {
@@ -136,7 +136,7 @@
 }
 
 .tableInput:focus {
-  border-color: #3b82f6;
+  border-color: var(--fg-muted);
 }
 
 .deleteButton {
@@ -180,11 +180,11 @@
 }
 
 .previewRow:hover {
-  background: rgba(59, 130, 246, 0.08);
+  background: color-mix(in srgb, var(--accent-primary) 8%, transparent);
 }
 
 .addButton {
-  background: #3b82f6;
+  background: var(--accent-primary);
   color: white;
   border: none;
   border-radius: 0.375rem;
@@ -195,7 +195,7 @@
 }
 
 .addButton:hover {
-  background: #2563eb;
+  background: var(--accent-primary-hover);
 }
 
 .addedBadge {

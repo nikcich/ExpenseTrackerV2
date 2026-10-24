@@ -90,8 +90,8 @@
   gap: 0.4rem;
   padding: 0.3rem 0.65rem;
   border-radius: 9999px;
-  background: rgba(56, 161, 105, 0.12);
-  border: 1px solid rgba(56, 161, 105, 0.35);
+  background: var(--success-muted);
+  border: 1px solid color-mix(in srgb, var(--fg-success) 35%, transparent);
   color: var(--fg-default);
   font-size: 0.8rem;
   font-weight: 500;

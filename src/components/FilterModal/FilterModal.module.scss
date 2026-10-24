@@ -62,7 +62,7 @@
 
 .notActive {
   background: var(--fg-warning);
-  color: #141414;
+  color: var(--chakra-colors-fg-inverted);
   border-color: var(--fg-warning);
 }
 
@@ -102,7 +102,7 @@
   border-radius: 6px;
 
   &:hover {
-    background: rgba(248, 113, 113, 0.12);
+    background: color-mix(in srgb, var(--fg-error) 12%, transparent);
   }
 }
 

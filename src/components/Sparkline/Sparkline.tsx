@@ -24,7 +24,7 @@ export type SparklineProps = {
 
 export function Sparkline({
   data,
-  color = "var(--fg-info, #60a5fa)",
+  color = "var(--fg-info)",
   segmentColors,
   curve = "smooth",
   height = 70,
@@ -36,7 +36,7 @@ export function Sparkline({
   selectedIndex,
   showLabels = "none",
   labelFontSize = 8,
-  labelColor = "var(--fg-subtle, #6b6b7b)",
+  labelColor = "var(--fg-subtle)",
   yMin,
   yMax,
   emptyText = "No data",

@@ -116,7 +116,7 @@ export function SSDI() {
               <span
                 className={styles.overviewValue}
                 style={{
-                  color: isCompliant ? "var(--fg-success, #4ade80)" : "var(--fg-error, #f87171)",
+                  color: isCompliant ? "var(--fg-success)" : "var(--fg-error)",
                 }}
               >
                 {isCompliant ? "OK" : "NON-COMPLIANT"}

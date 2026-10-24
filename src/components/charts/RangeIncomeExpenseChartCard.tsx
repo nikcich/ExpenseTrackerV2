@@ -1,5 +1,6 @@
 import { ChartCard } from "./ChartCard";
 import { BarChart } from "./BarChart";
+import { EXPENSE_CHART_COLOR, INCOME_CHART_COLOR, SAVINGS_CHART_COLOR } from "@/utils/colors";
 
 export function RangeIncomeExpenseChartCard({
   totalExpenses,
@@ -25,17 +26,17 @@ export function RangeIncomeExpenseChartCard({
           {
             name: "Expenses",
             y: [Math.abs(totalExpenses)],
-            color: "#bb0000ff",
+            color: EXPENSE_CHART_COLOR,
           },
           {
             name: "Income",
             y: [Math.abs(totalIncome)],
-            color: "#00a100ff",
+            color: INCOME_CHART_COLOR,
           },
           {
             name: "Savings",
             y: [Math.abs(totalSavings)],
-            color: "#ffd000ff",
+            color: SAVINGS_CHART_COLOR,
           },
         ]}
       />

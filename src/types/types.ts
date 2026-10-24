@@ -23,6 +23,7 @@ export enum KnownStoreKeys {
   Stocks = "stocks",
   Grants = "grants",
   RsuVests = "rsu_vests",
+  RsuSettlements = "rsu_settlements",
   Sales = "sales",
   BalanceSnapshots = "balance_snapshots",
   CustomCsvDefinitions = "custom_csv_definitions",
@@ -140,11 +141,23 @@ export type RsuVest = {
   grantId: string;
   vestDate: string;
   shares: number;
-  basisPrice: number;
 };
 
 export type RsuVestsMap = {
   [id: string]: RsuVest;
+};
+
+export type RsuSettlement = {
+  id: string;
+  grantId: string;
+  date: string;
+  shares: number;
+  basisPrice: number;
+  sharesWithheld?: number;
+};
+
+export type RsuSettlementsMap = {
+  [id: string]: RsuSettlement;
 };
 
 export type Sale = {

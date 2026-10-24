@@ -39,6 +39,7 @@ import {
 import { setNavFilter } from "@/store/NavFilterStore";
 import { Pages } from "@/types/routes";
 import { buildCashFlowSankey } from "@/utils/sankey-flow";
+import { EXPENSE_CHART_COLOR, INCOME_CHART_COLOR, SAVINGS_CHART_COLOR } from "@/utils/colors";
 import {
   createChart,
   filterAllExpensesYear,
@@ -200,7 +201,7 @@ function DateGroupedWidget({ mode }: WidgetProps) {
             sortedGroupedExpenses.find((e) => e.group === group)?.total ?? 0
           )
         ),
-        color: "#bb0000ff",
+        color: EXPENSE_CHART_COLOR,
       },
       {
         name: "Income",
@@ -209,7 +210,7 @@ function DateGroupedWidget({ mode }: WidgetProps) {
             sortedGroupedIncome.find((e) => e.group === group)?.total ?? 0
           )
         ),
-        color: "#00a100ff",
+        color: INCOME_CHART_COLOR,
       },
       {
         name: "Savings",
@@ -217,7 +218,7 @@ function DateGroupedWidget({ mode }: WidgetProps) {
           (group) =>
             sortedGroupedSavings.find((e) => e.group === group)?.total ?? 0
         ),
-        color: "#ffd000ff",
+        color: SAVINGS_CHART_COLOR,
       },
     ],
     [groups, sortedGroupedExpenses, sortedGroupedIncome, sortedGroupedSavings]
@@ -370,19 +371,19 @@ function YearToDateWidget() {
         return [
           createChart(
             `${thisYear} Income`,
-            withTransparency("#00a100ff", rank, newestFirst.length),
+            withTransparency(INCOME_CHART_COLOR, rank, newestFirst.length),
             yearIncome,
             finalGroups
           ),
           createChart(
             `${thisYear} Expenses`,
-            withTransparency("#bb0000ff", rank, newestFirst.length),
+            withTransparency(EXPENSE_CHART_COLOR, rank, newestFirst.length),
             yearExpenses,
             finalGroups
           ),
           createChart(
             `${thisYear} Savings`,
-            withTransparency("#ffd000ff", rank, newestFirst.length),
+            withTransparency(SAVINGS_CHART_COLOR, rank, newestFirst.length),
             yearSavings,
             finalGroups
           ),

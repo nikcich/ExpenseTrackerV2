@@ -205,7 +205,7 @@ function Diagram({
               width={n.w}
               height={n.h}
               rx={2}
-              fill={n.color ?? "#ccc"}
+              fill={n.color ?? "var(--fg-muted)"}
               onMouseMove={(e) =>
                 onShow(e.clientX, e.clientY, (
                   <>
@@ -224,7 +224,7 @@ function Diagram({
               x={labelX}
               y={n.y + n.h / 2 + 3}
               fontSize={11}
-              fill="#ffffff"
+              fill="white"
               textAnchor={isRightColumn ? "end" : "start"}
             >
               {n.label}

@@ -58,7 +58,7 @@ export const DonutChart = memo(function DonutChart({
             cy={VB_RADIUS}
             r={VB_RADIUS - 2}
             fill="none"
-            stroke="#32323c"
+            stroke="var(--border-color)"
             strokeWidth={THICKNESS}
           />
         ) : (

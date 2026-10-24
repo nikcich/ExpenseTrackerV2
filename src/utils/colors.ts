@@ -83,3 +83,11 @@ export function colorForName(name: string): string {
 export function colorForNames(names: string[]): string[] {
   return names.map(colorForName);
 }
+
+// Fixed categorical colors for the three universal expense/income/savings
+// chart series. Kept as literal 8-digit hex (not CSS vars) because
+// withTransparency() in year-to-date.ts slices/replaces the alpha byte
+// directly, which only works on a literal hex string.
+export const EXPENSE_CHART_COLOR = "#bb0000ff";
+export const INCOME_CHART_COLOR = "#00a100ff";
+export const SAVINGS_CHART_COLOR = "#ffd000ff";

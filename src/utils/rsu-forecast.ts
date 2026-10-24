@@ -1,10 +1,9 @@
 import { addMonths } from "date-fns";
-import type { Grant, RsuVest, Stock, VestingFrequency } from "@/types/types";
+import type { Grant, RsuSettlement, RsuVest, Stock, VestingFrequency } from "@/types/types";
 
 export type ForecastVest = {
   date: string;
   shares: number;
-  basisPrice: number;
   projectedValue: number;
   isPast: boolean;
 };
@@ -15,15 +14,6 @@ const FREQUENCY_MONTHS: Record<VestingFrequency, number> = {
   "semi-annual": 6,
   annual: 12,
 };
-
-export function computeGrantVestedShares(
-  grantId: string,
-  vests: RsuVest[],
-): number {
-  return vests
-    .filter((v) => v.grantId === grantId)
-    .reduce((s, v) => s + v.shares, 0);
-}
 
 export function computeForecast(
   grant: Grant,
@@ -69,7 +59,6 @@ export function computeForecast(
       forecastVests.push({
         date: dateStr,
         shares: actualVest.shares,
-        basisPrice: actualVest.basisPrice,
         projectedValue:
           Math.round(actualVest.shares * currentPrice * 100) / 100,
         isPast: true,
@@ -84,7 +73,6 @@ export function computeForecast(
       forecastVests.push({
         date: dateStr,
         shares: Math.round(sharesPerEvent * 100) / 100,
-        basisPrice: grant.grantPrice,
         projectedValue:
           Math.round(sharesPerEvent * currentPrice * 100) / 100,
         isPast,
@@ -93,4 +81,21 @@ export function computeForecast(
   }
 
   return forecastVests;
+}
+
+export function settlementNetShares(settlement: RsuSettlement): number {
+  return settlement.shares - (settlement.sharesWithheld ?? 0);
+}
+
+export function computeRsuPortfolioValue(
+  settlements: RsuSettlement[],
+  grantMap: Map<string, Grant>,
+  stockMap: Map<string, Stock>
+): number {
+  return settlements.reduce((sum, settlement) => {
+    const grant = grantMap.get(settlement.grantId);
+    const stock = grant ? stockMap.get(grant.stockId) : undefined;
+    const netShares = settlementNetShares(settlement);
+    return sum + netShares * (stock?.currentPrice ?? settlement.basisPrice);
+  }, 0);
 }

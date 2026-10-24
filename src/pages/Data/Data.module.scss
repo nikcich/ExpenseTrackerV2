@@ -12,7 +12,7 @@
 .loadingOverlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.6);
+  background: hsl(var(--shadow-color) / 0.6);
   backdrop-filter: blur(4px);
   display: flex;
   flex-direction: column;
@@ -148,7 +148,7 @@
 
   &:hover {
     background: var(--fg-info);
-    color: #000;
+    color: var(--chakra-colors-fg-inverted);
   }
 
   &:disabled {
@@ -166,8 +166,8 @@
   composes: btn;
 
   &:hover {
-    border-color: #ef4444;
-    color: #ef4444;
+    border-color: var(--fg-error);
+    color: var(--fg-error);
   }
 }
 
@@ -247,22 +247,22 @@
   font-size: 0.7rem;
   padding: 0.15rem 0.5rem;
   border-radius: 0.35rem;
-  background: rgba(234, 179, 8, 0.15);
-  color: #eab308;
+  background: var(--warning-muted);
+  color: var(--fg-warning);
   font-weight: 600;
 }
 
 .errorRow {
-  background: rgba(239, 68, 68, 0.08);
+  background: var(--error-muted);
 }
 
 .errorText {
-  color: #ef4444;
+  color: var(--fg-error);
   font-size: 0.75rem;
 }
 
 .okBadge {
-  color: #22c55e;
+  color: var(--fg-success);
   font-weight: 600;
   font-size: 0.75rem;
 }
@@ -314,16 +314,16 @@
 .parseBtn {
   padding: 0.35rem 0.8rem;
   border-radius: 0.35rem;
-  border: 1px solid #10b981;
+  border: 1px solid var(--fg-success);
   background: transparent;
-  color: #10b981;
+  color: var(--fg-success);
   font-size: 0.75rem;
   cursor: pointer;
   font-family: inherit;
 
   &:hover {
-    background: #10b981;
-    color: #fff;
+    background: var(--fg-success);
+    color: white;
   }
 
   &:disabled {
@@ -342,15 +342,15 @@
 }
 
 .alertSuccess {
-  background: rgba(16, 185, 129, 0.1);
-  border: 1px solid rgba(16, 185, 129, 0.3);
-  color: #10b981;
+  background: var(--success-muted);
+  border: 1px solid color-mix(in srgb, var(--fg-success) 30%, transparent);
+  color: var(--fg-success);
 }
 
 .alertError {
-  background: rgba(239, 68, 68, 0.1);
-  border: 1px solid rgba(239, 68, 68, 0.3);
-  color: #ef4444;
+  background: var(--error-muted);
+  border: 1px solid color-mix(in srgb, var(--fg-error) 30%, transparent);
+  color: var(--fg-error);
 }
 
 .alertMessage {

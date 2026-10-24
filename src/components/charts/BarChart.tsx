@@ -1,15 +1,11 @@
-import { useMemo, useRef, type ReactNode } from "react";
+import { useMemo, type ReactNode } from "react";
 import { scaleBand, scaleLinear } from "d3-scale";
+import sharedStyles from "./ChartPrimitives.module.scss";
 import styles from "./BarChart.module.scss";
-import { useElementSize } from "@/hooks/useElementSize";
+import { ChartShell, ValueAxis, type LegendEntry, type Margin } from "./ChartPrimitives";
+import { catBandTick } from "./chartScaleUtils";
 import { ChartOpenPayload } from "./StackedBarChart";
-import {
-  useChartTooltip,
-  ChartTooltip,
-  formatTooltipMoney,
-  TooltipTitle,
-  TooltipRow,
-} from "./ChartTooltip";
+import { formatTooltipMoney, TooltipTitle, TooltipRow } from "./ChartTooltip";
 
 type Datum = string | number | Date | null;
 
@@ -26,6 +22,7 @@ interface BarChartProps<T extends Datum> {
   };
   xTickColors?: string[];
   onOpen?: (payload: ChartOpenPayload) => void;
+  tooltipValueFormat?: (value: number) => string;
 }
 
 interface BarChartItem {
@@ -43,17 +40,11 @@ export const BarChart = <T extends Datum>({
   threshold,
   xTickColors,
   onOpen,
+  tooltipValueFormat = formatTooltipMoney,
 }: BarChartProps<T>) => {
-  const plotRef = useRef<HTMLDivElement | null>(null);
-  const size = useElementSize(plotRef);
-  const { containerRef, tip, show, hide } = useChartTooltip();
-
-  const margin = useMemo(() => {
+  const margin: Margin = useMemo(() => {
     if (horizontal) {
-      const maxLabelLen = Math.max(
-        1,
-        ...x.map((d) => String(d).length)
-      );
+      const maxLabelLen = Math.max(1, ...x.map((d) => String(d).length));
       return {
         top: 22,
         right: 30,
@@ -67,74 +58,41 @@ export const BarChart = <T extends Datum>({
       bottom: 60,
       left: 45,
     };
-  }, [horizontal, legend, x]);
+  }, [horizontal, x]);
 
-  const { width, height } = size;
-  const innerWidth = Math.max(0, width - margin.left - margin.right);
-  const innerHeight = Math.max(0, height - margin.top - margin.bottom);
+  const allValues = useMemo(() => barCharts.flatMap((c) => c.y), [barCharts]);
 
-  const allValues = useMemo(
-    () => barCharts.flatMap((c) => c.y),
+  const legendItems: LegendEntry[] = useMemo(
+    () => barCharts.map((c) => ({ name: c.name, color: c.color })),
     [barCharts]
   );
 
   return (
-    <div className={styles.container}>
-      {legend && legendDirection === "h" && (
-        <div className={styles.legendRow}>
-          {barCharts.map((c) => (
-            <span key={c.name} className={styles.legendItem}>
-              <span
-                className={styles.legendSwatch}
-                style={{ backgroundColor: c.color }}
-              />
-              {c.name}
-            </span>
-          ))}
-        </div>
+    <ChartShell
+      legend={legend}
+      legendDirection={legendDirection}
+      legendItems={legendItems}
+      margin={margin}
+      hasData={barCharts.length > 0 && x.length > 0}
+    >
+      {({ innerWidth, innerHeight, margin: m, show, hide }) => (
+        <Graph
+          innerWidth={innerWidth}
+          innerHeight={innerHeight}
+          margin={m}
+          x={x}
+          barCharts={barCharts}
+          horizontal={horizontal}
+          threshold={threshold}
+          xTickColors={xTickColors}
+          allValues={allValues}
+          onOpen={onOpen}
+          onShow={show}
+          onHide={hide}
+          tooltipValueFormat={tooltipValueFormat}
+        />
       )}
-      <div className={styles.bodyRow}>
-        <div className={styles.plotContainer} ref={(el) => { plotRef.current = el; containerRef.current = el; }}>
-          {innerWidth > 0 && innerHeight > 0 && (
-            <svg
-              className={styles.svg}
-              viewBox={`0 0 ${width} ${height}`}
-            >
-              {barCharts.length > 0 && x.length > 0 && (
-                <Graph
-                  innerWidth={innerWidth}
-                  innerHeight={innerHeight}
-                  margin={margin}
-                  x={x}
-                  barCharts={barCharts}
-                  horizontal={horizontal}
-                  threshold={threshold}
-                  xTickColors={xTickColors}
-                  allValues={allValues}
-                  onOpen={onOpen}
-                  onShow={show}
-                  onHide={hide}
-                />
-              )}
-            </svg>
-          )}
-          <ChartTooltip tip={tip} />
-        </div>
-        {legend && legendDirection === "v" && (
-          <div className={styles.legendCol}>
-            {barCharts.map((c) => (
-              <span key={c.name} className={styles.legendItem}>
-                <span
-                  className={styles.legendSwatch}
-                  style={{ backgroundColor: c.color }}
-                />
-                {c.name}
-              </span>
-            ))}
-          </div>
-        )}
-      </div>
-    </div>
+    </ChartShell>
   );
 };
 
@@ -151,10 +109,11 @@ function Graph<T extends Datum>({
   onOpen,
   onShow,
   onHide,
+  tooltipValueFormat,
 }: {
   innerWidth: number;
   innerHeight: number;
-  margin: { top: number; right: number; bottom: number; left: number };
+  margin: Margin;
   x: T[];
   barCharts: BarChartItem[];
   horizontal: boolean;
@@ -164,6 +123,7 @@ function Graph<T extends Datum>({
   onOpen?: (payload: ChartOpenPayload) => void;
   onShow: (px: number, py: number, content: ReactNode) => void;
   onHide: () => void;
+  tooltipValueFormat: (value: number) => string;
 }) {
   const plotX = margin.left;
   const plotY = margin.top;
@@ -201,7 +161,7 @@ function Graph<T extends Datum>({
     (bandWidth - groupPad * (barCharts.length - 1)) / barCharts.length
   );
 
-  const yTicks = useMemo(() => valScale.ticks(horizontal ? 5 : 5), [valScale, horizontal]);
+  const yTicks = useMemo(() => valScale.ticks(5), [valScale]);
   const xTicks = useMemo(
     () => catScale.domain().filter((_, i) => (horizontal ? true : catBandTick(i, catLabels.length))),
     [catScale, horizontal, catLabels.length]
@@ -209,52 +169,15 @@ function Graph<T extends Datum>({
 
   return (
     <>
-      {yTicks.map((t) => {
-        const ty = horizontal
-          ? plotY
-          : valScale(t);
-        const tx = horizontal ? valScale(t) : plotX;
-        if (horizontal) {
-          return (
-            <g key={t}>
-              <line
-                className={styles.gridLine}
-                x1={tx}
-                y1={plotY}
-                x2={tx}
-                y2={plotY + plotH}
-              />
-              <text
-                className={styles.axisText}
-                x={tx}
-                y={plotY + 2}
-                textAnchor="middle"
-              >
-                {valFormat(t)}
-              </text>
-            </g>
-          );
-        }
-        return (
-          <g key={t}>
-            <line
-              className={styles.gridLine}
-              x1={plotX}
-              y1={ty}
-              x2={plotX + plotW}
-              y2={ty}
-            />
-            <text
-              className={styles.axisText}
-              x={plotX - 8}
-              y={ty + 3}
-              textAnchor="end"
-            >
-              {valFormat(t)}
-            </text>
-          </g>
-        );
-      })}
+      <ValueAxis
+        ticks={yTicks}
+        valScale={valScale}
+        plotX={plotX}
+        plotY={plotY}
+        plotW={plotW}
+        plotH={plotH}
+        horizontal={horizontal}
+      />
 
       {xTicks.map((label) => {
         const idx = catLabels.indexOf(label);
@@ -263,7 +186,7 @@ function Graph<T extends Datum>({
           return (
             <text
               key={label}
-              className={styles.axisText}
+              className={sharedStyles.axisText}
               x={plotX - 8}
               y={cy + 3}
               textAnchor="end"
@@ -293,7 +216,7 @@ function Graph<T extends Datum>({
         return (
           <text
             key={label}
-            className={styles.axisText}
+            className={sharedStyles.axisText}
             x={cx}
             y={cy + 17}
             textAnchor="middle"
@@ -345,7 +268,7 @@ function Graph<T extends Datum>({
                     <TooltipRow
                       color={chart.color}
                       label={chart.name}
-                      value={formatTooltipMoney(value)}
+                      value={tooltipValueFormat(value)}
                     />
                   </>
                 ))
@@ -374,7 +297,7 @@ function Graph<T extends Datum>({
                   y1={plotY}
                   x2={tx}
                   y2={plotY + plotH}
-                  stroke={threshold.color ?? "#ff4444"}
+                  stroke={threshold.color ?? "var(--error)"}
                   strokeWidth={2}
                 />
                 {threshold.label && (
@@ -382,7 +305,7 @@ function Graph<T extends Datum>({
                     className={styles.thresholdLabel}
                     x={tx + 4}
                     y={plotY + 14}
-                    fill={threshold.color ?? "#ff4444"}
+                    fill={threshold.color ?? "var(--error)"}
                   >
                     {threshold.label}
                   </text>
@@ -401,7 +324,7 @@ function Graph<T extends Datum>({
                   y1={ty}
                   x2={plotX + plotW}
                   y2={ty}
-                  stroke={threshold.color ?? "#ff4444"}
+                  stroke={threshold.color ?? "var(--error)"}
                   strokeWidth={2}
                 />
                 {threshold.label && (
@@ -410,7 +333,7 @@ function Graph<T extends Datum>({
                     x={plotX + plotW - 4}
                     y={ty - 8}
                     textAnchor="end"
-                    fill={threshold.color ?? "#ff4444"}
+                    fill={threshold.color ?? "var(--error)"}
                   >
                     {threshold.label}
                   </text>
@@ -421,18 +344,4 @@ function Graph<T extends Datum>({
         ))}
     </>
   );
-}
-
-function catBandTick(i: number, total: number): boolean {
-  if (total <= 14) return true;
-  const step = Math.ceil(total / 14);
-  return i % step === 0;
-}
-
-function valFormat(v: number): string {
-  const abs = Math.abs(v);
-  if (abs >= 1_000_000) return `${(v / 1_000_000).toFixed(1)}M`;
-  if (abs >= 1000) return `${(v / 1000).toFixed(v >= 10000 ? 0 : 1)}k`;
-  if (abs >= 100) return `${Math.round(v)}`;
-  return `${Math.round(v * 10) / 10}`;
 }

@@ -1,4 +1,4 @@
-import { BalanceSnapshot, BalanceSnapshotsMap, DynamicCsvDefinition, ForecastConfigData, Grant, GrantMap, ImportHistory, KnownStoreKeys, RsuVest, RsuVestsMap, Sale, SalesMap, SsdiConfig, SsdiPayPeriod, Stock, StockMap, StoreExpenseMap } from "../types/types";
+import { BalanceSnapshot, BalanceSnapshotsMap, DynamicCsvDefinition, ForecastConfigData, Grant, GrantMap, ImportHistory, KnownStoreKeys, RsuVest, RsuVestsMap, RsuSettlement, RsuSettlementsMap, Sale, SalesMap, SsdiConfig, SsdiPayPeriod, Stock, StockMap, StoreExpenseMap } from "../types/types";
 import { createDebouncedObservableHook, createObservableHook, createStoreHook } from "../utils/utils";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { BehaviorSubject } from "rxjs";
@@ -63,6 +63,35 @@ export function useRsuVests() {
   }, [value, setValue]);
 
   return { vests, addVest, updateVest, removeVest };
+}
+
+const [useRsuSettlementsStore] = createStoreHook<RsuSettlementsMap>({
+  key: KnownStoreKeys.RsuSettlements,
+  defaultValue: {},
+});
+
+export function useRsuSettlements() {
+  const { value, setValue } = useRsuSettlementsStore();
+  const settlements = useMemo(() => Object.values(value ?? {}), [value]);
+
+  const addSettlement = useCallback((settlement: RsuSettlement) => {
+    const id = crypto.randomUUID();
+    setValue({ ...(value ?? {}), [id]: { ...settlement, id } });
+  }, [value, setValue]);
+
+  const updateSettlement = useCallback((id: string, settlement: RsuSettlement) => {
+    if (!value) return;
+    setValue({ ...value, [id]: settlement });
+  }, [value, setValue]);
+
+  const removeSettlement = useCallback((id: string) => {
+    if (!value) return;
+    const next = { ...value };
+    delete next[id];
+    setValue(next);
+  }, [value, setValue]);
+
+  return { settlements, addSettlement, updateSettlement, removeSettlement };
 }
 
 const [useStocksStore] = createStoreHook<StockMap>({
@@ -203,11 +232,18 @@ export function useForecastConfig() {
 
 export function useHasRsuData() {
   const { vests } = useRsuVests();
+  const { settlements } = useRsuSettlements();
   const { stocks } = useStocks();
   const { grants } = useGrants();
   const { sales } = useSales();
 
-  return vests.length > 0 || stocks.length > 0 || grants.length > 0 || sales.length > 0;
+  return (
+    vests.length > 0 ||
+    settlements.length > 0 ||
+    stocks.length > 0 ||
+    grants.length > 0 ||
+    sales.length > 0
+  );
 }
 
 export function useHasSsdiData() {

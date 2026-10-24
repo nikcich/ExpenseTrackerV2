@@ -31,8 +31,8 @@ export const NetSparkline = memo(function NetSparkline({
     <Sparkline
       data={points}
       segmentColors={{
-        positive: "var(--fg-success, #4ade80)",
-        negative: "var(--fg-error, #f87171)",
+        positive: "var(--fg-success)",
+        negative: "var(--fg-error)",
       }}
       height={60}
       padding={{ top: 2, right: 15, bottom: 14, left: 15 }}

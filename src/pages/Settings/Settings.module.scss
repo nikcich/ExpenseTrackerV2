@@ -82,8 +82,8 @@
 }
 
 .tabActive {
-  border-left-color: #ffffff;
-  color: #ffffff;
+  border-left-color: var(--text-primary);
+  color: var(--text-primary);
   font-weight: 600;
 }
 

@@ -48,25 +48,24 @@ const useInitialLoading = () => {
 
 const emptyStateConfig: Record<string, { title: string; description: string }> =
   {
+    "/": {
+      title: "No data yet",
+      description:
+        "Import a CSV file or create an expense manually to populate your overview.",
+    },
     "/table-view": {
       title: "No transactions yet",
       description:
         "Import a CSV file or create an expense manually to populate the table.",
     },
-    "/charts": {
-      title: "No data to chart",
+    "/accounts": {
+      title: "No account snapshots yet",
       description:
-        "Add some expenses or adjust the date range to populate your charts.",
+        "Add an assets/debts snapshot to start tracking your net worth here.",
     },
-    "/settings": {
-      title: "No tags available",
-      description:
-        "Add expenses with tags to customize which tags appear in charts.",
-    },
-    "/ssdi": {
-      title: "No SSDI data",
-      description:
-        "Search for income deposits to start tracking your earnings against SGA thresholds.",
+    "/rsu": {
+      title: "No RSU vests yet",
+      description: "Add a vest event to start tracking your RSU holdings here.",
     },
   };
 

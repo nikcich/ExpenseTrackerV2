@@ -1,4 +1,4 @@
-import { memo, useMemo, useRef, type ReactNode } from "react";
+import { memo, useMemo, type ReactNode } from "react";
 import { scaleBand, scaleLinear } from "d3-scale";
 import {
   line as d3line,
@@ -7,15 +7,10 @@ import {
   curveStepAfter,
   curveStepBefore,
 } from "d3-shape";
-import styles from "./LineChart.module.scss";
-import { useElementSize } from "@/hooks/useElementSize";
-import {
-  useChartTooltip,
-  ChartTooltip,
-  formatTooltipMoney,
-  TooltipTitle,
-  TooltipRow,
-} from "./ChartTooltip";
+import styles from "./ChartPrimitives.module.scss";
+import { ChartShell, ValueAxis, type LegendEntry, type Margin } from "./ChartPrimitives";
+import { catBandTick } from "./chartScaleUtils";
+import { formatTooltipMoney, TooltipTitle, TooltipRow } from "./ChartTooltip";
 
 type Datum = string | number | Date | null;
 
@@ -25,7 +20,10 @@ interface LineChartProps<T extends Datum> {
   horizontal?: boolean;
   legend?: boolean;
   legendDirection?: "v" | "h";
+  legendAlign?: "start" | "center";
   lineShape?: "linear" | "hv" | "vh" | "hvh" | "vhv";
+  tooltipValueFormat?: (value: number) => string;
+  axisValueFormat?: (value: number) => string;
 }
 
 interface LineChartItem {
@@ -40,72 +38,49 @@ export const LineChart = memo(function LineChart<T extends Datum>({
   horizontal = false,
   legend = true,
   legendDirection = "v",
+  legendAlign = "center",
   lineShape = "linear",
+  tooltipValueFormat = formatTooltipMoney,
+  axisValueFormat,
 }: LineChartProps<T>) {
-  const plotRef = useRef<HTMLDivElement | null>(null);
-  const size = useElementSize(plotRef);
-  const { containerRef, tip, show, hide } = useChartTooltip();
-
-  const margin = {
+  const margin: Margin = {
     top: 20,
     right: 20,
     bottom: legend ? 55 : 40,
     left: 45,
   };
 
-  const { width, height } = size;
-  const innerWidth = Math.max(0, width - margin.left - margin.right);
-  const innerHeight = Math.max(0, height - margin.top - margin.bottom);
+  const legendItems: LegendEntry[] = useMemo(
+    () => barCharts.map((c) => ({ name: c.name, color: c.color })),
+    [barCharts]
+  );
 
   return (
-    <div className={styles.container}>
-      {legend && legendDirection === "h" && (
-        <div className={styles.legendRow}>
-          {barCharts.map((c) => (
-            <span key={c.name} className={styles.legendItem}>
-              <span
-                className={styles.legendSwatch}
-                style={{ backgroundColor: c.color }}
-              />
-              {c.name}
-            </span>
-          ))}
-        </div>
+    <ChartShell
+      legend={legend}
+      legendDirection={legendDirection}
+      legendItems={legendItems}
+      legendSwatch="line"
+      legendAlign={legendAlign}
+      margin={margin}
+      hasData={barCharts.length > 0}
+    >
+      {({ innerWidth, innerHeight, margin: m, show, hide }) => (
+        <Graph
+          innerWidth={innerWidth}
+          innerHeight={innerHeight}
+          margin={m}
+          x={x}
+          data={barCharts}
+          horizontal={horizontal}
+          lineShape={lineShape}
+          onShow={show}
+          onHide={hide}
+          tooltipValueFormat={tooltipValueFormat}
+          axisValueFormat={axisValueFormat}
+        />
       )}
-      <div className={styles.bodyRow}>
-        <div className={styles.plotContainer} ref={(el) => { plotRef.current = el; containerRef.current = el; }}>
-          {innerWidth > 0 && innerHeight > 0 && barCharts.length > 0 && (
-            <svg className={styles.svg} viewBox={`0 0 ${width} ${height}`}>
-              <Graph
-                innerWidth={innerWidth}
-                innerHeight={innerHeight}
-                margin={margin}
-                x={x}
-                data={barCharts}
-                horizontal={horizontal}
-                lineShape={lineShape}
-                onShow={show}
-                onHide={hide}
-              />
-            </svg>
-          )}
-          <ChartTooltip tip={tip} />
-        </div>
-        {legend && legendDirection === "v" && (
-          <div className={styles.legendCol}>
-            {barCharts.map((c) => (
-              <span key={c.name} className={styles.legendItem}>
-                <span
-                  className={styles.legendSwatch}
-                  style={{ backgroundColor: c.color }}
-                />
-                {c.name}
-              </span>
-            ))}
-          </div>
-        )}
-      </div>
-    </div>
+    </ChartShell>
   );
 });
 
@@ -119,16 +94,20 @@ function Graph<T extends Datum>({
   lineShape,
   onShow,
   onHide,
+  tooltipValueFormat,
+  axisValueFormat,
 }: {
   innerWidth: number;
   innerHeight: number;
-  margin: { top: number; right: number; bottom: number; left: number };
+  margin: Margin;
   x: T[];
   data: LineChartItem[];
   horizontal: boolean;
   lineShape: "linear" | "hv" | "vh" | "hvh" | "vhv";
   onShow: (px: number, py: number, content: ReactNode) => void;
   onHide: () => void;
+  tooltipValueFormat: (value: number) => string;
+  axisValueFormat?: (value: number) => string;
 }) {
   const plotX = margin.left;
   const plotY = margin.top;
@@ -188,28 +167,15 @@ function Graph<T extends Datum>({
 
   return (
     <>
-      {yTicks.map((t) => {
-        const ty = valScale(t);
-        return (
-          <g key={t}>
-            <line
-              className={styles.gridLine}
-              x1={plotX}
-              y1={ty}
-              x2={plotX + plotW}
-              y2={ty}
-            />
-            <text
-              className={styles.axisText}
-              x={plotX - 8}
-              y={ty + 3}
-              textAnchor="end"
-            >
-              {valFormat(t)}
-            </text>
-          </g>
-        );
-      })}
+      <ValueAxis
+        ticks={yTicks}
+        valScale={valScale}
+        plotX={plotX}
+        plotY={plotY}
+        plotW={plotW}
+        plotH={plotH}
+        format={axisValueFormat}
+      />
 
       {xTicks.map((label) => {
         const cx = plotX + (catScale(label) ?? 0) + catScale.bandwidth() / 2;
@@ -279,7 +245,7 @@ function Graph<T extends Datum>({
                       <TooltipRow
                         color={series.color}
                         label={series.name}
-                        value={formatTooltipMoney(value)}
+                        value={tooltipValueFormat(value)}
                       />
                     </>
                   ))
@@ -291,18 +257,4 @@ function Graph<T extends Datum>({
       )}
     </>
   );
-}
-
-function catBandTick(i: number, total: number): boolean {
-  if (total <= 14) return true;
-  const step = Math.ceil(total / 14);
-  return i % step === 0;
-}
-
-function valFormat(v: number): string {
-  const abs = Math.abs(v);
-  if (abs >= 1_000_000) return `${(v / 1_000_000).toFixed(1)}M`;
-  if (abs >= 1000) return `${(v / 1000).toFixed(v >= 10000 ? 0 : 1)}k`;
-  if (abs >= 100) return `${Math.round(v)}`;
-  return `${Math.round(v * 10) / 10}`;
 }

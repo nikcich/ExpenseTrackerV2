@@ -281,7 +281,7 @@ export function Data() {
       <div className={styles.page}>
         {previewLoading && (
           <div className={styles.loadingOverlay}>
-            <Spinner size="xl" color="var(--fg-info, #60a5fa)" />
+            <Spinner size="xl" color="var(--fg-info)" />
             <span className={styles.loadingText}>Reading CSV...</span>
           </div>
         )}

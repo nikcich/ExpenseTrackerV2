@@ -1,4 +1,5 @@
-import { useExpensesStore, useRsuVests, useBalanceSnapshots, useStocks, useGrants } from "@/store/store";
+import { useExpensesStore, useRsuVests, useRsuSettlements, useBalanceSnapshots, useStocks, useGrants } from "@/store/store";
+import { computeRsuPortfolioValue, settlementNetShares } from "@/utils/rsu-forecast";
 import { useCallback, useEffect, useMemo, useState, useDeferredValue, memo } from "react";
 import { Spinner, SegmentGroup } from "@chakra-ui/react";
 import { CoreTable } from "@/components/DataTable/DataTable";
@@ -25,6 +26,7 @@ function endOfMonth(target: Date): Date {
 
 const InvestmentsCard = memo(function InvestmentsCard({ cutoffDate }: { cutoffDate: Date }) {
   const { vests } = useRsuVests();
+  const { settlements } = useRsuSettlements();
   const { snapshots } = useBalanceSnapshots();
   const { stocks } = useStocks();
   const { grants } = useGrants();
@@ -33,14 +35,11 @@ const InvestmentsCard = memo(function InvestmentsCard({ cutoffDate }: { cutoffDa
   const grantMap = new Map(grants.map((g) => [g.id, g]));
 
   const filteredVests = vests.filter((v) => parseLocalDate(v.vestDate) <= cutoffDate);
+  const filteredSettlements = settlements.filter((s) => parseLocalDate(s.date) <= cutoffDate);
   const filteredSnapshots = snapshots.filter((s) => parseLocalDate(s.date) <= cutoffDate);
 
-  const totalShares = filteredVests.reduce((s, v) => s + v.shares, 0);
-  const totalValue = filteredVests.reduce((s, v) => {
-    const grant = grantMap.get(v.grantId);
-    const stock = grant ? stockMap.get(grant.stockId) : undefined;
-    return s + v.shares * (stock?.currentPrice ?? v.basisPrice);
-  }, 0);
+  const totalShares = filteredSettlements.reduce((s, st) => s + settlementNetShares(st), 0);
+  const totalValue = computeRsuPortfolioValue(filteredSettlements, grantMap, stockMap);
 
   const latestByAccount = new Map<string, typeof filteredSnapshots[0]>();
   for (const s of filteredSnapshots) {
@@ -69,7 +68,7 @@ const InvestmentsCard = memo(function InvestmentsCard({ cutoffDate }: { cutoffDa
         <span className={styles.cardTitle}>Accounts</span>
       </div>
       <div className={styles.investCardBody}>
-        {filteredVests.length > 0 && (
+        {filteredSettlements.length > 0 && (
           <div className={styles.investSection}>
             <span className={styles.investSectionTitle}>RSU</span>
             <div className={styles.investGrid}>
@@ -79,10 +78,10 @@ const InvestmentsCard = memo(function InvestmentsCard({ cutoffDate }: { cutoffDa
               </div>
               <div className={`${styles.investItem}`}>
                 <span className={`${styles.investValue} ${styles.money}`}>{formatCurrency(totalValue)}</span>
-                <span className={styles.investLabel}>Value at Vest</span>
+                <span className={styles.investLabel}>Current Value</span>
               </div>
               <div className={styles.investItem}>
-                <span className={styles.investValue}>{vests.length}</span>
+                <span className={styles.investValue}>{filteredVests.length}</span>
                 <span className={styles.investLabel}>Events</span>
               </div>
             </div>
@@ -139,7 +138,7 @@ export function Overview() {
     return (
       <div className={styles.page}>
         <div className={styles.loadingState}>
-          <Spinner color="var(--fg-muted, #a0a0ab)" />
+          <Spinner color="var(--fg-muted)" />
         </div>
       </div>
     );

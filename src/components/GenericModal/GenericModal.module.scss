@@ -1,0 +1,15 @@
+.backdrop {
+  position: fixed;
+  inset: 0;
+  background: hsl(var(--shadow-color) / 0.5);
+  backdrop-filter: blur(10px);
+  z-index: 101;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 0;
+}
+
+.fullscreen {
+  padding: 24px;
+}

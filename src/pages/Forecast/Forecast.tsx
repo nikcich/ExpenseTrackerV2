@@ -21,12 +21,40 @@ const DEFAULT_CONFIG = {
   endDate: "",
 };
 
+function ConfirmDeleteButton({ onConfirm }: { onConfirm: () => void }) {
+  const [confirming, setConfirming] = useState(false);
+
+  useEffect(() => {
+    if (!confirming) return;
+    const t = setTimeout(() => setConfirming(false), 3000);
+    return () => clearTimeout(t);
+  }, [confirming]);
+
+  return (
+    <button
+      type="button"
+      className={`${styles.deleteBtn} ${confirming ? styles.deleteBtnConfirming : ""}`}
+      onClick={() => {
+        if (confirming) {
+          setConfirming(false);
+          onConfirm();
+        } else {
+          setConfirming(true);
+        }
+      }}
+      title={confirming ? "Click again to confirm" : "Delete"}
+    >
+      {confirming ? "✓?" : "✖"}
+    </button>
+  );
+}
+
 export function Forecast() {
   const [startBalance, setStartBalance] = useState(DEFAULT_CONFIG.startBalance);
   const [reserve, setReserve] = useState(DEFAULT_CONFIG.reserve);
   const [startDate, setStartDate] = useState(DEFAULT_CONFIG.startDate);
   const [endDate, setEndDate] = useState(DEFAULT_CONFIG.endDate);
-  const [sections, setSections] = useState({ general: true, income: true, expenses: true });
+  const [sections, setSections] = useState({ income: true, expenses: true });
   const toggleSection = (key: keyof typeof sections) => setSections((prev) => ({ ...prev, [key]: !prev[key] }));
 
   const [incomeStreams, setIncomeStreams] = useState<IncomeRule[]>([]);
@@ -130,7 +158,7 @@ export function Forecast() {
     return (
       <GenericPage title="Forecast" hasRange={false} needsData={false}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100%", padding: "2rem" }}>
-          <span style={{ color: "var(--fg-muted, #a0a0ab)" }}>Loading...</span>
+          <span style={{ color: "var(--fg-muted)" }}>Loading...</span>
         </div>
       </GenericPage>
     );
@@ -139,51 +167,83 @@ export function Forecast() {
   return (
     <GenericPage title="Forecast" hasRange={false} needsData={false}>
       <div className={styles.page}>
+        {result.events.length > 0 && (
+          <div className={styles.summaryRow}>
+            <div className={styles.summaryCard}>
+              <span className={styles.summaryCardLabel}>Total Income</span>
+              <span className={`${styles.summaryCardValue} ${styles.valuePos}`}>
+                {formatCurrency(result.summary.totalIncome)}
+              </span>
+            </div>
+            <div className={styles.summaryCard}>
+              <span className={styles.summaryCardLabel}>Total Expenses</span>
+              <span className={`${styles.summaryCardValue} ${styles.valueNeg}`}>
+                {formatCurrency(result.summary.totalExpenses)}
+              </span>
+            </div>
+            <div className={styles.summaryCard}>
+              <span className={styles.summaryCardLabel}>Ending Checking</span>
+              <span className={`${styles.summaryCardValue} ${result.summary.endingChecking >= 0 ? styles.valuePos : styles.valueNeg}`}>
+                {formatCurrency(result.summary.endingChecking)}
+              </span>
+            </div>
+            <div className={styles.summaryCard}>
+              <span className={styles.summaryCardLabel}>Ending Savings</span>
+              <span className={`${styles.summaryCardValue} ${styles.valueNeutral}`}>
+                {formatCurrency(result.summary.endingSavings)}
+              </span>
+            </div>
+            <div className={styles.summaryCard}>
+              <span className={styles.summaryCardLabel}>Lowest Checking</span>
+              <span className={`${styles.summaryCardValue} ${result.summary.lowestChecking >= 0 ? styles.valuePos : styles.valueNeg}`}>
+                {formatCurrency(result.summary.lowestChecking)}
+              </span>
+            </div>
+          </div>
+        )}
+
         <div className={styles.section}>
-          <div className={styles.sectionHeader} onClick={() => toggleSection("general")}>
-            <span className={`${styles.chevron} ${sections.general ? styles.chevronOpen : ""}`}>▶</span>
+          <div className={styles.sectionHeader}>
             <span className={styles.sectionTitle}>General</span>
           </div>
-          {sections.general && (
-            <div className={styles.fieldRow}>
-              <div className={styles.field}>
-                <span className={styles.fieldLabel}>Starting Balance</span>
-                <input
-                  className={styles.fieldInput}
-                  type="text"
-                  inputMode="decimal"
-                  value={startBalance}
-                  onChange={(e) => {
-                    const num = Number(e.target.value);
-                    if (!isNaN(num)) setStartBalance(num);
-                  }}
-                  onBlur={(e) => setStartBalance(Number(cleanNum(e.target.value)))}
-                />
-              </div>
-              <div className={styles.field}>
-                <span className={styles.fieldLabel}>Reserve Amount</span>
-                <input
-                  className={styles.fieldInput}
-                  type="text"
-                  inputMode="decimal"
-                  value={reserve}
-                  onChange={(e) => {
-                    const num = Number(e.target.value);
-                    if (!isNaN(num)) setReserve(num);
-                  }}
-                  onBlur={(e) => setReserve(Number(cleanNum(e.target.value)))}
-                />
-              </div>
-              <div className={styles.field}>
-                <span className={styles.fieldLabel}>Start Date</span>
-                <input className={styles.fieldInput} type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
-              </div>
-              <div className={styles.field}>
-                <span className={styles.fieldLabel}>End Date</span>
-                <input className={styles.fieldInput} type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
-              </div>
+          <div className={styles.fieldRow}>
+            <div className={styles.field}>
+              <span className={styles.fieldLabel}>Starting Balance</span>
+              <input
+                className={styles.fieldInput}
+                type="text"
+                inputMode="decimal"
+                value={startBalance}
+                onChange={(e) => {
+                  const num = Number(e.target.value);
+                  if (!isNaN(num)) setStartBalance(num);
+                }}
+                onBlur={(e) => setStartBalance(Number(cleanNum(e.target.value)))}
+              />
             </div>
-          )}
+            <div className={styles.field}>
+              <span className={styles.fieldLabel}>Reserve Amount</span>
+              <input
+                className={styles.fieldInput}
+                type="text"
+                inputMode="decimal"
+                value={reserve}
+                onChange={(e) => {
+                  const num = Number(e.target.value);
+                  if (!isNaN(num)) setReserve(num);
+                }}
+                onBlur={(e) => setReserve(Number(cleanNum(e.target.value)))}
+              />
+            </div>
+            <div className={styles.field}>
+              <span className={styles.fieldLabel}>Start Date</span>
+              <input className={styles.fieldInput} type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
+            </div>
+            <div className={styles.field}>
+              <span className={styles.fieldLabel}>End Date</span>
+              <input className={styles.fieldInput} type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
+            </div>
+          </div>
         </div>
 
         <div className={styles.section}>
@@ -244,7 +304,7 @@ export function Forecast() {
                     <span className={styles.fieldLabel}>End Date</span>
                     <input className={styles.fieldInput} type="date" value={stream.endDate || ""} onChange={(e) => updateIncome(i, "endDate", e.target.value)} />
                   </div>
-                  <button className={styles.deleteBtn} onClick={() => removeIncome(i)}>✖</button>
+                  <ConfirmDeleteButton onConfirm={() => removeIncome(i)} />
                 </div>
               ))}
               <button className={styles.addBtn} onClick={addIncome}>+ Add Income</button>
@@ -297,7 +357,7 @@ export function Forecast() {
                     <span className={styles.fieldLabel}>End Date</span>
                     <input className={styles.fieldInput} type="date" value={exp.endDate || ""} onChange={(e) => updateExpense(i, "endDate", e.target.value)} />
                   </div>
-                  <button className={styles.deleteBtn} onClick={() => removeExpense(i)}>✖</button>
+                  <ConfirmDeleteButton onConfirm={() => removeExpense(i)} />
                 </div>
               ))}
               <button className={styles.addBtn} onClick={addExpense}>+ Add Expense</button>
@@ -306,72 +366,34 @@ export function Forecast() {
         </div>
 
         {result.events.length > 0 && (
-          <>
-            <div className={styles.tableCard}>
-              <table className={styles.table}>
-                <thead>
-                  <tr>
-                    <th>Date</th>
-                    <th>Event</th>
-                    <th>Change</th>
-                    <th>Checking</th>
-                    <th>Savings</th>
+          <div className={styles.tableCard}>
+            <table className={styles.table}>
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>Event</th>
+                  <th>Change</th>
+                  <th>Checking</th>
+                  <th>Savings</th>
+                </tr>
+              </thead>
+              <tbody>
+                {result.events.map((ev, i) => (
+                  <tr key={i}>
+                    <td>{ev.date}</td>
+                    <td>{ev.event}</td>
+                    <td className={eventColorClass(ev)}>
+                      {ev.change !== null
+                        ? (ev.change >= 0 ? "+" : "") + formatCurrency(ev.change)
+                        : ""}
+                    </td>
+                    <td>{formatCurrency(ev.checking)}</td>
+                    <td>{formatCurrency(ev.savings)}</td>
                   </tr>
-                </thead>
-                <tbody>
-                  {result.events.map((ev, i) => (
-                    <tr key={i}>
-                      <td>{ev.date}</td>
-                      <td>{ev.event}</td>
-                      <td className={eventColorClass(ev)}>
-                        {ev.change !== null
-                          ? (ev.change >= 0 ? "+" : "") + formatCurrency(ev.change)
-                          : ""}
-                      </td>
-                      <td>{formatCurrency(ev.checking)}</td>
-                      <td>{formatCurrency(ev.savings)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-              {result.events.length === 0 && (
-                <div className={styles.emptyRow}>No forecast events</div>
-              )}
-            </div>
-
-            <div className={styles.summaryRow}>
-              <div className={styles.summaryCard}>
-                <span className={styles.summaryCardLabel}>Total Income</span>
-                <span className={`${styles.summaryCardValue} ${styles.valuePos}`}>
-                  {formatCurrency(result.summary.totalIncome)}
-                </span>
-              </div>
-              <div className={styles.summaryCard}>
-                <span className={styles.summaryCardLabel}>Total Expenses</span>
-                <span className={`${styles.summaryCardValue} ${styles.valueNeg}`}>
-                  {formatCurrency(result.summary.totalExpenses)}
-                </span>
-              </div>
-              <div className={styles.summaryCard}>
-                <span className={styles.summaryCardLabel}>Ending Checking</span>
-                <span className={`${styles.summaryCardValue} ${result.summary.endingChecking >= 0 ? styles.valuePos : styles.valueNeg}`}>
-                  {formatCurrency(result.summary.endingChecking)}
-                </span>
-              </div>
-              <div className={styles.summaryCard}>
-                <span className={styles.summaryCardLabel}>Ending Savings</span>
-                <span className={`${styles.summaryCardValue} ${styles.valueNeutral}`}>
-                  {formatCurrency(result.summary.endingSavings)}
-                </span>
-              </div>
-              <div className={styles.summaryCard}>
-                <span className={styles.summaryCardLabel}>Lowest Checking</span>
-                <span className={`${styles.summaryCardValue} ${result.summary.lowestChecking >= 0 ? styles.valuePos : styles.valueNeg}`}>
-                  {formatCurrency(result.summary.lowestChecking)}
-                </span>
-              </div>
-            </div>
-          </>
+                ))}
+              </tbody>
+            </table>
+          </div>
         )}
       </div>
     </GenericPage>

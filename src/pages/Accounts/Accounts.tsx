@@ -1,18 +1,21 @@
-import { useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import {
-  useRsuVests,
+  useRsuSettlements,
   useBalanceSnapshots,
   useStocks,
   useGrants,
 } from "@/store/store";
 import type { BalanceSnapshot } from "@/types/types";
-import {
-  formatCurrency,
-  formatDate,
-  formatShortDate,
-  SHORTCUT_COOLDOWN,
-} from "@/utils/utils";
+import { formatCurrency, formatDate, SHORTCUT_COOLDOWN } from "@/utils/utils";
+import { computeRsuPortfolioValue } from "@/utils/rsu-forecast";
 import { Sparkline } from "@/components/Sparkline/Sparkline";
+import {
+  latestByAccount,
+  groupByAccountSorted,
+  computeAccountDelta,
+  computeBalanceTimeSeries,
+  computeNetWorthTimeSeries,
+} from "./accountsPageUtils";
 import styles from "./Accounts.module.scss";
 
 const emptySnapshot = (): Partial<BalanceSnapshot> => ({
@@ -24,7 +27,7 @@ const emptySnapshot = (): Partial<BalanceSnapshot> => ({
 });
 
 export function Accounts() {
-  const { vests } = useRsuVests();
+  const { settlements } = useRsuSettlements();
   const { snapshots, addSnapshot, updateSnapshot, removeSnapshot } =
     useBalanceSnapshots();
   const { stocks } = useStocks();
@@ -36,88 +39,51 @@ export function Accounts() {
   const [editingSnapshot, setEditingSnapshot] = useState<string | null>(null);
   const saveSnapshotGuard = useRef(false);
 
-  const sortedSnapshots = [...snapshots].sort(
-    (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
+  const sortedSnapshots = useMemo(
+    () =>
+      [...snapshots].sort(
+        (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+      ),
+    [snapshots]
   );
 
-  const assets = snapshots.filter((s) => (s.type ?? "asset") !== "debt");
-  const debts = snapshots.filter((s) => s.type === "debt");
-  const latestByAccount = (
-    items: BalanceSnapshot[],
-  ): Map<string, BalanceSnapshot> => {
-    const map = new Map<string, BalanceSnapshot>();
-    for (const s of items) {
-      const existing = map.get(s.accountName);
-      if (!existing || new Date(s.date) > new Date(existing.date)) {
-        map.set(s.accountName, s);
-      }
-    }
-    return map;
-  };
-
-  const stockMap = useRef(new Map(stocks.map((s) => [s.id, s])));
-  stockMap.current = new Map(stocks.map((s) => [s.id, s]));
-  const grantMap = useRef(new Map(grants.map((g) => [g.id, g])));
-  grantMap.current = new Map(grants.map((g) => [g.id, g]));
-
-  const totalRsuValue = vests.reduce((s, v) => {
-    const grant = grantMap.current.get(v.grantId);
-    const stock = grant ? stockMap.current.get(grant.stockId) : undefined;
-    return s + v.shares * (stock?.currentPrice ?? v.basisPrice);
-  }, 0);
-
-  const totalAssets =
-    [...latestByAccount(assets).values()].reduce((s, a) => s + a.balance, 0) +
-    totalRsuValue;
-  const totalDebts = [...latestByAccount(debts).values()].reduce(
-    (s, d) => s + Math.abs(d.balance),
-    0,
+  const assets = useMemo(
+    () => snapshots.filter((s) => (s.type ?? "asset") !== "debt"),
+    [snapshots]
   );
-  const activeDebts = [...Array.from(new Set(debts.map((s) => s.accountName)))]
-    .map((name) => {
-      const accountSnapshots = debts
-        .filter((s) => s.accountName === name)
-        .sort(
-          (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
-        );
-      return { name, snapshots: accountSnapshots };
-    })
-    .filter(({ snapshots }) => snapshots[0]?.balance !== 0);
+  const debts = useMemo(() => snapshots.filter((s) => s.type === "debt"), [snapshots]);
 
-  const computeTimeSeries = (
-    items: BalanceSnapshot[],
-    negate: boolean,
-  ): { label: string; value: number }[] => {
-    const byAccount = new Map<string, BalanceSnapshot[]>();
-    for (const s of items) {
-      const list = byAccount.get(s.accountName) ?? [];
-      list.push(s);
-      byAccount.set(s.accountName, list);
-    }
-    for (const list of byAccount.values()) {
-      list.sort((a, b) => a.date.localeCompare(b.date));
-    }
+  const stockMap = useMemo(() => new Map(stocks.map((s) => [s.id, s])), [stocks]);
+  const grantMap = useMemo(() => new Map(grants.map((g) => [g.id, g])), [grants]);
 
-    const allDates = [...new Set(items.map((s) => s.date.slice(0, 10)))].sort();
+  const totalRsuValue = useMemo(
+    () => computeRsuPortfolioValue(settlements, grantMap, stockMap),
+    [settlements, grantMap, stockMap]
+  );
 
-    const current = new Map<string, number>();
-    const ptr = new Map<string, number>();
-    for (const k of byAccount.keys()) ptr.set(k, 0);
+  const latestAssets = useMemo(() => latestByAccount(assets), [assets]);
+  const latestDebts = useMemo(() => latestByAccount(debts), [debts]);
 
-    return allDates.map((date) => {
-      for (const [acct, hist] of byAccount) {
-        let i = ptr.get(acct)!;
-        while (i < hist.length && hist[i].date.slice(0, 10) <= date) {
-          current.set(acct, hist[i].balance);
-          i++;
-        }
-        ptr.set(acct, i);
-      }
-      let total = 0;
-      for (const v of current.values()) total += v;
-      return { label: formatShortDate(date), value: negate ? -total : total };
-    });
-  };
+  const totalAssets = useMemo(
+    () => [...latestAssets.values()].reduce((s, a) => s + a.balance, 0) + totalRsuValue,
+    [latestAssets, totalRsuValue]
+  );
+  const totalDebts = useMemo(
+    () => [...latestDebts.values()].reduce((s, d) => s + Math.abs(d.balance), 0),
+    [latestDebts]
+  );
+
+  const assetHistories = useMemo(() => groupByAccountSorted(assets), [assets]);
+  const activeDebts = useMemo(
+    () => groupByAccountSorted(debts).filter(({ snapshots }) => snapshots[0]?.balance !== 0),
+    [debts]
+  );
+
+  const netWorthSeries = useMemo(
+    () => computeNetWorthTimeSeries(snapshots, debts),
+    [snapshots, debts]
+  );
+  const portfolioSeries = useMemo(() => computeBalanceTimeSeries(assets, false), [assets]);
 
   const handleSaveSnapshot = () => {
     if (saveSnapshotGuard.current) return;
@@ -215,53 +181,38 @@ export function Accounts() {
             <span className={styles.summaryEmpty}>No data</span>
           ) : (
             <div className={styles.summaryBalances}>
-              {[...Array.from(new Set(assets.map((s) => s.accountName)))].map(
-                (name) => {
-                  const accountSnapshots = assets
-                    .filter((s) => s.accountName === name)
-                    .sort(
-                      (a, b) =>
-                        new Date(b.date).getTime() - new Date(a.date).getTime(),
-                    );
-                  const latest = accountSnapshots[0];
-                  const prev = accountSnapshots[1];
-                  let delta: { isUp: boolean; pct: number } | null = null;
-                  if (prev && prev.balance !== 0) {
-                    const pct =
-                      ((latest.balance - prev.balance) /
-                        Math.abs(prev.balance)) *
-                      100;
-                    delta = { isUp: latest.balance > prev.balance, pct };
-                  }
-                  return (
-                    <div key={name} className={styles.summaryStat}>
-                      <span className={styles.summaryStatLabel}>{name}</span>
-                      <span
-                        className={`${styles.summaryStatValue} ${styles.money}`}
-                      >
-                        {formatCurrency(latest.balance)}
-                      </span>
-                      <span className={styles.balanceMeta}>
-                        {delta && (
-                          <span
-                            className={
-                              delta.isUp ? styles.deltaUp : styles.deltaDown
-                            }
-                          >
-                            <span className={styles.deltaArrow}>
-                              {delta.isUp ? "↑" : "↓"}
-                            </span>
-                            {Math.round(Math.abs(delta.pct))}%
+              {assetHistories.map(({ name, snapshots: accountSnapshots }) => {
+                const latest = accountSnapshots[0];
+                const prev = accountSnapshots[1];
+                const delta = computeAccountDelta(latest, prev);
+                return (
+                  <div key={name} className={styles.summaryStat}>
+                    <span className={styles.summaryStatLabel}>{name}</span>
+                    <span
+                      className={`${styles.summaryStatValue} ${styles.money}`}
+                    >
+                      {formatCurrency(latest.balance)}
+                    </span>
+                    <span className={styles.balanceMeta}>
+                      {delta && (
+                        <span
+                          className={
+                            delta.isUp ? styles.deltaUp : styles.deltaDown
+                          }
+                        >
+                          <span className={styles.deltaArrow}>
+                            {delta.isUp ? "↑" : "↓"}
                           </span>
-                        )}
-                        <span className={styles.summaryBalanceDate}>
-                          {formatDate(latest.date)}
+                          {Math.round(Math.abs(delta.pct))}%
                         </span>
+                      )}
+                      <span className={styles.summaryBalanceDate}>
+                        {formatDate(latest.date)}
                       </span>
-                    </div>
-                  );
-                },
-              )}
+                    </span>
+                  </div>
+                );
+              })}
             </div>
           )}
         </div>
@@ -272,13 +223,7 @@ export function Accounts() {
               {activeDebts.map(({ name, snapshots: accountSnapshots }) => {
                 const latest = accountSnapshots[0];
                 const prev = accountSnapshots[1];
-                let delta: { isUp: boolean; pct: number } | null = null;
-                if (prev && prev.balance !== 0) {
-                  const pct =
-                    ((latest.balance - prev.balance) / Math.abs(prev.balance)) *
-                    100;
-                  delta = { isUp: latest.balance > prev.balance, pct };
-                }
+                const delta = computeAccountDelta(latest, prev);
                 return (
                   <div key={name} className={styles.summaryStat}>
                     <span className={styles.summaryStatLabel}>{name}</span>
@@ -321,45 +266,8 @@ export function Accounts() {
             </span>
           ) : (
             <Sparkline
-              data={(() => {
-                const debtAccountNames = new Set(
-                  debts.map((s) => s.accountName),
-                );
-                const byAccount = new Map<string, BalanceSnapshot[]>();
-                for (const s of snapshots) {
-                  const list = byAccount.get(s.accountName) ?? [];
-                  list.push(s);
-                  byAccount.set(s.accountName, list);
-                }
-                for (const list of byAccount.values()) {
-                  list.sort((a, b) => a.date.localeCompare(b.date));
-                }
-                const allDates = [
-                  ...new Set(snapshots.map((s) => s.date.slice(0, 10))),
-                ].sort();
-                const current = new Map<string, number>();
-                const ptr = new Map<string, number>();
-                for (const k of byAccount.keys()) ptr.set(k, 0);
-                return allDates.map((date) => {
-                  for (const [acct, hist] of byAccount) {
-                    let i = ptr.get(acct)!;
-                    while (
-                      i < hist.length &&
-                      hist[i].date.slice(0, 10) <= date
-                    ) {
-                      current.set(acct, hist[i].balance);
-                      i++;
-                    }
-                    ptr.set(acct, i);
-                  }
-                  let total = 0;
-                  for (const [acct, v] of current) {
-                    total += debtAccountNames.has(acct) ? -Math.abs(v) : v;
-                  }
-                  return { label: formatShortDate(date), value: total };
-                });
-              })()}
-              color="var(--fg-success, #4ade80)"
+              data={netWorthSeries}
+              color="var(--fg-success)"
               showLabels="auto"
             />
           )}
@@ -372,8 +280,8 @@ export function Accounts() {
             </span>
           ) : (
             <Sparkline
-              data={computeTimeSeries(assets, false)}
-              color="var(--fg-info, #60a5fa)"
+              data={portfolioSeries}
+              color="var(--fg-info)"
               showLabels="auto"
             />
           )}

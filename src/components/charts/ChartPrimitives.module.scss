@@ -26,6 +26,10 @@
   flex-wrap: wrap;
 }
 
+.legendRowStart {
+  justify-content: flex-start;
+}
+
 .legendCol {
   display: flex;
   flex-direction: column;
@@ -41,13 +45,24 @@
   align-items: center;
   gap: 0.4rem;
   font-size: 0.8rem;
-  color: #ffffff;
+  color: var(--text-primary);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
+.legendItemInteractive {
+  cursor: pointer;
+}
+
 .legendSwatch {
+  width: 12px;
+  height: 12px;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+
+.legendSwatchLine {
   width: 14px;
   height: 3px;
   border-radius: 2px;
@@ -61,11 +76,11 @@
 }
 
 .axisText {
-  fill: #9ca3af;
+  fill: var(--text-tertiary);
   font-size: 10px;
 }
 
 .gridLine {
-  stroke: #2a2a34;
+  stroke: var(--border-color);
   stroke-width: 1;
 }

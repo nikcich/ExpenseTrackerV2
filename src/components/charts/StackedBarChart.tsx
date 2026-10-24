@@ -1,17 +1,13 @@
-import { memo, useMemo, useRef, useState, type ReactNode } from "react";
+import { memo, useMemo, useState, type ReactNode } from "react";
 import { scaleBand, scaleLinear } from "d3-scale";
+import sharedStyles from "./ChartPrimitives.module.scss";
 import styles from "./StackedBarChart.module.scss";
-import { useElementSize } from "@/hooks/useElementSize";
+import { ChartShell, ValueAxis, type LegendEntry, type Margin } from "./ChartPrimitives";
+import { catBandTick } from "./chartScaleUtils";
 import { chartDateCompare } from "@/utils/utils";
 import { colorForName } from "@/utils/colors";
 import { ChartOpenPayload } from "@/utils/custom-filter";
-import {
-  useChartTooltip,
-  ChartTooltip,
-  formatTooltipMoney,
-  TooltipTitle,
-  TooltipRow,
-} from "./ChartTooltip";
+import { formatTooltipMoney, TooltipTitle, TooltipRow } from "./ChartTooltip";
 
 type Datum = string | number | Date | null;
 
@@ -57,17 +53,20 @@ export const StackedBarChart = memo(function StackedBarChart({
   data,
   legend = true,
   legendDirection = "v",
+  legendAlign = "center",
   onOpen,
+  tooltipValueFormat = formatTooltipMoney,
+  axisValueFormat,
 }: {
   data: Data[];
   legend?: boolean;
   legendDirection?: "v" | "h";
+  legendAlign?: "start" | "center";
   onOpen?: (payload: ChartOpenPayload) => void;
+  tooltipValueFormat?: (value: number) => string;
+  axisValueFormat?: (value: number) => string;
 }) {
-  const plotRef = useRef<HTMLDivElement | null>(null);
-  const size = useElementSize(plotRef);
   const [disabled, setDisabled] = useState<Set<string>>(new Set());
-  const { containerRef, tip, show, hide } = useChartTooltip();
 
   const toggleDisabled = (name: string) => {
     setDisabled((prev) => {
@@ -80,11 +79,7 @@ export const StackedBarChart = memo(function StackedBarChart({
 
   const visibleData = useMemo(() => data.filter((d) => !disabled.has(d.name)), [data, disabled]);
 
-  const margin = { top: 15, right: 20, bottom: 60, left: 45 };
-
-  const { width, height } = size;
-  const innerWidth = Math.max(0, width - margin.left - margin.right);
-  const innerHeight = Math.max(0, height - margin.top - margin.bottom);
+  const margin: Margin = { top: 15, right: 20, bottom: 60, left: 45 };
 
   const periods = useMemo(() => {
     const out: string[] = [];
@@ -101,75 +96,43 @@ export const StackedBarChart = memo(function StackedBarChart({
     return out;
   }, [data]);
 
-  const traceColors = useMemo(
-    () => data.map((d) => colorForName(d.name)),
-    [data]
+  const traceColors = useMemo(() => data.map((d) => colorForName(d.name)), [data]);
+
+  const legendItems: LegendEntry[] = useMemo(
+    () =>
+      data.map((c, i) => ({
+        name: c.name,
+        color: traceColors[i],
+        dimmed: disabled.has(c.name),
+        onToggle: () => toggleDisabled(c.name),
+      })),
+    [data, traceColors, disabled]
   );
 
   return (
-    <div className={styles.container}>
-      {legend && legendDirection === "h" && (
-        <div className={styles.legendRow}>
-          {data.map((c, i) => {
-            const dimmed = disabled.has(c.name);
-            return (
-              <span
-                key={c.name}
-                className={styles.legendItem}
-                onClick={() => toggleDisabled(c.name)}
-                style={{ opacity: dimmed ? 0.35 : 1, cursor: "pointer" }}
-              >
-                <span
-                  className={styles.legendSwatch}
-                  style={{ backgroundColor: traceColors[i] }}
-                />
-                {c.name}
-              </span>
-            );
-          })}
-        </div>
+    <ChartShell
+      legend={legend}
+      legendDirection={legendDirection}
+      legendItems={legendItems}
+      legendAlign={legendAlign}
+      margin={margin}
+      hasData={visibleData.length > 0}
+    >
+      {({ innerWidth, innerHeight, margin: m, show, hide }) => (
+        <Graph
+          innerWidth={innerWidth}
+          innerHeight={innerHeight}
+          margin={m}
+          periods={periods}
+          data={visibleData}
+          onOpen={onOpen}
+          onShow={show}
+          onHide={hide}
+          tooltipValueFormat={tooltipValueFormat}
+          axisValueFormat={axisValueFormat}
+        />
       )}
-      <div className={styles.bodyRow}>
-        <div className={styles.plotContainer} ref={(el) => { plotRef.current = el; containerRef.current = el; }}>
-          {innerWidth > 0 && innerHeight > 0 && visibleData.length > 0 && (
-            <svg className={styles.svg} viewBox={`0 0 ${width} ${height}`}>
-              <Graph
-                innerWidth={innerWidth}
-                innerHeight={innerHeight}
-                margin={margin}
-                periods={periods}
-                data={visibleData}
-                onOpen={onOpen}
-                onShow={show}
-                onHide={hide}
-              />
-            </svg>
-          )}
-          <ChartTooltip tip={tip} />
-        </div>
-        {legend && legendDirection === "v" && (
-          <div className={styles.legendCol}>
-            {data.map((c, i) => {
-              const dimmed = disabled.has(c.name);
-              return (
-                <span
-                  key={c.name}
-                  className={styles.legendItem}
-                  onClick={() => toggleDisabled(c.name)}
-                  style={{ opacity: dimmed ? 0.35 : 1, cursor: "pointer" }}
-                >
-                  <span
-                    className={styles.legendSwatch}
-                    style={{ backgroundColor: traceColors[i] }}
-                  />
-                  {c.name}
-                </span>
-              );
-            })}
-          </div>
-        )}
-      </div>
-    </div>
+    </ChartShell>
   );
 });
 
@@ -182,15 +145,19 @@ function Graph({
   onOpen,
   onShow,
   onHide,
+  tooltipValueFormat,
+  axisValueFormat,
 }: {
   innerWidth: number;
   innerHeight: number;
-  margin: { top: number; right: number; bottom: number; left: number };
+  margin: Margin;
   periods: string[];
   data: Data[];
   onOpen?: (payload: ChartOpenPayload) => void;
   onShow: (px: number, py: number, content: ReactNode) => void;
   onHide: () => void;
+  tooltipValueFormat: (value: number) => string;
+  axisValueFormat?: (value: number) => string;
 }) {
   const plotX = margin.left;
   const plotY = margin.top;
@@ -240,28 +207,15 @@ function Graph({
 
   return (
     <>
-      {yTicks.map((t) => {
-        const ty = valScale(t);
-        return (
-          <g key={t}>
-            <line
-              className={styles.gridLine}
-              x1={plotX}
-              y1={ty}
-              x2={plotX + plotW}
-              y2={ty}
-            />
-            <text
-              className={styles.axisText}
-              x={plotX - 8}
-              y={ty + 3}
-              textAnchor="end"
-            >
-              {valFormat(t)}
-            </text>
-          </g>
-        );
-      })}
+      <ValueAxis
+        ticks={yTicks}
+        valScale={valScale}
+        plotX={plotX}
+        plotY={plotY}
+        plotW={plotW}
+        plotH={plotH}
+        format={axisValueFormat}
+      />
 
       {xTicks.map((label) => {
         const cx = plotX + (catScale(label) ?? 0) + catScale.bandwidth() / 2;
@@ -269,7 +223,7 @@ function Graph({
         return (
           <text
             key={label}
-            className={styles.axisText}
+            className={sharedStyles.axisText}
             x={cx}
             y={cy + 17}
             textAnchor="middle"
@@ -312,7 +266,7 @@ function Graph({
                     <TooltipRow
                       color={color}
                       label={seg.name}
-                      value={formatTooltipMoney(seg.value)}
+                      value={tooltipValueFormat(seg.value)}
                     />
                   </>
                 ))
@@ -330,18 +284,4 @@ function Graph({
       })}
     </>
   );
-}
-
-function catBandTick(i: number, total: number): boolean {
-  if (total <= 14) return true;
-  const step = Math.ceil(total / 14);
-  return i % step === 0;
-}
-
-function valFormat(v: number): string {
-  const abs = Math.abs(v);
-  if (abs >= 1_000_000) return `${(v / 1_000_000).toFixed(1)}M`;
-  if (abs >= 1000) return `${(v / 1000).toFixed(v >= 10000 ? 0 : 1)}k`;
-  if (abs >= 100) return `${Math.round(v)}`;
-  return `${Math.round(v * 10) / 10}`;
 }

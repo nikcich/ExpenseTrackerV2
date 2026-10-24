@@ -120,8 +120,19 @@
   margin-left: auto;
 
   &:hover {
-    border-color: #ef4444;
-    color: #ef4444;
+    border-color: var(--fg-error);
+    color: var(--fg-error);
+  }
+}
+
+.deleteBtnConfirming {
+  border-color: var(--fg-error);
+  background: var(--fg-error);
+  color: white;
+
+  &:hover {
+    border-color: var(--fg-error);
+    color: white;
   }
 }
 

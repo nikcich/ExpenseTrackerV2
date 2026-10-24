@@ -184,14 +184,14 @@ export function InsightsView({
     variant === "group"
       ? [
           groupKind === "income"
-            ? { name: "Income", y: series.income, color: "#4ade80" }
+            ? { name: "Income", y: series.income, color: "var(--fg-success)" }
             : groupKind === "savings"
-              ? { name: "Savings", y: series.savings, color: "#facc15" }
-              : { name: "Spent", y: series.spent, color: "#f87171" },
+              ? { name: "Savings", y: series.savings, color: "var(--fg-warning)" }
+              : { name: "Spent", y: series.spent, color: "var(--fg-error)" },
         ]
       : [
-          { name: "Spent", y: series.spent, color: "#f87171" },
-          { name: "Income", y: series.income, color: "#4ade80" },
+          { name: "Spent", y: series.spent, color: "var(--fg-error)" },
+          { name: "Income", y: series.income, color: "var(--fg-success)" },
         ];
 
   const showDonut = variant !== "group" || groupKind === "expense";
@@ -325,7 +325,7 @@ export function InsightsView({
               <span className={styles.cardLabel}>Largest Expense</span>
               <span className={styles.metaValue}>
                 {formatCurrency(meta.biggestExpense.amount)}
-                <span style={{ fontWeight: 400, color: "var(--fg-subtle, #6b6b7b)" }}>
+                <span style={{ fontWeight: 400, color: "var(--fg-subtle)" }}>
                   {" "}
                   {meta.biggestExpense.description}
                 </span>
