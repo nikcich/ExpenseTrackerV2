@@ -52,6 +52,7 @@ All charts are custom-built with D3 and SVG. Hover tooltips show label and value
 
 ### Planning & analysis
 
+- **Budget:** Group-first budgeting. Set monthly budgets per group (and optionally per tag as line items), then compare **budget vs. forecast vs. actual** in one place for a month or year to date. The summary tiles are group-based: budgeted, spent, remaining or over budget (budgeted minus total spent, so spending in groups with no budget counts against you), forecast, and income. A stacked chart (one bar each for budget, forecast, and actual, split by group or tag with a toggle that defaults to groups) and variance tables show where you are over or under plan; double-clicking a row drills into its transactions. A forecast expense is matched to a tag or group by its name, so name forecast expenses after the group (or tag) they represent. The name field suggests both, and a name matching neither still shows under its own name.
 - **Forecast:** A daily cash-flow projection built from income streams (weekly, bi-weekly, semi-monthly, monthly, …) and recurring expenses, with a starting balance and reserve.
 - **Anomaly Detection:** Flags a category's month when its total is far above that category's normal month. The "typical" amount is the **median of the trailing N months** (default 12); a month is flagged when it exceeds **X times** typical or **$Y over** typical. Thresholds and window are configurable under Settings and persist across restarts. Double-click a flagged row to drill into the transactions.
 
@@ -91,7 +92,7 @@ A settings toggle replaces **all data** with simulated sample data at the servic
 The repository contains both the frontend and backend:
 
 - `src/`: The React/TypeScript frontend.
-  - `pages/`: One directory per page (Overview, TableView, Groups, Accounts, Forecast, Anomalies, Charts, RSU, SSDI, Data, Settings).
+  - `pages/`: One directory per page (Overview, TableView, Groups, Accounts, Budget, Forecast, Anomalies, Charts, RSU, SSDI, Data, Settings).
   - `components/`: Shared UI, including the chart primitives, data table, modals, and side navigation.
   - `services/`: The service interface plus Tauri and mock implementations.
   - `store/`: RxJS stores (settings, filters, selection, overlays, date range).

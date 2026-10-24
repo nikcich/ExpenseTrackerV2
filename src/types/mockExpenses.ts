@@ -1,5 +1,6 @@
 import {
   BalanceSnapshotsMap,
+  BudgetMap,
   ExpenseTag,
   ForecastConfigData,
   GrantMap,
@@ -587,6 +588,26 @@ const generateMockSsdiPayPeriods = (expenses: StoreExpenseMap): Record<string, {
   return map;
 };
 
+const generateMockBudgets = (): BudgetMap => {
+  const lines: { kind: "tag" | "group"; name: string; monthly: number }[] = [
+    { kind: "group", name: GROUP_ESSENTIALS, monthly: 3800 },
+    { kind: "group", name: GROUP_DISCRETIONARY, monthly: 250 },
+    { kind: "group", name: GROUP_IRREGULAR, monthly: 300 },
+    { kind: "tag", name: ExpenseTag.Food, monthly: 650 },
+    { kind: "tag", name: ExpenseTag.Utilities, monthly: 300 },
+    { kind: "tag", name: ExpenseTag.Transportation, monthly: 250 },
+    { kind: "tag", name: ExpenseTag.Entertainment, monthly: 150 },
+    { kind: "tag", name: ExpenseTag.Shopping, monthly: 200 },
+    { kind: "tag", name: ExpenseTag.Gas, monthly: 100 },
+  ];
+  return Object.fromEntries(
+    lines.map((line) => {
+      const id = uuidv4();
+      return [id, { ...line, id }];
+    }),
+  );
+};
+
 export type MockDataMap = Partial<Record<KnownStoreKeys, unknown>>;
 
 export const createMockData = (): MockDataMap => {
@@ -625,16 +646,16 @@ export const createMockData = (): MockDataMap => {
       },
     ],
     expenses: [
-      { name: "Rent", day: 1, amount: 2000, period: "monthly" },
-      { name: "Utilities", day: 5, amount: 300, period: "monthly" },
-      { name: "Insurance", day: 1, amount: 150, period: "monthly" },
-      { name: "Car Loan", day: 15, amount: 400, period: "monthly" },
-      { name: "Student Loan", day: 10, amount: 300, period: "monthly" },
-      { name: "Groceries", day: 3, amount: 200, period: "biweekly" },
-      { name: "Gas", day: 8, amount: 40, period: "biweekly" },
-      { name: "Entertainment", day: 12, amount: 60, period: "monthly" },
-      { name: "Shopping", day: 18, amount: 100, period: "monthly" },
-      { name: "Misc", day: 22, amount: 80, period: "monthly" },
+      { name: ExpenseTag.Rent_Mortgage, day: 1, amount: 2000, period: "monthly" },
+      { name: ExpenseTag.Utilities, day: 5, amount: 300, period: "monthly" },
+      { name: ExpenseTag.Insurance, day: 1, amount: 150, period: "monthly" },
+      { name: ExpenseTag.Debt, day: 15, amount: 400, period: "monthly" },
+      { name: ExpenseTag.Debt, day: 10, amount: 300, period: "monthly" },
+      { name: ExpenseTag.Food, day: 3, amount: 200, period: "biweekly", firstDate: format(forecastStartMonth, "yyyy-MM-03") },
+      { name: ExpenseTag.Gas, day: 8, amount: 40, period: "biweekly", firstDate: format(forecastStartMonth, "yyyy-MM-08") },
+      { name: ExpenseTag.Entertainment, day: 12, amount: 60, period: "monthly" },
+      { name: ExpenseTag.Shopping, day: 18, amount: 100, period: "monthly" },
+      { name: ExpenseTag.Misc, day: 22, amount: 80, period: "monthly" },
     ],
   };
 
@@ -663,6 +684,7 @@ export const createMockData = (): MockDataMap => {
     [KnownStoreKeys.SsdiPayPeriods]: ssdiPayPeriods,
     [KnownStoreKeys.SsdiConfig]: ssdiConfig,
     [KnownStoreKeys.ImportHistory]: importHistory,
+    [KnownStoreKeys.Budgets]: generateMockBudgets(),
   };
 };
 

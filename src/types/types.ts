@@ -30,6 +30,7 @@ export enum KnownStoreKeys {
   SsdiPayPeriods = "ssdi_pay_periods",
   SsdiConfig = "ssdi_config",
   ImportHistory = "import_history",
+  Budgets = "budgets",
 }
 
 export type ForecastConfigData = {
@@ -55,6 +56,17 @@ export type ForecastConfigData = {
     endDate?: string;
   }[];
 };
+
+export type BudgetKind = "tag" | "group";
+
+export type BudgetLine = {
+  id: string;
+  kind: BudgetKind;
+  name: string;
+  monthly: number;
+};
+
+export type BudgetMap = Record<string, BudgetLine>;
 
 export type Expense = {
   id: string;

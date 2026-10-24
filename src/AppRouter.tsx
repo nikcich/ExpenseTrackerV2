@@ -26,6 +26,7 @@ import { SSDI } from "./pages/SSDI/SSDI";
 import { SelectionInsights } from "./pages/SelectionInsights/SelectionInsights";
 import { Groups } from "./pages/Groups/Groups";
 import { Anomalies } from "./pages/Anomalies/Anomalies";
+import { Budget } from "./pages/Budget/Budget";
 import { ExpenseTrackerServiceProvider } from "./services/ServiceProvider";
 
 const MockBanner = () => {
@@ -159,6 +160,11 @@ export function AppRouter() {
           <Route
             path={Pages.Anomalies}
             element={<RouteComponent element={<Anomalies />} />}
+          />
+
+          <Route
+            path={Pages.Budget}
+            element={<RouteComponent element={<Budget />} />}
           />
         </Routes>
       </Router>

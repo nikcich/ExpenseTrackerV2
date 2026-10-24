@@ -3,7 +3,7 @@ import { Pages } from "./routes";
 import { PiChartPieSlice, PiCompassLight } from "react-icons/pi";
 import { FaCoins, FaExclamationTriangle, FaTable } from "react-icons/fa";
 import { LuFileInput, LuLayers } from "react-icons/lu";
-import { MdOutlineTrendingUp } from "react-icons/md";
+import { MdOutlineTrendingUp, MdOutlineAccountBalanceWallet } from "react-icons/md";
 import { TbLayoutDashboard } from "react-icons/tb";
 import { HiOutlineDocumentText } from "react-icons/hi2";
 
@@ -30,6 +30,7 @@ export const NAV_SECTIONS: NavSection[] = [
       { page: Pages.TableView, label: "Transactions", icon: FaTable },
       { page: Pages.Accounts, label: "Accounts", icon: PiChartPieSlice },
       { page: Pages.Groups, label: "Groups", icon: LuLayers },
+      { page: Pages.Budget, label: "Budget", icon: MdOutlineAccountBalanceWallet },
       { page: Pages.Forecast, label: "Forecast", icon: MdOutlineTrendingUp },
       {
         page: Pages.Anomalies,

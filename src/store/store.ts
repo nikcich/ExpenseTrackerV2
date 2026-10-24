@@ -1,4 +1,4 @@
-import { BalanceSnapshot, BalanceSnapshotsMap, DynamicCsvDefinition, ForecastConfigData, Grant, GrantMap, ImportHistory, KnownStoreKeys, RsuVest, RsuVestsMap, RsuSettlement, RsuSettlementsMap, Sale, SalesMap, SsdiConfig, SsdiPayPeriod, Stock, StockMap, StoreExpenseMap } from "../types/types";
+import { BalanceSnapshot, BudgetLine, BudgetMap, BalanceSnapshotsMap, DynamicCsvDefinition, ForecastConfigData, Grant, GrantMap, ImportHistory, KnownStoreKeys, RsuVest, RsuVestsMap, RsuSettlement, RsuSettlementsMap, Sale, SalesMap, SsdiConfig, SsdiPayPeriod, Stock, StockMap, StoreExpenseMap } from "../types/types";
 import { createDebouncedObservableHook, createObservableHook, createStoreHook } from "../utils/utils";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { BehaviorSubject } from "rxjs";
@@ -322,4 +322,33 @@ const [useImportHistoryStore] = createStoreHook<ImportHistory>({
 export function useImportHistory() {
   const { value, setValue } = useImportHistoryStore();
   return { importHistory: value ?? [], setImportHistory: setValue };
+}
+
+const [useBudgetsStore] = createStoreHook<BudgetMap>({
+  key: KnownStoreKeys.Budgets,
+  defaultValue: {},
+});
+
+export function useBudgets() {
+  const { value, setValue } = useBudgetsStore();
+  const budgets = useMemo(() => Object.values(value ?? {}), [value]);
+
+  const addBudget = useCallback((budget: Omit<BudgetLine, "id">) => {
+    const id = crypto.randomUUID();
+    setValue({ ...(value ?? {}), [id]: { ...budget, id } });
+  }, [value, setValue]);
+
+  const updateBudget = useCallback((id: string, budget: BudgetLine) => {
+    if (!value) return;
+    setValue({ ...value, [id]: budget });
+  }, [value, setValue]);
+
+  const removeBudget = useCallback((id: string) => {
+    if (!value) return;
+    const next = { ...value };
+    delete next[id];
+    setValue(next);
+  }, [value, setValue]);
+
+  return { budgets, addBudget, updateBudget, removeBudget };
 }

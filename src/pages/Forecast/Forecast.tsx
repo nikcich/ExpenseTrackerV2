@@ -7,6 +7,7 @@ import {
   computeCashFlowForecast,
 } from "@/utils/cash-flow-forecast";
 import { useForecastConfig } from "@/store/store";
+import { useAllTags } from "@/utils/tags";
 import { format } from "date-fns";
 import { formatCurrency } from "@/utils/utils";
 import styles from "./Forecast.module.scss";
@@ -60,6 +61,7 @@ export function Forecast() {
   const [incomeStreams, setIncomeStreams] = useState<IncomeRule[]>([]);
   const [expenses, setExpenses] = useState<ExpenseRule[]>([]);
 
+  const allTags = useAllTags();
   const { config: savedConfig, loaded, saveConfig } = useForecastConfig();
   const loadedFromStore = useRef(false);
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
@@ -323,7 +325,7 @@ export function Forecast() {
                 <div key={i} className={styles.ruleRow}>
                   <div className={styles.field} style={{ minWidth: "120px", flex: "0.8" }}>
                     <span className={styles.fieldLabel}>Name</span>
-                    <input className={styles.fieldInput} type="text" value={exp.name || ""} onChange={(e) => updateExpense(i, "name", e.target.value)} placeholder="e.g. Rent" />
+                    <input className={styles.fieldInput} type="text" list="forecast-category-options" value={exp.name || ""} onChange={(e) => updateExpense(i, "name", e.target.value)} placeholder="Tag, e.g. Food" />
                   </div>
                   <div className={styles.field} style={{ minWidth: "130px", flex: "0.7" }}>
                     <span className={styles.fieldLabel}>First Date</span>
@@ -360,6 +362,9 @@ export function Forecast() {
                   <ConfirmDeleteButton onConfirm={() => removeExpense(i)} />
                 </div>
               ))}
+              <datalist id="forecast-category-options">
+                {[...allTags].sort().map((t) => <option key={t} value={t} />)}
+              </datalist>
               <button className={styles.addBtn} onClick={addExpense}>+ Add Expense</button>
             </div>
           )}

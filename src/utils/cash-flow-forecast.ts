@@ -259,3 +259,31 @@ export function computeCashFlowForecast(
     summary: { endingChecking: balance, endingSavings: savings, lowestChecking: lowestBalance, totalIncome, totalExpenses },
   };
 }
+
+export interface ForecastOccurrence {
+  date: string;
+  amount: number;
+  ruleIndex: number;
+}
+
+export function forecastOccurrences(
+  config: CashFlowConfig
+): { income: ForecastOccurrence[]; expenses: ForecastOccurrence[] } {
+  const start = parseISO(config.startDate);
+  const end = parseISO(config.endDate);
+  if (!isValid(start) || !isValid(end)) return { income: [], expenses: [] };
+
+  const startStr = format(start, "yyyy-MM-dd");
+  const endStr = format(end, "yyyy-MM-dd");
+  const flatten = (map: Map<string, { amount: number; streamIndex: number }[]>) =>
+    [...map.entries()]
+      .filter(([date]) => date >= startStr && date <= endStr)
+      .flatMap(([date, items]) =>
+        items.map(({ amount, streamIndex }) => ({ date, amount, ruleIndex: streamIndex }))
+      );
+
+  return {
+    income: flatten(buildPaydays(start, end, config.incomeStreams)),
+    expenses: flatten(buildExpenses(start, end, config.expenses)),
+  };
+}
