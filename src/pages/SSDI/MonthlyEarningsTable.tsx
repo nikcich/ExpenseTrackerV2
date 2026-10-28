@@ -11,7 +11,7 @@ export type MonthlyRow = {
   earned: number;
   deposit: number;
   twpStatus: TwpStatus;
-  inGracePeriod: boolean;
+  inCessationPeriod: boolean;
 };
 
 function diffInDays(a: Date, b: Date): number {
@@ -47,7 +47,7 @@ function getMonthEnd(date: Date): Date {
   return new Date(date.getFullYear(), date.getMonth() + 1, 0);
 }
 
-const TWP_WINDOW_YEARS = 5;
+const TWP_WINDOW_MONTHS = 60;
 
 export type MonthlyRowsResult = {
   rows: MonthlyRow[];
@@ -104,54 +104,56 @@ export function computeMonthlyRows(
 
   const allSortedKeys = [...new Set([...earnedMap.keys(), ...depositMap.keys()])].sort();
 
-  const statusMap = new Map<string, TwpStatus>();
+  const exceededCountMap = new Map<string, number>();
   for (const key of allSortedKeys) {
-    const earned = earnedMap.get(key) ?? 0;
-    if (earned <= sgaMonthlyAmount) {
-      statusMap.set(key, "under");
-      continue;
-    }
+    if ((earnedMap.get(key) ?? 0) <= sgaMonthlyAmount) continue;
     const [ky, km] = key.split("-").map(Number);
-    const windowStartKey = formatMonthKey(new Date(ky - TWP_WINDOW_YEARS, km - 1, 1));
+    const windowStartKey = formatMonthKey(new Date(ky, km - TWP_WINDOW_MONTHS, 1));
     const exceededCount = allSortedKeys.filter(
       (k) => k >= windowStartKey && k <= key && (earnedMap.get(k) ?? 0) > sgaMonthlyAmount,
     ).length;
-    statusMap.set(key, exceededCount <= TWP_LIMIT ? "twp" : "exhausted");
+    exceededCountMap.set(key, exceededCount);
+  }
+
+  const cessationPeriodKeys = new Set<string>();
+  let cessationKey: string | null = null;
+  let gracePeriodEnd: string | null = null;
+  for (const [key, count] of exceededCountMap) {
+    if (count !== TWP_LIMIT) continue;
+    const [ty, tm] = key.split("-").map(Number);
+    const periodKeys = [1, 2, 3].map((i) => formatMonthKey(new Date(ty, tm - 1 + i, 1)));
+    periodKeys.forEach((k) => cessationPeriodKeys.add(k));
+    if (cessationKey === null) {
+      cessationKey = periodKeys[0];
+      gracePeriodEnd = periodKeys[2];
+    }
+  }
+
+  const statusMap = new Map<string, TwpStatus>();
+  for (const key of allSortedKeys) {
+    const count = exceededCountMap.get(key);
+    if (count === undefined) {
+      statusMap.set(key, "under");
+    } else if (count <= TWP_LIMIT) {
+      statusMap.set(key, "twp");
+    } else {
+      statusMap.set(key, cessationPeriodKeys.has(key) ? "cessation" : "exhausted");
+    }
   }
 
   let twpCount = 0;
   if (allSortedKeys.length > 0) {
     const latestKey = allSortedKeys[allSortedKeys.length - 1];
     const [latestY, latestM] = latestKey.split("-").map(Number);
-    const twpWindowStartKey = formatMonthKey(new Date(latestY - TWP_WINDOW_YEARS, latestM - 1, 1));
+    const twpWindowStartKey = formatMonthKey(new Date(latestY, latestM - TWP_WINDOW_MONTHS, 1));
     twpCount = allSortedKeys.filter(
       (k) => k >= twpWindowStartKey && k <= latestKey && statusMap.get(k) === "twp",
     ).length;
   }
 
-  const cessationKey = allSortedKeys.find((k) => statusMap.get(k) === "exhausted") ?? null;
-  let gracePeriodEnd: string | null = null;
-  if (cessationKey) {
-    const [cy, cm] = cessationKey.split("-").map(Number);
-    gracePeriodEnd = formatMonthKey(new Date(cy, cm + 2, 1));
-    for (let i = 0; i < 3; i++) {
-      const graceKey = formatMonthKey(new Date(cy, cm - 1 + i, 1));
-      const earned = earnedMap.get(graceKey) ?? 0;
-      if (statusMap.has(graceKey) && earned > sgaMonthlyAmount) {
-        statusMap.set(graceKey, "cessation");
-      }
-    }
-  }
-
-  const gracePeriodKeys = new Set<string>();
-  if (cessationKey) {
-    const [cy, cm] = cessationKey.split("-").map(Number);
-    for (let i = 0; i < 3; i++) {
-      gracePeriodKeys.add(formatMonthKey(new Date(cy, cm - 1 + i, 1)));
-    }
-  }
-
-  const filteredKeys = allSortedKeys.filter((key) => key.startsWith(yearPrefix));
+  const filteredKeys = [...new Set([...allSortedKeys, ...cessationPeriodKeys])]
+    .filter((key) => key.startsWith(yearPrefix))
+    .sort();
   const rows: MonthlyRow[] = filteredKeys.map((key) => {
     const [y, m] = key.split("-").map(Number);
     const date = new Date(y, m - 1, 1);
@@ -161,7 +163,7 @@ export function computeMonthlyRows(
       earned: earnedMap.get(key) ?? 0,
       deposit: depositMap.get(key) ?? 0,
       twpStatus: statusMap.get(key) ?? "under",
-      inGracePeriod: gracePeriodKeys.has(key),
+      inCessationPeriod: cessationPeriodKeys.has(key),
     };
   });
 
@@ -210,8 +212,8 @@ export function MonthlyEarningsTable({ rows }: Props) {
               {row.twpStatus === "exhausted" && "✕ Over SGA (Exhausted)"}
               {row.twpStatus === "cessation" && "Over SGA (Cessation Period)"}
               {row.twpStatus === "twp" && "TWP Month Used"}
-              {row.twpStatus === "under" && !row.inGracePeriod && "Under SGA"}
-              {row.twpStatus === "under" && row.inGracePeriod && "Under SGA (Cessation Period)"}
+              {row.twpStatus === "under" && !row.inCessationPeriod && "Under SGA"}
+              {row.twpStatus === "under" && row.inCessationPeriod && "Under SGA (Cessation Period)"}
             </td>
           </tr>
         ))}

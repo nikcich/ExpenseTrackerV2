@@ -118,7 +118,8 @@ export function SSDI() {
           earned: r.earned,
           twpAmount: sga,
           isTwpMonth: r.twpStatus === "twp",
-          dueBenefits: r.twpStatus !== "exhausted",
+          inCessationPeriod: r.inCessationPeriod,
+          dueBenefits: r.inCessationPeriod || r.twpStatus !== "exhausted",
         })),
         periods: yearPeriods.map((p) => {
           const expense = getExpenseById(p.depositExpenseId);

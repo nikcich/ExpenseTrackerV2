@@ -7,6 +7,7 @@ export type SsdiReportMonth = {
   earned: number;
   twpAmount: number;
   isTwpMonth: boolean;
+  inCessationPeriod: boolean;
   dueBenefits: boolean;
 };
 
@@ -253,7 +254,7 @@ function drawYear(
             m.label,
             money(m.earned),
             money(m.twpAmount),
-            m.isTwpMonth ? "Yes" : "No",
+            m.inCessationPeriod ? "CESSATION" : m.isTwpMonth ? "Yes" : "No",
             m.dueBenefits ? "Yes" : "No",
           ])
         : [["No monthly data for this year", "", "", "", ""]],
