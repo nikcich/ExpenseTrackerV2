@@ -64,6 +64,7 @@ export interface ExpenseTrackerService {
     customDefinitionsJson?: string | null,
   ): Promise<Response<CsvParseResponse>>;
   saveCsvToPath(path: string, content: string): Promise<Response<string>>;
+  saveBinaryToPath(path: string, bytes: number[]): Promise<Response<string>>;
   readTextFile(path: string): Promise<Response<string>>;
   readCsvPreview(path: string, rows: number): Promise<Response<string[][]>>;
   previewCsvParse(

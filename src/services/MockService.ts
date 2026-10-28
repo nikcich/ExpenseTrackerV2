@@ -24,6 +24,17 @@ const error = <T>(header: string, status = 500): Response<T> => ({
   message: null,
 });
 
+const downloadBlob =(blob: Blob, path: string) => {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = path.split(/[\\/]/).pop() ?? "download";
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+};
+
 export class MockService implements ExpenseTrackerService {
   private store: Record<string, unknown> = createMockData();
   private changed$ = new BehaviorSubject<string | null>(null);
@@ -107,8 +118,14 @@ export class MockService implements ExpenseTrackerService {
     return error("CSV import is not available in mock mode");
   }
 
-  async saveCsvToPath(_path: string, _content: string): Promise<Response<string>> {
-    return error("File saving is not available in mock mode");
+  async saveCsvToPath(path: string, content: string): Promise<Response<string>> {
+    downloadBlob(new Blob([content], { type: "text/plain;charset=utf-8" }), path);
+    return { status: 200, header: "", message: path };
+  }
+
+  async saveBinaryToPath(path: string, bytes: number[]): Promise<Response<string>> {
+    downloadBlob(new Blob([new Uint8Array(bytes)]), path);
+    return { status: 200, header: "", message: path };
   }
 
   async readTextFile(_path: string): Promise<Response<string>> {
@@ -146,8 +163,8 @@ export class MockService implements ExpenseTrackerService {
     return null;
   }
 
-  async saveFileDialog(_options?: SaveFileDialogOptions): Promise<string | null> {
-    return null;
+  async saveFileDialog(options?: SaveFileDialogOptions): Promise<string | null> {
+    return options?.defaultPath ?? "download";
   }
 
   async revealItemInDir(_path: string): Promise<void> {}

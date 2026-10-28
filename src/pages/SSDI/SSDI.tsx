@@ -6,7 +6,12 @@ import { PayPeriodsTable } from "./PayPeriodsTable";
 import { MonthlyEarningsTable, computeMonthlyRows, TWP_LIMIT, TwpStatus, formatMonthKeyLabel } from "./MonthlyEarningsTable";
 import { BarChart } from "@/components/charts/BarChart";
 import { MonthPills } from "@/components/MonthPills/MonthPills";
+import { toaster } from "@/components/ui/toaster";
+import { downloadSsdiReport, type SsdiReportData } from "@/utils/ssdi-report";
 import styles from "./SSDI.module.scss";
+
+const formatDate = (d: string) =>
+  d ? new Date(d.length === 10 ? `${d}T00:00:00` : d).toLocaleDateString("en-US", { month: "2-digit", day: "2-digit", year: "numeric" }) : "\u2014";
 
 const MONTH_NAMES = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
@@ -78,8 +83,65 @@ export function SSDI() {
     return allMonths.map((label) => rowMap.get(label) ?? { label, earned: 0, deposit: 0, twpStatus: "under" as TwpStatus });
   }, [monthlyRows, year]);
 
+  const exportPdf = useCallback(async () => {
+    const sortedPeriods = [...filteredPeriods].sort((a, b) =>
+      (getExpenseById(a.depositExpenseId)?.date ?? "").localeCompare(getExpenseById(b.depositExpenseId)?.date ?? "")
+    );
+    const data: SsdiReportData = {
+      year,
+      sgaAmount,
+      twpCount,
+      twpLimit: TWP_LIMIT,
+      cessation: cessationKey ? formatMonthKeyLabel(cessationKey) : "\u2014",
+      gracePeriodEnd: gracePeriodEnd ? formatMonthKeyLabel(gracePeriodEnd) : "\u2014",
+      isCompliant,
+      chartMonths,
+      months: monthlyRows.map((r) => ({
+        label: r.label,
+        earned: r.earned,
+        twpAmount: sgaAmount,
+        isTwpMonth: r.twpStatus === "twp",
+        dueBenefits: r.twpStatus !== "exhausted",
+      })),
+      periods: sortedPeriods.map((p) => {
+        const expense = getExpenseById(p.depositExpenseId);
+        return {
+          employer: expense?.description ?? "\u2014",
+          beginDate: formatDate(p.beginDate),
+          endDate: formatDate(p.endDate),
+          depositDate: expense ? formatDate(expense.date) : "\u2014",
+          depositAmount: expense ? Math.abs(expense.amount) : 0,
+          grossEarnings: p.grossEarnings,
+        };
+      }),
+    };
+    try {
+      const path = await downloadSsdiReport(data);
+      if (path) {
+        toaster.create({ title: "Report saved", description: path, type: "success" });
+      } else {
+        toaster.create({
+          title: "Export cancelled",
+          description: "No file was saved. Saving is unavailable while Mock Data Mode is on.",
+          type: "info",
+        });
+      }
+    } catch (e) {
+      toaster.create({ title: "Export failed", description: String(e instanceof Error ? e.message : e), type: "error" });
+    }
+  }, [year, sgaAmount, twpCount, cessationKey, gracePeriodEnd, isCompliant, chartMonths, monthlyRows, filteredPeriods, getExpenseById]);
+
   return (
-    <GenericPage title="SSDI Earnings Tracker" hasRange={false} needsData={false}>
+    <GenericPage
+      title="SSDI Earnings Tracker"
+      hasRange={false}
+      needsData={false}
+      actions={
+        <button className={styles.addButton} onClick={exportPdf}>
+          Export PDF
+        </button>
+      }
+    >
       <div className={styles.container}>
         <div className={styles.yearPillsRow}>
           <MonthPills

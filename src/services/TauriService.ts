@@ -89,6 +89,10 @@ export class TauriService implements ExpenseTrackerService {
     return await invoke<Response<string>>(API.SaveCSV, { path, content });
   }
 
+  async saveBinaryToPath(path: string, bytes: number[]): Promise<Response<string>> {
+    return await invoke<Response<string>>(API.SaveBinary, { path, bytes });
+  }
+
   async readTextFile(path: string): Promise<Response<string>> {
     return await invoke<Response<string>>(API.ReadTextFile, { path });
   }

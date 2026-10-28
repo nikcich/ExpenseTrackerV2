@@ -9,6 +9,7 @@ export enum API {
   SetJsonValue = "store_set_json_value",
   GetJsonValue = "store_get_json_value",
   SaveCSV = "save_csv_to_path",
+  SaveBinary = "save_binary_to_path",
   ReadCSVPreview = "read_csv_preview",
   PreviewParseCSV = "preview_csv_parse",
   ExportAllData = "export_all_data",

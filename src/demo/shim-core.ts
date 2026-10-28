@@ -11,6 +11,7 @@ const WRITE_COMMANDS = new Set<string>([
   API.RemoveBulkExpenses,
   API.UpdateBulkExpenses,
   API.SaveCSV,
+  API.SaveBinary,
   API.ReadCSVPreview,
   API.PreviewParseCSV,
   API.ExportAllData,
@@ -41,6 +42,13 @@ export async function invoke<T = unknown>(
     return { status: 200, message: undefined as unknown as T, header: "" };
   }
 
+  if (command === API.SaveBinary) {
+    const bytes = new Uint8Array((args?.bytes as number[]) ?? []);
+    const path = (args?.path as string) ?? "download";
+    triggerDownload(bytes, path.split("/").pop() ?? "file");
+    return { status: 200, message: undefined as unknown as T, header: "" };
+  }
+
   if (WRITE_COMMANDS.has(command)) {
     console.warn(`[demo] write command ignored: ${command}`);
     return { status: 200, message: undefined as unknown as T, header: "" };
@@ -60,9 +68,9 @@ export async function invoke<T = unknown>(
   return { status: 404, message: undefined, header: `unknown command: ${command}` };
 }
 
-function triggerDownload(content: string, filename: string) {
+function triggerDownload(content: string | Uint8Array<ArrayBuffer>, filename: string) {
   const blob = new Blob([content], {
-    type: "text/plain;charset=utf-8",
+    type: typeof content === "string" ? "text/plain;charset=utf-8" : "application/octet-stream",
   });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");

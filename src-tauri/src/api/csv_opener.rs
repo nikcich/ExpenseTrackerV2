@@ -335,6 +335,17 @@ pub fn save_csv_to_path(path: String, content: String) -> Response {
 }
 
 #[tauri::command]
+pub fn save_binary_to_path(path: String, bytes: Vec<u8>) -> Response {
+    match fs::write(&path, bytes) {
+        Ok(_) => Response::ok(String::from("File saved successfully"), Some(path)),
+        Err(e) => Response::err(
+            format!("Failed to save file: {}", e),
+            Option::<String>::None,
+        ),
+    }
+}
+
+#[tauri::command]
 pub fn read_text_file(path: String) -> Response {
     match fs::read_to_string(&path) {
         Ok(content) => Response::ok(String::from("File read successfully"), Some(content)),
