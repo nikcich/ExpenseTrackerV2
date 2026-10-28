@@ -19,17 +19,23 @@ export type SsdiReportPeriod = {
   grossEarnings: number;
 };
 
-export type SsdiReportData = {
+export type SsdiReportYear = {
   year: number;
   sgaAmount: number;
+  chartMonths: { label: string; earned: number; deposit: number }[];
+  months: SsdiReportMonth[];
+  periods: SsdiReportPeriod[];
+};
+
+export type SsdiReportData = {
+  fromYear: number;
+  toYear: number;
   twpCount: number;
   twpLimit: number;
   cessation: string;
   gracePeriodEnd: string;
   isCompliant: boolean;
-  chartMonths: { label: string; earned: number; deposit: number }[];
-  months: SsdiReportMonth[];
-  periods: SsdiReportPeriod[];
+  years: SsdiReportYear[];
 };
 
 type RGB = [number, number, number];
@@ -62,7 +68,7 @@ function niceMax(value: number): number {
 
 function drawChart(
   doc: jsPDF,
-  data: SsdiReportData,
+  data: SsdiReportYear,
   x: number,
   y: number,
   w: number,
@@ -151,51 +157,37 @@ function sectionTitle(doc: jsPDF, text: string, y: number): number {
   return y + 8;
 }
 
-export function buildSsdiReport(data: SsdiReportData): jsPDF {
-  const doc = new jsPDF({ unit: "pt", format: "letter" });
-  const pageW = doc.internal.pageSize.getWidth();
-  const pageH = doc.internal.pageSize.getHeight();
-  const contentW = pageW - MARGIN * 2;
+const tableStyles = {
+  font: "helvetica",
+  fontSize: 9,
+  textColor: INK,
+  cellPadding: { top: 5, bottom: 5, left: 6, right: 6 },
+  lineColor: RULE,
+  lineWidth: 0,
+};
 
-  doc.setFillColor(...ACCENT);
-  doc.rect(0, 0, pageW, 8, "F");
+const headStyles = {
+  fillColor: ACCENT,
+  textColor: [255, 255, 255] as RGB,
+  fontStyle: "bold" as const,
+  fontSize: 8.5,
+};
 
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(20);
-  doc.setTextColor(...INK);
-  doc.text("SSDI Earnings Report", MARGIN, 54);
+const rangeLabel = (data: SsdiReportData) =>
+  data.fromYear === data.toYear ? String(data.fromYear) : `${data.fromYear}\u2013${data.toYear}`;
 
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(10);
-  doc.setTextColor(...MUTED);
-  doc.text(`Reporting year ${data.year}`, MARGIN, 70);
-  doc.text(
-    `Generated ${new Date().toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })}`,
-    pageW - MARGIN,
-    70,
-    { align: "right" },
-  );
-  doc.setDrawColor(...RULE);
-  doc.setLineWidth(0.75);
-  doc.line(MARGIN, 80, pageW - MARGIN, 80);
+const lastTableY = (doc: jsPDF) =>
+  (doc as jsPDF & { lastAutoTable: { finalY: number } }).lastAutoTable.finalY;
 
-  const totalGross = data.months.reduce((s, m) => s + m.earned, 0);
-  const totalDeposit = data.chartMonths.reduce((s, m) => s + m.deposit, 0);
+const sumGross = (y: SsdiReportYear) => y.months.reduce((s, m) => s + m.earned, 0);
+const sumDeposits = (y: SsdiReportYear) => y.chartMonths.reduce((s, m) => s + m.deposit, 0);
 
-  const stats: [string, string, RGB][] = [
-    ["TWP Months Used", `${data.twpCount} / ${data.twpLimit}`, INK],
-    ["Cessation Month", data.cessation, INK],
-    ["Grace Period Ends", data.gracePeriodEnd, INK],
-    ["SSA Compliance", data.isCompliant ? "OK" : "NON-COMPLIANT", data.isCompliant ? OK : DANGER],
-    ["SGA Threshold", `${money(data.sgaAmount)} / mo`, INK],
-    ["Total Gross Earnings", money(totalGross), INK],
-    ["Total Deposits", money(totalDeposit), INK],
-  ];
+function drawStats(doc: jsPDF, stats: [string, string, RGB][], y: number, contentW: number): number {
   const cols = 4;
   const colW = contentW / cols;
   stats.forEach(([label, value, color], i) => {
     const sx = MARGIN + (i % cols) * colW;
-    const sy = 102 + Math.floor(i / cols) * 40;
+    const sy = y + Math.floor(i / cols) * 40;
     doc.setFont("helvetica", "normal");
     doc.setFontSize(8);
     doc.setTextColor(...MUTED);
@@ -205,27 +197,44 @@ export function buildSsdiReport(data: SsdiReportData): jsPDF {
     doc.setTextColor(...color);
     doc.text(value, sx, sy + 15);
   });
+  return y + Math.ceil(stats.length / cols) * 40;
+}
 
-  let y = sectionTitle(doc, "Monthly Earnings Overview", 192);
-  drawChart(doc, data, MARGIN, y + 6, contentW, 200);
+function drawYear(
+  doc: jsPDF,
+  data: SsdiReportData,
+  yr: SsdiReportYear,
+  startY: number,
+  showYearHeading: boolean,
+  contentW: number,
+) {
+  const pageH = doc.internal.pageSize.getHeight();
+  let y = startY;
+
+  if (showYearHeading) {
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(16);
+    doc.setTextColor(...INK);
+    doc.text(String(yr.year), MARGIN, y + 6);
+    y += 24;
+    y = drawStats(
+      doc,
+      [
+        ["SGA Threshold", `${money(yr.sgaAmount)} / mo`, INK],
+        ["Total Gross Earnings", money(sumGross(yr)), INK],
+        ["Total Deposits", money(sumDeposits(yr)), INK],
+      ],
+      y,
+      contentW,
+    );
+    y += 4;
+  }
+
+  y = sectionTitle(doc, "Monthly Earnings Overview", y);
+  drawChart(doc, yr, MARGIN, y + 6, contentW, 200);
   y += 6 + 200 + 24;
 
   y = sectionTitle(doc, "Monthly Earnings", y);
-  const tableStyles = {
-    font: "helvetica",
-    fontSize: 9,
-    textColor: INK,
-    cellPadding: { top: 5, bottom: 5, left: 6, right: 6 },
-    lineColor: RULE,
-    lineWidth: 0,
-  };
-  const headStyles = {
-    fillColor: ACCENT,
-    textColor: [255, 255, 255] as RGB,
-    fontStyle: "bold" as const,
-    fontSize: 8.5,
-  };
-
   autoTable(doc, {
     startY: y + 4,
     margin: { left: MARGIN, right: MARGIN, bottom: 50 },
@@ -239,8 +248,8 @@ export function buildSsdiReport(data: SsdiReportData): jsPDF {
       ],
     ],
     body:
-      data.months.length > 0
-        ? data.months.map((m) => [
+      yr.months.length > 0
+        ? yr.months.map((m) => [
             m.label,
             money(m.earned),
             money(m.twpAmount),
@@ -249,27 +258,28 @@ export function buildSsdiReport(data: SsdiReportData): jsPDF {
           ])
         : [["No monthly data for this year", "", "", "", ""]],
     foot:
-      data.months.length > 0
-        ? [["Total", money(totalGross), "", `${data.twpCount} of ${data.twpLimit}`, ""]]
+      yr.months.length > 0
+        ? [
+            [
+              "Total",
+              money(sumGross(yr)),
+              "",
+              `${yr.months.filter((m) => m.isTwpMonth).length} of ${data.twpLimit}`,
+              "",
+            ],
+          ]
         : undefined,
     styles: tableStyles,
     headStyles,
     footStyles: { fillColor: STRIPE, textColor: INK, fontStyle: "bold" },
     alternateRowStyles: { fillColor: STRIPE },
-    columnStyles: {
-      1: { halign: "right" },
-      2: { halign: "right" },
-      3: { halign: "center" },
-      4: { halign: "center" },
-    },
     didParseCell: (hook) => {
       if (hook.column.index === 1 || hook.column.index === 2) hook.cell.styles.halign = "right";
       if (hook.column.index === 3 || hook.column.index === 4) hook.cell.styles.halign = "center";
     },
   });
 
-  const afterMonthly = (doc as jsPDF & { lastAutoTable: { finalY: number } }).lastAutoTable.finalY;
-  let periodsY = afterMonthly + 28;
+  let periodsY = lastTableY(doc) + 28;
   if (periodsY > pageH - 140) {
     doc.addPage();
     periodsY = MARGIN + 10;
@@ -281,8 +291,8 @@ export function buildSsdiReport(data: SsdiReportData): jsPDF {
     margin: { left: MARGIN, right: MARGIN, bottom: 50 },
     head: [["Employer", "Begin", "End", "Deposit Date", "Deposit", "Gross Earnings"]],
     body:
-      data.periods.length > 0
-        ? data.periods.map((p) => [
+      yr.periods.length > 0
+        ? yr.periods.map((p) => [
             p.employer,
             p.beginDate,
             p.endDate,
@@ -294,17 +304,97 @@ export function buildSsdiReport(data: SsdiReportData): jsPDF {
     styles: tableStyles,
     headStyles,
     alternateRowStyles: { fillColor: STRIPE },
-    columnStyles: {
-      0: { cellWidth: 150 },
-      4: { halign: "right" },
-      5: { halign: "right" },
-    },
+    columnStyles: { 0: { cellWidth: 150 } },
     didParseCell: (hook) => {
-      if (hook.section === "head" && (hook.column.index === 4 || hook.column.index === 5)) {
-        hook.cell.styles.halign = "right";
-      }
+      if (hook.column.index === 4 || hook.column.index === 5) hook.cell.styles.halign = "right";
     },
   });
+}
+
+export function buildSsdiReport(data: SsdiReportData): jsPDF {
+  const doc = new jsPDF({ unit: "pt", format: "letter" });
+  const pageW = doc.internal.pageSize.getWidth();
+  const pageH = doc.internal.pageSize.getHeight();
+  const contentW = pageW - MARGIN * 2;
+  const multiYear = data.years.length > 1;
+
+  doc.setFillColor(...ACCENT);
+  doc.rect(0, 0, pageW, 8, "F");
+
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(20);
+  doc.setTextColor(...INK);
+  doc.text("SSDI Earnings Report", MARGIN, 54);
+
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(10);
+  doc.setTextColor(...MUTED);
+  doc.text(`Reporting ${multiYear ? "period" : "year"} ${rangeLabel(data)}`, MARGIN, 70);
+  doc.text(
+    `Generated ${new Date().toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })}`,
+    pageW - MARGIN,
+    70,
+    { align: "right" },
+  );
+  doc.setDrawColor(...RULE);
+  doc.setLineWidth(0.75);
+  doc.line(MARGIN, 80, pageW - MARGIN, 80);
+
+  const stats: [string, string, RGB][] = [
+    ["TWP Months Used", `${data.twpCount} / ${data.twpLimit}`, INK],
+    ["Cessation Month", data.cessation, INK],
+    ["Grace Period Ends", data.gracePeriodEnd, INK],
+    ["SSA Compliance", data.isCompliant ? "OK" : "NON-COMPLIANT", data.isCompliant ? OK : DANGER],
+  ];
+  if (!multiYear) {
+    const only = data.years[0];
+    stats.push(
+      ["SGA Threshold", `${money(only.sgaAmount)} / mo`, INK],
+      ["Total Gross Earnings", money(sumGross(only)), INK],
+      ["Total Deposits", money(sumDeposits(only)), INK],
+    );
+  }
+  const statsEnd = drawStats(doc, stats, 102, contentW);
+
+  if (!multiYear) {
+    drawYear(doc, data, data.years[0], statsEnd + 10, false, contentW);
+  } else {
+    const y = sectionTitle(doc, "Summary by Year", statsEnd + 4);
+    autoTable(doc, {
+      startY: y + 4,
+      margin: { left: MARGIN, right: MARGIN, bottom: 50 },
+      head: [["Year", "SGA Threshold", "Gross Earnings", "Deposits", "TWP Months"]],
+      body: data.years.map((yr) => [
+        String(yr.year),
+        money(yr.sgaAmount),
+        money(sumGross(yr)),
+        money(sumDeposits(yr)),
+        String(yr.months.filter((m) => m.isTwpMonth).length),
+      ]),
+      foot: [
+        [
+          "Total",
+          "",
+          money(data.years.reduce((s, yr) => s + sumGross(yr), 0)),
+          money(data.years.reduce((s, yr) => s + sumDeposits(yr), 0)),
+          String(data.years.reduce((s, yr) => s + yr.months.filter((m) => m.isTwpMonth).length, 0)),
+        ],
+      ],
+      styles: tableStyles,
+      headStyles,
+      footStyles: { fillColor: STRIPE, textColor: INK, fontStyle: "bold" },
+      alternateRowStyles: { fillColor: STRIPE },
+      didParseCell: (hook) => {
+        if (hook.column.index >= 1 && hook.column.index <= 3) hook.cell.styles.halign = "right";
+        if (hook.column.index === 4) hook.cell.styles.halign = "center";
+      },
+    });
+
+    for (const yr of data.years) {
+      doc.addPage();
+      drawYear(doc, data, yr, MARGIN + 10, true, contentW);
+    }
+  }
 
   const pages = doc.getNumberOfPages();
   for (let i = 1; i <= pages; i++) {
@@ -315,7 +405,7 @@ export function buildSsdiReport(data: SsdiReportData): jsPDF {
     doc.setFont("helvetica", "normal");
     doc.setFontSize(8);
     doc.setTextColor(...MUTED);
-    doc.text(`SSDI Earnings Report — ${data.year}`, MARGIN, pageH - 22);
+    doc.text(`SSDI Earnings Report \u2014 ${rangeLabel(data)}`, MARGIN, pageH - 22);
     doc.text(`Page ${i} of ${pages}`, pageW - MARGIN, pageH - 22, { align: "right" });
   }
 
@@ -327,7 +417,7 @@ export async function downloadSsdiReport(data: SsdiReportData): Promise<string |
   if (!service) return null;
 
   const path = await service.saveFileDialog({
-    defaultPath: `ssdi-report-${data.year}.pdf`,
+    defaultPath: `ssdi-report-${data.fromYear === data.toYear ? data.fromYear : `${data.fromYear}-${data.toYear}`}.pdf`,
     filters: [{ name: "PDF", extensions: ["pdf"] }],
   });
   if (!path) return null;

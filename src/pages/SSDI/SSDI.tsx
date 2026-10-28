@@ -2,12 +2,13 @@ import { useState, useMemo, useCallback } from "react";
 import { GenericPage } from "@/components/GenericPage/GenericPage";
 import { useSsdiPayPeriods, useSsdiConfig } from "@/store/store";
 import { useIncome, useGetExpenseById } from "@/hooks/expenses";
+import { ExportReportModal } from "./ExportReportModal";
 import { PayPeriodsTable } from "./PayPeriodsTable";
 import { MonthlyEarningsTable, computeMonthlyRows, TWP_LIMIT, TwpStatus, formatMonthKeyLabel } from "./MonthlyEarningsTable";
 import { BarChart } from "@/components/charts/BarChart";
 import { MonthPills } from "@/components/MonthPills/MonthPills";
 import { toaster } from "@/components/ui/toaster";
-import { downloadSsdiReport, type SsdiReportData } from "@/utils/ssdi-report";
+import { downloadSsdiReport, type SsdiReportData, type SsdiReportYear } from "@/utils/ssdi-report";
 import styles from "./SSDI.module.scss";
 
 const formatDate = (d: string) =>
@@ -83,53 +84,82 @@ export function SSDI() {
     return allMonths.map((label) => rowMap.get(label) ?? { label, earned: 0, deposit: 0, twpStatus: "under" as TwpStatus });
   }, [monthlyRows, year]);
 
-  const exportPdf = useCallback(async () => {
-    const sortedPeriods = [...filteredPeriods].sort((a, b) =>
-      (getExpenseById(a.depositExpenseId)?.date ?? "").localeCompare(getExpenseById(b.depositExpenseId)?.date ?? "")
+  const [exportOpen, setExportOpen] = useState(false);
+
+  const exportPdf = useCallback(async (fromYear: number, toYear: number) => {
+    setExportOpen(false);
+    const yearList = availableYears.filter((y) => y >= fromYear && y <= toYear);
+
+    const years: SsdiReportYear[] = yearList.map((y) => {
+      const sga = config?.sgaByYear?.[y] ?? 1620;
+      const { rows } = computeMonthlyRows(periods, sga, y, getExpenseById);
+      const rowMap = new Map(rows.map((r) => [r.label, r]));
+      const yearPeriods = periods
+        .filter((p) => {
+          const expense = getExpenseById(p.depositExpenseId);
+          return (
+            (expense && new Date(expense.date).getFullYear() === y) ||
+            (p.beginDate && new Date(p.beginDate).getFullYear() === y) ||
+            (p.endDate && new Date(p.endDate).getFullYear() === y)
+          );
+        })
+        .sort((a, b) =>
+          (getExpenseById(a.depositExpenseId)?.date ?? "").localeCompare(getExpenseById(b.depositExpenseId)?.date ?? "")
+        );
+      return {
+        year: y,
+        sgaAmount: sga,
+        chartMonths: MONTH_NAMES.map((m) => {
+          const row = rowMap.get(`${m} ${y}`);
+          return { label: `${m} ${y}`, earned: row?.earned ?? 0, deposit: row?.deposit ?? 0 };
+        }),
+        months: rows.map((r) => ({
+          label: r.label,
+          earned: r.earned,
+          twpAmount: sga,
+          isTwpMonth: r.twpStatus === "twp",
+          dueBenefits: r.twpStatus !== "exhausted",
+        })),
+        periods: yearPeriods.map((p) => {
+          const expense = getExpenseById(p.depositExpenseId);
+          return {
+            employer: expense?.description ?? "\u2014",
+            beginDate: formatDate(p.beginDate),
+            endDate: formatDate(p.endDate),
+            depositDate: expense ? formatDate(expense.date) : "\u2014",
+            depositAmount: expense ? Math.abs(expense.amount) : 0,
+            grossEarnings: p.grossEarnings,
+          };
+        }),
+      };
+    });
+
+    const summary = computeMonthlyRows(periods, config?.sgaByYear?.[toYear] ?? 1620, toYear, getExpenseById);
+    const allCompliant = yearList.every(
+      (y) => computeMonthlyRows(periods, config?.sgaByYear?.[y] ?? 1620, y, getExpenseById).isCompliant
     );
+
     const data: SsdiReportData = {
-      year,
-      sgaAmount,
-      twpCount,
+      fromYear,
+      toYear,
+      twpCount: summary.twpCount,
       twpLimit: TWP_LIMIT,
-      cessation: cessationKey ? formatMonthKeyLabel(cessationKey) : "\u2014",
-      gracePeriodEnd: gracePeriodEnd ? formatMonthKeyLabel(gracePeriodEnd) : "\u2014",
-      isCompliant,
-      chartMonths,
-      months: monthlyRows.map((r) => ({
-        label: r.label,
-        earned: r.earned,
-        twpAmount: sgaAmount,
-        isTwpMonth: r.twpStatus === "twp",
-        dueBenefits: r.twpStatus !== "exhausted",
-      })),
-      periods: sortedPeriods.map((p) => {
-        const expense = getExpenseById(p.depositExpenseId);
-        return {
-          employer: expense?.description ?? "\u2014",
-          beginDate: formatDate(p.beginDate),
-          endDate: formatDate(p.endDate),
-          depositDate: expense ? formatDate(expense.date) : "\u2014",
-          depositAmount: expense ? Math.abs(expense.amount) : 0,
-          grossEarnings: p.grossEarnings,
-        };
-      }),
+      cessation: summary.cessationKey ? formatMonthKeyLabel(summary.cessationKey) : "\u2014",
+      gracePeriodEnd: summary.gracePeriodEnd ? formatMonthKeyLabel(summary.gracePeriodEnd) : "\u2014",
+      isCompliant: allCompliant,
+      years,
     };
     try {
       const path = await downloadSsdiReport(data);
       if (path) {
         toaster.create({ title: "Report saved", description: path, type: "success" });
       } else {
-        toaster.create({
-          title: "Export cancelled",
-          description: "No file was saved. Saving is unavailable while Mock Data Mode is on.",
-          type: "info",
-        });
+        toaster.create({ title: "Export cancelled", description: "No file was saved.", type: "info" });
       }
     } catch (e) {
       toaster.create({ title: "Export failed", description: String(e instanceof Error ? e.message : e), type: "error" });
     }
-  }, [year, sgaAmount, twpCount, cessationKey, gracePeriodEnd, isCompliant, chartMonths, monthlyRows, filteredPeriods, getExpenseById]);
+  }, [availableYears, config, periods, getExpenseById]);
 
   return (
     <GenericPage
@@ -137,7 +167,7 @@ export function SSDI() {
       hasRange={false}
       needsData={false}
       actions={
-        <button className={styles.addButton} onClick={exportPdf}>
+        <button className={styles.addButton} onClick={() => setExportOpen(true)}>
           Export PDF
         </button>
       }
@@ -305,6 +335,14 @@ export function SSDI() {
 
 
       </div>
+      {exportOpen && (
+        <ExportReportModal
+          years={availableYears}
+          defaultYear={year}
+          onClose={() => setExportOpen(false)}
+          onExport={exportPdf}
+        />
+      )}
     </GenericPage>
   );
 }
